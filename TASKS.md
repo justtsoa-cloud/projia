@@ -82,3 +82,21 @@ Légende : `[x]` fait · `[~]` en cours · `[ ]` à faire
 - [ ] Tests, CI, push GitHub, release v0.2.0
 
 - [x] Bascule sans clé : Kilo Code, LLM7, OVHcloud (signalé le 2026-10-10)
+
+## v0.2.3 — signalements du 2026-10-10 (après la 0.2.2)
+- [x] « crée la photo » non reconnu comme demande d'image → détection élargie + demandes de suite
+- [x] Historique `[média:…]` pris pour des espaces réservés par les modèles de texte
+- [x] Bascule automatique vers la génération d'image quand un modèle de texte refuse
+- [ ] **Retouche de photo qui ne suit pas la consigne** (« sans changer la personne ni la composition » → une autre personne était générée) :
+  - [ ] Retouche locale fidèle sur l'appareil (lumière, contraste, netteté, couleurs, noir et blanc, sépia, vintage, « professionnel »…) — gratuite, privée, hors ligne
+  - [ ] Route d'envoi : consigne de fidélité ou retouche simple → locale ; transformation créative → réinterprétation (avec avertissement)
+  - [ ] Ne jamais générer une autre personne quand l'utilisateur demande de la conserver : message honnête + alternatives
+  - [ ] Endpoint cœur pour enregistrer un résultat de retouche locale (historique, galerie, mode distant)
+  - [ ] Tests (cœur + Dart), documentation (vie privée : la photo n'est envoyée à aucun service pour la retouche locale)
+- [ ] Publier la 0.2.3 (CI verte, release, vérification)
+
+## Demande de contenu pour un post
+- [ ] Captures d'écran Android (émulateur API 36) : accueil, réponse avec formules, pourquoi ce modèle, sélecteur de modèle, image, réglages/clés, mémoire, retouche, mode sombre, nouveautés
+- [ ] Captures d'écran Linux (application de bureau)
+- [ ] Courtes vidéos de démonstration (≈ 30 s) : chat + formules, génération d'image, retouche de photo ; version Android et bureau
+- [ ] Visuels prêts pour un post (cadres, légendes), dossier `press/` + captures dans `docs/screenshots/`
