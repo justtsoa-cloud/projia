@@ -73,6 +73,8 @@ class Settings(BaseModel):
     media_quota_mb: int = 1024
     language: str = "fr"
     check_updates: bool = True
+    # Téléchargement et installation automatiques des nouvelles versions.
+    auto_update: bool = True
 
     @property
     def data_dir(self) -> Path:

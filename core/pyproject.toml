@@ -49,6 +49,7 @@ dev = [
   "pytest>=8",
   "pytest-asyncio>=0.24",
   "respx>=0.21",
+  "openai>=1.40",
   "ruff>=0.6",
   "mypy>=1.11",
   "types-PyYAML",
@@ -88,3 +89,6 @@ asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 markers = ["network: test nécessitant Internet (désactivé par défaut en CI)"]
 addopts = "-m 'not network'"
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.File", "fastapi.Form"]

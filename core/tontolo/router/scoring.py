@@ -142,6 +142,8 @@ def rank(
                 s = min(1.0, s * 1.2)
             r = reliability.get(m.key)
             penalty = 0.05 if m.provisional else 0.0
+            if m.provider == "local":
+                penalty += 0.3  # repli local : toujours en dernier
             penalty += 0.15 * quota.pressure(m, now)
             score = w.quality * q + w.speed * s + w.reliability * r - penalty
             cands.append(Candidate(m, score, q, s, r, available_at=quota.available_at(m, now)))

@@ -63,6 +63,7 @@ def parse_models(data: dict[str, Any]) -> list[ModelInfo]:
         pricing = raw.get("pricing") or {}
         arch = raw.get("architecture") or {}
         top = raw.get("top_provider") or {}
+        media = _media(raw)
         metrics: dict[str, float] = {}
         aa = ((raw.get("benchmarks") or {}).get("artificial_analysis")) or {}
         for src, dst in (("intelligence_index", "or_aa.intelligence"),
@@ -80,11 +81,14 @@ def parse_models(data: dict[str, Any]) -> list[ModelInfo]:
             input_modalities=arch.get("input_modalities") or ["text"],
             output_modalities=arch.get("output_modalities") or ["text"],
             supports_tools="tools" in (raw.get("supported_parameters") or []),
-            is_free=is_free(pricing),
+            # Les modèles médias (image, audio, vidéo) affichent souvent un prix
+            # texte nul alors qu'ils sont facturés à l'unité : seuls les « :free »
+            # sont considérés gratuits (vérification du 2026-10-10).
+            is_free=is_free(pricing) and (not media or raw["id"].endswith(":free")),
             needs_key=True,
             price_in=_price(pricing.get("prompt")),
             price_out=_price(pricing.get("completion")),
-            media=_media(raw),
+            media=media,
             metrics=metrics,
         ))
     return out

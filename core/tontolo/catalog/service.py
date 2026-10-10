@@ -17,6 +17,7 @@ from tontolo.catalog.catalog import Catalog, build_catalog
 from tontolo.catalog.models import ModelInfo
 from tontolo.catalog.sources import freeapis, openrouter, pollinations, rankings
 from tontolo.config import Settings
+from tontolo.media.providers import LOCAL_TTS_MODEL
 from tontolo.storage.db import Database
 
 log = logging.getLogger(__name__)
@@ -26,6 +27,10 @@ BUILTIN_PROVIDERS: dict[str, dict[str, Any]] = {
         "id": "openrouter", "name": "OpenRouter", "base_url": openrouter.BASE_URL,
         "key_url": "https://openrouter.ai/settings/keys",
         "description": "Agrégateur : nombreux modèles « :free » avec une clé gratuite.",
+    },
+    "local": {
+        "id": "local", "name": "Appareil", "base_url": "", "key_url": None, "keyless": True,
+        "description": "Synthèse vocale du système, sans quota.",
     },
     "pollinations": {
         "id": "pollinations", "name": "Pollinations", "base_url": pollinations.TEXT_BASE_URL,
@@ -95,7 +100,8 @@ class CatalogService:
         for r in results:
             if isinstance(r, BaseException):
                 log.warning("Source en échec : %r", r)
-        models: list[ModelInfo] = [*(or_models or []), *(poll_models or [])]
+        models: list[ModelInfo] = [*(or_models or []), *(poll_models or []),
+                                   LOCAL_TTS_MODEL.model_copy(deep=True)]
         providers = dict(BUILTIN_PROVIDERS)
         if isinstance(free_res, tuple):
             free_models, free_providers = free_res
