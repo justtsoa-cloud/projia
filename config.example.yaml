@@ -1,0 +1,31 @@
+# Exemple de configuration de Tontolo (copier vers ~/.local/share/tontolo/config.yaml).
+# Aucune liste de modèles ni quota ici : tout vient des catalogues en ligne.
+
+catalog_ttl_hours: 6          # durée de validité du cache des catalogues
+
+weights:                      # score = qualité·w_q + vitesse·w_s + fiabilité·w_r − pénalités
+  quality: 0.6
+  speed: 0.15
+  reliability: 0.25
+
+paid:                         # comptes payants (F4) : désactivés par défaut
+  fallback: off               # off | ask | auto
+  daily_cap_usd: 0.0          # un plafond > 0 est obligatoire pour tout appel payant
+  monthly_cap_usd: 0.0
+  allowed_models: []          # vide = tous les modèles payants (si fallback ≠ off)
+
+agent:
+  max_iterations: 8
+  max_seconds: 120
+  workdir: null               # dossier de travail des outils fichiers (défaut : données/workspace)
+
+server:
+  host: 127.0.0.1
+  port: 8765
+  token: null                 # obligatoire si host n'est pas la boucle locale (ou TONTOLO_TOKEN)
+
+llm_classifier: false         # petit modèle gratuit pour les demandes ambiguës
+media_quota_mb: 1024          # purge des médias les plus anciens au-delà
+language: fr
+check_updates: true
+auto_update: true

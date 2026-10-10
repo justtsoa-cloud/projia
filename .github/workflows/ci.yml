@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  core:
+    name: Cœur Python (${{ matrix.python }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.11", "3.14"]
+    defaults:
+      run:
+        working-directory: core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - run: uv venv && uv pip install -e ".[dev,linux]"
+      - name: Lint (ruff)
+        run: .venv/bin/ruff check tontolo tests
+      - name: Typage (mypy)
+        run: .venv/bin/mypy
+      - name: Tests (pytest, fournisseurs simulés)
+        run: .venv/bin/pytest -q
+      - name: Budget de latence (sélection du modèle < 20 ms)
+        run: .venv/bin/pytest -q tests/test_router.py -k selection_is_fast
+
+  app:
+    name: Application Flutter
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test

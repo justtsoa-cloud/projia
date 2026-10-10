@@ -85,11 +85,61 @@ async def web_search(args: dict[str, Any]) -> str:
     return untrusted("\n".join(lines))
 
 
+class _DdgHtmlParser(HTMLParser):
+    """Analyse la page de résultats HTML de DuckDuckGo (repli léger sans ddgs)."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.results: list[dict[str, str]] = []
+        self._field: str | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        a = dict(attrs)
+        cls = a.get("class") or ""
+        if tag == "a" and "result__a" in cls:
+            self.results.append({"title": "", "url": _ddg_url(a.get("href") or ""),
+                                 "snippet": ""})
+            self._field = "title"
+        elif "result__snippet" in cls and self.results:
+            self._field = "snippet"
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in ("a", "td", "div"):
+            self._field = None
+
+    def handle_data(self, data: str) -> None:
+        if self._field and self.results:
+            self.results[-1][self._field] += data
+
+
+def _ddg_url(href: str) -> str:
+    from urllib.parse import parse_qs, unquote, urlparse
+
+    if "uddg=" in href:
+        return unquote(parse_qs(urlparse(href).query).get("uddg", [href])[0])
+    return href if href.startswith("http") else "https:" + href if href.startswith("//") else href
+
+
+async def _search_html(query: str, n: int) -> list[dict[str, str]]:
+    resp = await http.client().post(
+        "https://html.duckduckgo.com/html/", data={"q": query}, timeout=15,
+        headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) Tontolo"})
+    parser = _DdgHtmlParser()
+    parser.feed(resp.text)
+    out = [r for r in parser.results if r["url"].startswith("http")
+           and "duckduckgo.com/y.js" not in r["url"]]
+    return [{k: v.strip()[:400] for k, v in r.items()} for r in out[:n]]
+
+
 async def search_raw(query: str, n: int = 5) -> list[dict[str, str]]:
+    """Métarecherche `ddgs` si installée (Linux), sinon repli HTML léger (Android)."""
     try:
         from ddgs import DDGS  # import paresseux
     except ImportError:
-        return []
+        try:
+            return await _search_html(query, n)
+        except Exception:
+            return []
 
     def run() -> list[dict[str, Any]]:
         return list(DDGS().text(query, max_results=n))

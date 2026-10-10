@@ -62,6 +62,7 @@ class PrefBody(BaseModel):
 class KeyBody(BaseModel):
     key: str
     persist: bool = True
+    validate_key: bool = True   # l'application renvoie ses clés au démarrage sans revalider
 
 
 class MediaBody(BaseModel):
@@ -435,7 +436,8 @@ def create_app(
     @app.put("/tontolo/keys/{provider}")
     async def put_key(request: Request, provider: str, body: KeyBody) -> dict[str, Any]:
         core = core_of(request)
-        ok, detail = await _validate_key(core, provider, body.key.strip())
+        ok, detail = (await _validate_key(core, provider, body.key.strip())
+                      if body.validate_key else (True, "Clé chargée"))
         if ok:
             secrets.set_key(provider, body.key.strip(), persist=body.persist)
             core.router.registry.reset()

@@ -1,0 +1,15 @@
+name: Signaler un bug
+description: Quelque chose ne fonctionne pas
+labels: [bug]
+body:
+  - type: textarea
+    attributes: {label: Description, description: Que s'est-il passé ? Qu'attendiez-vous ?}
+    validations: {required: true}
+  - type: input
+    attributes: {label: Version, placeholder: "0.1.0"}
+  - type: dropdown
+    attributes: {label: Plateforme, options: [Android, Linux (AppImage), Linux (CLI/serveur)]}
+  - type: textarea
+    attributes: {label: Étapes pour reproduire}
+  - type: markdown
+    attributes: {value: "⚠️ Ne collez jamais vos clés API dans une issue."}

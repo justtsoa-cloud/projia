@@ -1,0 +1,139 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  SERIOUS_PYTHON_VERSION: "3.14"
+  # Budgets (section 11) — mesurés en phase 1, la release échoue s'ils sont dépassés.
+  BUDGET_APK_MB: "45"
+  BUDGET_APPIMAGE_MB: "110"
+  BUDGET_WHEEL_KB: "400"
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+
+  python:
+    needs: checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: cd core && uv build
+      - name: Budget de taille de la roue
+        run: |
+          size=$(( $(stat -c %s core/dist/*.whl) / 1024 ))
+          echo "Roue : ${size} Ko (budget ${BUDGET_WHEEL_KB} Ko)"
+          test "$size" -le "$BUDGET_WHEEL_KB"
+      - uses: actions/upload-artifact@v4
+        with: {name: python, path: core/dist/*}
+
+  android:
+    needs: checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: "17"}
+      - uses: subosito/flutter-action@v2
+        with: {channel: stable, cache: true}
+      - uses: astral-sh/setup-uv@v6
+      - name: Empaquetage du cœur Python (Android)
+        run: cd app && flutter pub get && cd .. && scripts/package_python.sh Android
+      - name: Clé de signature
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/tontolo.jks"
+            echo "TONTOLO_KEYSTORE=$RUNNER_TEMP/tontolo.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::Aucun keystore : APK signés avec la clé de débogage."
+          fi
+      - name: Construction des APK par ABI
+        env:
+          TONTOLO_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          TONTOLO_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          TONTOLO_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cd app
+          export SERIOUS_PYTHON_SITE_PACKAGES=$PWD/build/site-packages-Android
+          export SERIOUS_PYTHON_APP=$PWD/build/python-app-Android
+          flutter build apk --release --split-per-abi
+          mkdir -p ../dist
+          v=${GITHUB_REF_NAME#v}
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            cp build/app/outputs/flutter-apk/app-$abi-release.apk ../dist/tontolo-$v-$abi.apk
+          done
+      - name: Budget de taille des APK
+        run: |
+          for f in dist/*.apk; do
+            size=$(( $(stat -c %s "$f") / 1048576 ))
+            echo "$f : ${size} Mo (budget ${BUDGET_APK_MB} Mo)"
+            test "$size" -le "$BUDGET_APK_MB"
+          done
+      - uses: actions/upload-artifact@v4
+        with: {name: android, path: dist/*.apk}
+
+  linux:
+    needs: checks
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dépendances système
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libsecret-1-dev \
+            libjsoncpp-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libfuse2 file
+      - uses: subosito/flutter-action@v2
+        with: {channel: stable, cache: true}
+      - uses: astral-sh/setup-uv@v6
+      - name: Empaquetage du cœur Python (Linux)
+        run: cd app && flutter pub get && cd .. && scripts/package_python.sh Linux
+      - name: Construction Linux
+        run: |
+          cd app
+          export SERIOUS_PYTHON_SITE_PACKAGES=$PWD/build/site-packages-Linux
+          export SERIOUS_PYTHON_APP=$PWD/build/python-app-Linux
+          flutter build linux --release
+      - name: AppImage
+        run: scripts/build_appimage.sh "${GITHUB_REF_NAME#v}"
+      - name: Budget de taille de l'AppImage
+        run: |
+          f=$(ls dist/*.AppImage)
+          size=$(( $(stat -c %s "$f") / 1048576 ))
+          echo "$f : ${size} Mo (budget ${BUDGET_APPIMAGE_MB} Mo)"
+          test "$size" -le "$BUDGET_APPIMAGE_MB"
+      - uses: actions/upload-artifact@v4
+        with: {name: linux, path: dist/*.AppImage}
+
+  publish:
+    needs: [python, android, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: {path: dist, merge-multiple: true}
+      - name: Empreintes et rapport de taille
+        run: |
+          cd dist
+          sha256sum * > SHA256SUMS
+          { echo "| Fichier | Taille |"; echo "|---|---|"
+            for f in *; do [ "$f" = SHA256SUMS ] || echo "| $f | $(du -h "$f" | cut -f1) |"; done; } > ../size-report.md
+          cat ../size-report.md
+      - name: Notes de version (CHANGELOG)
+        run: |
+          v=${GITHUB_REF_NAME#v}
+          awk -v v="$v" '$0 ~ "^## \\[" v "\\]" {f=1; next} /^## \[/ {f=0} f' CHANGELOG.md > notes.md
+          { echo; echo "### Taille des fichiers"; cat size-report.md
+            echo; echo "Vérification : \`sha256sum -c SHA256SUMS --ignore-missing\`"; } >> notes.md
+      - name: Publication de la release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "Tontolo ${GITHUB_REF_NAME}" --notes-file notes.md

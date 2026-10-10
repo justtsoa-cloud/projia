@@ -1,0 +1,468 @@
+// Écran principal : conversation + champ de saisie. Rien d'autre par défaut.
+
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
+
+import '../core/backend.dart';
+import '../core/chat_controller.dart';
+import '../main.dart';
+import 'message_view.dart';
+import 'model_picker.dart';
+import 'search_dialog.dart';
+
+class ChatScreen extends StatefulWidget {
+  const ChatScreen({super.key});
+
+  @override
+  State<ChatScreen> createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
+  final input = TextEditingController();
+  final scroll = ScrollController();
+  final focus = FocusNode();
+  final List<String> attachments = [];
+  String? forcedCategory;
+  final recorder = AudioRecorder();
+  bool recording = false;
+
+  @override
+  void dispose() {
+    input.dispose();
+    scroll.dispose();
+    focus.dispose();
+    recorder.dispose();
+    super.dispose();
+  }
+
+  void update(VoidCallback fn) => setState(fn);
+
+  void _send(ChatController chat) {
+    final text = input.text.trim();
+    if (text.isEmpty && attachments.isEmpty) return;
+    chat.send(text, images: List.of(attachments), category: forcedCategory);
+    input.clear();
+    setState(() {
+      attachments.clear();
+      forcedCategory = null;
+    });
+  }
+
+  Future<void> _pickFile() async {
+    final res = await FilePicker.pickFiles(type: FileType.image);
+    if (res.isEmpty) return;
+    final f = res.first;
+    final bytes = await f.xFile.readAsBytes();
+    final ext = (f.extension ?? 'png').replaceFirst('.', '').toLowerCase();
+    setState(() => attachments.add(ChatController.dataUrl(bytes, 'image/${ext == 'jpg' ? 'jpeg' : ext}')));
+  }
+
+  /// Dictée : enregistrement local puis transcription (même bascule que le texte).
+  Future<void> _toggleMic(Backend backend) async {
+    final locale = AppScope.of(context).prefs.locale;
+    if (recording) {
+      final path = await recorder.stop();
+      setState(() => recording = false);
+      if (path == null) return;
+      final req = http.MultipartRequest('POST', backend.uri('/v1/audio/transcriptions'))
+        ..headers.addAll(backend.headers)
+        ..fields['model'] = 'auto'
+        ..fields['language'] = locale
+        ..files.add(await http.MultipartFile.fromPath('file', path));
+      final resp = await http.Response.fromStream(await req.send());
+      if (!mounted) return;
+      if (resp.statusCode == 200) {
+        final text = RegExp(r'"text"\s*:\s*"((?:[^"\\]|\\.)*)"').firstMatch(resp.body)?.group(1) ?? '';
+        input.text = '${input.text} ${text.replaceAll(r'\n', '\n')}'.trim();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('error_generic'))));
+      }
+      return;
+    }
+    if (!await recorder.hasPermission()) return;
+    final dir = await getTemporaryDirectory();
+    await recorder.start(const RecordConfig(encoder: AudioEncoder.wav, sampleRate: 16000, numChannels: 1),
+        path: '${dir.path}/dictee.wav');
+    setState(() => recording = true);
+  }
+
+  void _scrollToEnd() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (scroll.hasClients) {
+        scroll.animateTo(scroll.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 150), curve: Curves.easeOut);
+      }
+    });
+  }
+
+  Future<void> _showWhy(ChatMessage m) async {
+    final r = m.reason;
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(context.t('why'), style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 12),
+          Text(m.modelName ?? m.model ?? ''),
+          if (r != null) ...[
+            const SizedBox(height: 8),
+            Text('Catégorie : ${r['category']}'),
+            Text('${context.t('quality')} : ${r['quality']} · ${context.t('speed')} : ${r['speed']} · '
+                '${context.t('reliability')} : ${r['reliability']}'),
+            Text('Score : ${r['score']}${r['free'] == true ? ' · gratuit' : ''}'
+                '${r['preferred'] == true ? ' · modèle préféré' : ''}'
+                '${r['provisional'] == true ? ' · score provisoire' : ''}'),
+          ],
+          const SizedBox(height: 12),
+          Text('Classements : Artificial Analysis, LMArena (CC BY 4.0).', style: Theme.of(context).textTheme.bodySmall),
+        ]),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scope = AppScope.of(context);
+    final chat = scope.chat;
+    final backend = scope.backend;
+    return ListenableBuilder(
+      listenable: Listenable.merge([chat, backend, scope.updater]),
+      builder: (context, _) {
+        _scrollToEnd();
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(context.t('app')),
+            actions: [
+              IconButton(icon: const Icon(Icons.search), tooltip: context.t('search'), onPressed: () => showSearchDialog(context)),
+              IconButton(icon: const Icon(Icons.edit_square), tooltip: context.t('new_chat'), onPressed: chat.newChat),
+            ],
+          ),
+          drawer: const HistoryDrawer(),
+          body: SafeArea(
+            child: Column(children: [
+              _UpdateBanner(),
+              if (backend.state == BackendState.starting) const LinearProgressIndicator(minHeight: 2),
+              if (backend.state == BackendState.failed)
+                MaterialBanner(
+                  content: Text('${context.t('error_generic')} ${backend.error ?? ''}'),
+                  actions: [TextButton(onPressed: backend.start, child: Text(context.t('retry')))],
+                ),
+              Expanded(
+                child: chat.messages.isEmpty
+                    ? _EmptyState(onPick: (s) {
+                        input.text = s;
+                        _send(chat);
+                      })
+                    : ListView.builder(
+                        controller: scroll,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: chat.messages.length,
+                        itemBuilder: (context, i) {
+                          final m = chat.messages[i];
+                          if (m.role == 'notice') return _Notice(m.text, onRetry: chat.retry);
+                          return MessageView(message: m, onWhy: () => _showWhy(m));
+                        },
+                      ),
+              ),
+              if (chat.status != null) _StatusLine(chat.status!),
+              if (chat.pending != null) _PendingBar(chat),
+              _InputBar(this, chat, backend),
+            ]),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _InputBar extends StatelessWidget {
+  const _InputBar(this.state, this.chat, this.backend);
+  final _ChatScreenState state;
+  final ChatController chat;
+  final Backend backend;
+
+  @override
+  Widget build(BuildContext context) {
+    final ready = backend.state == BackendState.ready;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          ModelChip(chat: chat),
+          if (state.forcedCategory != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 6),
+              child: InputChip(
+                label: Text(state.forcedCategory == 'image_gen' ? context.t('force_image') : context.t('force_voice')),
+                onDeleted: () => state.update(() => state.forcedCategory = null),
+              ),
+            ),
+        ]),
+        if (state.attachments.isNotEmpty)
+          SizedBox(
+            height: 64,
+            child: ListView(scrollDirection: Axis.horizontal, children: [
+              for (final (i, _) in state.attachments.indexed)
+                Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: InputChip(
+                    avatar: const Icon(Icons.image_outlined),
+                    label: Text('${i + 1}'),
+                    onDeleted: () => state.update(() => state.attachments.removeAt(i)),
+                  ),
+                ),
+            ]),
+          ),
+        Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.add_circle_outline),
+            tooltip: context.t('attach'),
+            onSelected: (v) {
+              switch (v) {
+                case 'file':
+                  state._pickFile();
+                case 'mic':
+                  state._toggleMic(backend);
+                default:
+                  state.update(() => state.forcedCategory = v);
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(value: 'file', child: ListTile(leading: const Icon(Icons.image_outlined), title: Text(context.t('photo')))),
+              PopupMenuItem(value: 'mic', child: ListTile(leading: const Icon(Icons.mic_none), title: Text(context.t('mic')))),
+              PopupMenuItem(value: 'image_gen', child: ListTile(leading: const Icon(Icons.brush_outlined), title: Text(context.t('force_image')))),
+              PopupMenuItem(value: 'tts', child: ListTile(leading: const Icon(Icons.record_voice_over_outlined), title: Text(context.t('force_voice')))),
+            ],
+          ),
+          if (state.recording)
+            IconButton.filled(icon: const Icon(Icons.stop), onPressed: () => state._toggleMic(backend)),
+          Expanded(
+            child: CallbackShortcuts(
+              bindings: {
+                const SingleActivator(LogicalKeyboardKey.enter, control: true): () => state._send(chat),
+              },
+              child: TextField(
+                controller: state.input,
+                focusNode: state.focus,
+                minLines: 1,
+                maxLines: 6,
+                textInputAction: TextInputAction.newline,
+                decoration: InputDecoration(hintText: context.t('write')),
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          chat.busy
+              ? IconButton.filledTonal(icon: const Icon(Icons.stop_circle_outlined), tooltip: context.t('stop'), onPressed: chat.stop)
+              : IconButton.filled(
+                  icon: const Icon(Icons.arrow_upward),
+                  tooltip: '${context.t('send')} (Ctrl+Entrée)',
+                  onPressed: ready ? () => state._send(chat) : null,
+                ),
+        ]),
+      ]),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.onPick});
+  final ValueChanged<String> onPick;
+
+  @override
+  Widget build(BuildContext context) => Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Image.asset('assets/icon.png', width: 72, height: 72),
+            const SizedBox(height: 16),
+            Text(context.t('hello'), style: Theme.of(context).textTheme.titleLarge, textAlign: TextAlign.center),
+            const SizedBox(height: 20),
+            for (final k in ['sugg1', 'sugg2', 'sugg3'])
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: ActionChip(label: Text(context.t(k)), onPressed: () => onPick(context.t(k))),
+              ),
+          ]),
+        ),
+      );
+}
+
+/// Bandeau discret non bloquant : bascule, retour, erreur (phrase humaine + une action).
+class _Notice extends StatelessWidget {
+  const _Notice(this.raw, {required this.onRetry});
+  final String raw;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final parts = raw.split('|');
+    final scheme = Theme.of(context).colorScheme;
+    final (icon, text, color, action) = switch (parts.first) {
+      'switched' => (Icons.swap_horiz, context.t('switched', {'to': parts[1], 'reason': parts.length > 2 ? parts[2] : ''}), scheme.tertiary, false),
+      'returned' => (Icons.undo, context.t('returned', {'model': parts[1]}), scheme.secondary, false),
+      'stream_reset' => (Icons.refresh, context.t('stream_reset'), scheme.tertiary, false),
+      _ => (Icons.error_outline, parts.skip(1).join('|'), scheme.error, true),
+    };
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      child: Row(children: [
+        Icon(icon, size: 16, color: color),
+        const SizedBox(width: 8),
+        Expanded(child: Text(text, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: color))),
+        if (action) TextButton(onPressed: onRetry, child: Text(context.t('retry'))),
+      ]),
+    );
+  }
+}
+
+class _StatusLine extends StatelessWidget {
+  const _StatusLine(this.status);
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = status.startsWith('tool|') ? '⚙ ${status.substring(5)}' : context.t(status);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+      child: Row(children: [
+        const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+        const SizedBox(width: 8),
+        Text(text, style: Theme.of(context).textTheme.bodySmall),
+      ]),
+    );
+  }
+}
+
+class _PendingBar extends StatelessWidget {
+  const _PendingBar(this.chat);
+  final ChatController chat;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = chat.pending!;
+    final text = p.kind == 'paid'
+        ? context.t('paid_confirm', {'model': p.model ?? '', 'cost': (p.cost ?? 0).toStringAsFixed(4)})
+        : context.t('tool_confirm', {'name': p.tools.map((t) => t['name']).join(', ')});
+    return MaterialBanner(
+      content: Text(text),
+      actions: [
+        TextButton(onPressed: () => p.kind == 'paid' ? chat.resolvePaid(false) : chat.resolveTools(false), child: Text(context.t('decline'))),
+        FilledButton(onPressed: () => p.kind == 'paid' ? chat.resolvePaid(true) : chat.resolveTools(true), child: Text(context.t('accept'))),
+      ],
+    );
+  }
+}
+
+class _UpdateBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final up = AppScope.of(context).updater;
+    if (up.status.name != 'ready' || up.latest == null) return const SizedBox.shrink();
+    final linux = Platform.isLinux && Platform.environment['APPIMAGE'] != null;
+    return MaterialBanner(
+      leading: const Icon(Icons.system_update),
+      content: Text(context.t('update_ready', {'v': up.latest!})),
+      actions: [
+        if (up.file != null)
+          FilledButton(
+            onPressed: linux ? up.installLinuxAndRestart : up.installAndroid,
+            child: Text(linux ? context.t('restart') : context.t('install')),
+          ),
+      ],
+    );
+  }
+}
+
+/// Tiroir d'historique : conversations récentes, renommer, supprimer.
+class HistoryDrawer extends StatefulWidget {
+  const HistoryDrawer({super.key});
+
+  @override
+  State<HistoryDrawer> createState() => _HistoryDrawerState();
+}
+
+class _HistoryDrawerState extends State<HistoryDrawer> {
+  List<Map<String, dynamic>> items = [];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final b = AppScope.of(context).backend;
+    if (b.state != BackendState.ready) return;
+    final data = await b.getJson('/tontolo/conversations', {'limit': 100}) as List;
+    if (mounted) setState(() => items = data.cast<Map<String, dynamic>>());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scope = AppScope.of(context);
+    return NavigationDrawer(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(28, 16, 16, 10),
+          child: Text(context.t('history'), style: Theme.of(context).textTheme.titleSmall),
+        ),
+        ListTile(
+          leading: const Icon(Icons.add),
+          title: Text(context.t('new_chat')),
+          onTap: () {
+            scope.chat.newChat();
+            Navigator.pop(context);
+          },
+        ),
+        const Divider(),
+        for (final c in items)
+          ListTile(
+            title: Text('${c['title']}'.isEmpty ? '…' : '${c['title']}', maxLines: 1, overflow: TextOverflow.ellipsis),
+            selected: c['id'] == scope.chat.conversationId,
+            onTap: () {
+              scope.chat.open('${c['id']}');
+              Navigator.pop(context);
+            },
+            trailing: PopupMenuButton<String>(
+              onSelected: (v) async {
+                if (v == 'delete') {
+                  await scope.backend.sendJson('DELETE', '/tontolo/conversations/${c['id']}');
+                  if (scope.chat.conversationId == c['id']) scope.chat.newChat();
+                } else {
+                  final ctrl = TextEditingController(text: '${c['title']}');
+                  final title = await showDialog<String>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: Text(context.t('rename')),
+                      content: TextField(controller: ctrl, autofocus: true),
+                      actions: [
+                        TextButton(onPressed: () => Navigator.pop(context), child: Text(context.t('cancel'))),
+                        FilledButton(onPressed: () => Navigator.pop(context, ctrl.text), child: Text(context.t('save'))),
+                      ],
+                    ),
+                  );
+                  if (title != null) {
+                    await scope.backend.sendJson('PATCH', '/tontolo/conversations/${c['id']}', {'title': title});
+                  }
+                }
+                _load();
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(value: 'rename', child: Text(context.t('rename'))),
+                PopupMenuItem(value: 'delete', child: Text(context.t('delete'))),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}

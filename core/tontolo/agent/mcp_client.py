@@ -64,12 +64,11 @@ class McpManager:
         """Connexion paresseuse à tous les serveurs activés (appelée au premier besoin)."""
         if self._stack is not None:
             return
+        client_session: Any
         try:
-            from mcp import ClientSession
+            from mcp import ClientSession as client_session
         except ImportError:
-            log.info("SDK mcp absent : outils MCP désactivés")
-            self._stack = AsyncExitStack()
-            return
+            client_session = None  # repli : client léger HTTP (Android)
         self._stack = AsyncExitStack()
         for srv in self.servers():
             if not srv.get("enabled", True):
@@ -77,6 +76,17 @@ class McpManager:
             name = str(srv["name"])
             try:
                 transport = srv.get("transport", "http")
+                if client_session is None:
+                    if transport == "stdio":
+                        raise RuntimeError("transport stdio indisponible sans le SDK mcp")
+                    from tontolo.agent.mcp_lite import LiteSession
+
+                    session: Any = LiteSession(srv["url"], srv.get("headers"))
+                    await session.initialize()
+                    self._sessions[name] = session
+                    for t in (await session.list_tools()).tools:
+                        self.tools.append(self._wrap(name, session, t))
+                    continue
                 if transport == "stdio":
                     if is_android():
                         raise RuntimeError("transport stdio indisponible sous Android")
@@ -91,7 +101,7 @@ class McpManager:
 
                     read, write = await self._stack.enter_async_context(
                         streamable_http_client(srv["url"]))
-                session = await self._stack.enter_async_context(ClientSession(read, write))
+                session = await self._stack.enter_async_context(client_session(read, write))
                 await session.initialize()
                 self._sessions[name] = session
                 listed = await session.list_tools()
@@ -103,7 +113,7 @@ class McpManager:
 
     def _wrap(self, server: str, session: Any, tool: Any) -> Tool:
         annotations = getattr(tool, "annotations", None)
-        read_only = bool(getattr(annotations, "readOnlyHint", False)) if annotations else False
+        read_only = bool(_attr(annotations, "readOnlyHint", "read_only_hint"))
 
         async def call(args: dict[str, Any]) -> str:
             res = await session.call_tool(tool.name, args)
@@ -111,8 +121,9 @@ class McpManager:
             for c in getattr(res, "content", []) or []:
                 text = getattr(c, "text", None)
                 parts.append(text if text is not None else f"[{getattr(c, 'type', 'contenu')}]")
-            out = "\n".join(parts) or str(getattr(res, "structuredContent", "") or "")
-            if getattr(res, "isError", False):
+            out = "\n".join(parts) or str(
+                _attr(res, "structuredContent", "structured_content") or "")
+            if _attr(res, "isError", "is_error"):
                 out = "Erreur : " + out
             return untrusted(out)
 
@@ -120,7 +131,8 @@ class McpManager:
         return Tool(
             name=f"mcp__{server}__{safe}"[:64],
             description=(tool.description or tool.name)[:1000],
-            parameters=tool.inputSchema or {"type": "object", "properties": {}},
+            parameters=_attr(tool, "inputSchema", "input_schema")
+            or {"type": "object", "properties": {}},
             func=call, side_effect=not read_only, source=f"mcp:{server}",
         )
 
@@ -135,3 +147,11 @@ class McpManager:
         self._stack = None
         self._sessions.clear()
         self.tools.clear()
+
+
+def _attr(obj: Any, *names: str) -> Any:
+    """Compatibilité entre versions du SDK (camelCase 1.x, snake_case 2.x)."""
+    for n in names:
+        if obj is not None and (v := getattr(obj, n, None)) is not None:
+            return v
+    return None
