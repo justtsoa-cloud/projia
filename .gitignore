@@ -34,3 +34,6 @@ app/app/
 # Divers
 *.log
 .DS_Store
+
+# Clés de signature locales (jamais versionnées)
+release-keys/
