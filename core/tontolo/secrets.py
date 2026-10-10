@@ -132,4 +132,6 @@ def has_key(provider: str) -> bool:
 
 def redact(text: str) -> str:
     """Masque tout ce qui ressemble à une clé dans un message de journal."""
-    return re.sub(r"(sk-[A-Za-z0-9_\-]{6})[A-Za-z0-9_\-]+", r"\1…", text)
+    text = re.sub(r"((?:sk|gsk|nvapi|hf|pk)[-_][A-Za-z0-9_\-]{4})[A-Za-z0-9_\-]{8,}", r"\1…", text)
+    text = re.sub(r"(AIza[A-Za-z0-9_\-]{4})[A-Za-z0-9_\-]{20,}", r"\1…", text)
+    return re.sub(r"(Bearer\s+\S{4})\S+", r"\1…", text)

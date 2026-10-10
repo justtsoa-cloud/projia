@@ -70,3 +70,18 @@ def test_no_false_positive(matcher: Matcher, names: tuple[str, ...]) -> None:
 def test_family() -> None:
     assert family("google/gemma-4-31b-it:free") == "gemma-4"
     assert family("nvidia/nemotron-3-super-120b-a12b") == "nemotron-3"
+
+
+def test_keyless_providers_from_live_data() -> None:
+    """Données réelles du 2026-10-10 : Kilo Code, LLM7 et OVHcloud sont accessibles sans clé."""
+    import json
+    from pathlib import Path
+
+    from tontolo.catalog.sources.freeapis import parse
+
+    data = json.loads((Path(__file__).parent / "fixtures" / "freeapis.json").read_text())
+    models, providers = parse(data)
+    keyless = {pid for pid, p in providers.items() if p["keyless"]}
+    assert {"kilo", "llm7", "ovh"} <= keyless
+    assert "gemini" not in keyless and "groq" not in keyless
+    assert all(not m.needs_key for m in models if m.provider in keyless)

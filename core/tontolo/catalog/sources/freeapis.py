@@ -73,6 +73,16 @@ def parse_rate_limit(text: str | None) -> dict[str, int]:
     return out
 
 
+_KEYLESS = re.compile(
+    r"no (api )?key|without (an? )?(api )?key|anonymous (access|tier)|free anonymous|"
+    r"no signup|keyless", re.I)
+
+
+def is_keyless(description: str) -> bool:
+    """Accès anonyme annoncé par la source (« no API key required », « anonymous tier »…)."""
+    return bool(_KEYLESS.search(description or ""))
+
+
 def _modalities(text: str) -> tuple[list[str], list[str]]:
     low = (text or "").lower()
     ins = ["text"]
@@ -92,7 +102,9 @@ def parse(data: dict[str, Any]) -> tuple[list[ModelInfo], dict[str, dict[str, An
         if not slug or slug == "openrouter":
             continue
         base = _OPENAI_COMPAT.get(slug) or p.get("baseUrl") or ""
+        keyless = is_keyless(p.get("description", "")) and "{" not in base
         providers[slug] = {
+            "keyless": keyless,
             "id": slug,
             "name": p.get("name", slug),
             "base_url": base.rstrip("/"),
@@ -117,7 +129,7 @@ def parse(data: dict[str, Any]) -> tuple[list[ModelInfo], dict[str, dict[str, An
                 # gros modèles compatibles OpenAI, vérifié à l'usage (fiabilité).
                 supports_tools=True,
                 is_free=True,
-                needs_key=True,
+                needs_key=not keyless,
                 rate_limit=m.get("rateLimit"),
             ))
     return models, providers

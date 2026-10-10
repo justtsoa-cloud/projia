@@ -198,3 +198,15 @@ async def test_context_adaptation_summarizes(
     assert events[-1]["type"] == "done" and events[-1]["model"] == "fake:small"
     small_calls = [c for c in fake.calls if c[0] == "small"]
     assert small_calls[-1][1] < len(msgs)
+
+
+async def test_short_cooldown_waits_instead_of_failing(router: Router,
+                                                       fake: FakeProvider) -> None:
+    """Un seul modèle disponible, coupé une seconde : on attend puis on réessaie."""
+    for mid in ("coder-pro", "small", "vision-x"):
+        fake.fail(mid, r429(retry=600))
+    fake.fail("chatty", r429(retry=1))
+    events = await collect(router.run([{"role": "user", "content": "Bonjour"}]))
+    types = [e["type"] for e in events]
+    assert "waiting" in types
+    assert events[-1]["type"] == "done" and events[-1]["model"] == "fake:chatty"

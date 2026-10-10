@@ -16,6 +16,7 @@ canoniques) ; la persistance des conversations est faite par l'appelant
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import logging
 import time
@@ -23,6 +24,7 @@ from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from typing import Any
 
+from tontolo import secrets
 from tontolo.catalog.models import MEDIA_CATEGORIES, Category, ModelInfo
 from tontolo.catalog.service import CatalogService
 from tontolo.config import PaidFallback, Settings
@@ -45,6 +47,7 @@ from tontolo.storage.db import Database
 log = logging.getLogger(__name__)
 
 MAX_ATTEMPTS = 8
+SHORT_WAIT = 30.0  # attente maximale avant un nouvel essai automatique (secondes)
 EST_OUTPUT_TOKENS = 1000
 
 _REASONS_FR = {
@@ -163,6 +166,41 @@ class Router:
         summary: str | None = None,
         params: dict[str, Any] | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
+        """Exécute un tour ; si tous les modèles sont en attente pour quelques secondes
+        seulement, attend puis réessaie une fois au lieu d'afficher une erreur."""
+        for round_ in range(2):
+            async for ev in self._run_once(
+                messages, conversation_id=conversation_id, tools=tools, stream=stream,
+                model=model, forced=forced, strict=strict, summary=summary, params=params,
+            ):
+                wait = self._short_wait(ev) if round_ == 0 else None
+                if wait is not None:
+                    yield {"type": "waiting", "seconds": max(1, round(wait))}
+                    await asyncio.sleep(wait + 0.3)
+                    break
+                yield ev
+            else:
+                return
+
+    def _short_wait(self, ev: dict[str, Any]) -> float | None:
+        if ev.get("type") != "error" or not ev.get("retry_at"):
+            return None
+        wait = float(ev["retry_at"]) - time.time()
+        return wait if 0 < wait <= SHORT_WAIT else (0.0 if wait <= 0 else None)
+
+    async def _run_once(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        conversation_id: str | None,
+        tools: list[dict[str, Any]] | None,
+        stream: bool,
+        model: str | None,
+        forced: Category | str | None,
+        strict: bool,
+        summary: str | None,
+        params: dict[str, Any] | None,
+    ) -> AsyncIterator[dict[str, Any]]:
         params = params or {}
         decision = await self.decide(messages, conversation_id=conversation_id, model=model,
                                      tools_available=bool(tools), forced=forced, strict=strict)
@@ -231,7 +269,7 @@ class Router:
                                 ErrorKind.BAD_REQUEST):
                     self.reliability.record(m.key, False)
                 last_reason, last_until = human_reason(err), until or None
-                log.info("Échec %s : %s", m.key, err)
+                log.info("Échec %s : %s", m.key, secrets.redact(str(err)))
                 if started:
                     yield {"type": "stream_reset", "model": m.key,
                            "reason": last_reason}
@@ -271,9 +309,11 @@ class Router:
         else:
             msg = ("Aucun modèle gratuit disponible pour cette tâche. Ajoutez une clé gratuite "
                    "dans Réglages ou réessayez plus tard.")
-        if retry_at:
+        if retry_at and retry_at - time.time() > 90:
             when = datetime.fromtimestamp(retry_at, UTC).astimezone().strftime("%H:%M")
             msg += f" Retour estimé vers {when}."
+        elif retry_at:
+            msg += " Nouvel essai possible dans quelques instants."
         return {"type": "error", "message": msg, "retry_at": retry_at,
                 "category": decision.profile.category.value}
 

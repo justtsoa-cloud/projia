@@ -208,13 +208,36 @@ async def fetch_url(args: dict[str, Any]) -> str:
     if not re.match(r"^https?://", url):
         return "Erreur : URL http(s) attendue."
     max_chars = max(500, min(int(args.get("max_chars", 8000)), 30000))
-    resp = await http.client().get(url, timeout=20)
-    ctype = resp.headers.get("content-type", "")
-    if "html" in ctype or resp.text.lstrip().startswith("<"):
-        text = html_to_text(resp.text)
-    else:
-        text = resp.text
+    raw, ctype = await safe_get(url)
+    body = raw.decode("utf-8", "replace")
+    text = html_to_text(body) if "html" in ctype or body.lstrip().startswith("<") else body
     return untrusted(f"Source : {url}\n\n{text[:max_chars]}")
+
+
+MAX_FETCH_BYTES = 2 * 1024 * 1024
+
+
+async def safe_get(url: str, max_redirects: int = 5) -> tuple[bytes, str]:
+    """GET protégé contre la SSRF : chaque saut de redirection est revérifié
+    (pas d'adresse privée, locale ou de métadonnées) et la taille est plafonnée."""
+    from tontolo.security import assert_public_url
+
+    for _ in range(max_redirects + 1):
+        await assert_public_url(url)
+        async with http.client().stream("GET", url, timeout=20,
+                                        follow_redirects=False) as resp:
+            if resp.is_redirect and resp.headers.get("location"):
+                url = str(resp.url.join(resp.headers["location"]))
+                continue
+            chunks: list[bytes] = []
+            size = 0
+            async for chunk in resp.aiter_bytes():
+                size += len(chunk)
+                if size > MAX_FETCH_BYTES:
+                    break
+                chunks.append(chunk)
+            return b"".join(chunks), resp.headers.get("content-type", "")
+    raise PermissionError("trop de redirections")
 
 
 # --- Calculatrice --------------------------------------------------------
@@ -272,21 +295,29 @@ def _validate_expr(expr: str) -> None:
 
 async def calculator(args: dict[str, Any]) -> str:
     expr = str(args.get("expression", "")).replace("^", "**")
+    if len(expr) > 300:
+        return "Erreur de calcul : expression trop longue."
     try:
         _validate_expr(expr)
     except (SyntaxError, ValueError) as exc:
         return f"Erreur de calcul : {exc}"
-    try:
-        import sympy  # calcul symbolique si disponible
-
+    def compute() -> str:
+        try:
+            import sympy  # calcul symbolique si disponible
+        except ImportError:
+            return str(_safe_eval(ast.parse(expr, mode="eval")))
         result = sympy.sympify(expr, evaluate=True)
         simplified = sympy.simplify(result)
         out = str(simplified)
         if simplified.is_number:
             out += f" ≈ {sympy.N(simplified, 15)}"
         return out
-    except ImportError:
-        return str(_safe_eval(ast.parse(expr, mode="eval")))
+
+    try:
+        # Délai maximal : une expression explosive ne bloque pas l'agent.
+        return await asyncio.wait_for(asyncio.to_thread(compute), timeout=5)
+    except TimeoutError:
+        return "Erreur de calcul : délai dépassé."
     except Exception as exc:
         return f"Erreur de calcul : {exc}"
 

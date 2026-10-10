@@ -10,7 +10,7 @@ import re
 from collections.abc import Callable
 from typing import Any
 
-from tontolo import http, secrets
+from tontolo import http, secrets, security
 from tontolo.catalog import watcher
 from tontolo.catalog.cache import SourceCache
 from tontolo.catalog.catalog import Catalog, build_catalog
@@ -152,7 +152,7 @@ class CatalogService:
             if pid in BUILTIN_PROVIDERS or "{" in p.get("base_url", ""):
                 continue
             key = secrets.get_key(pid)
-            if not key:
+            if not key or not security.key_allowed(pid, p.get("base_url", "")):
                 continue
             entry = await cache.fetch_json(
                 f"provider_models_{pid}", f"{p['base_url']}/models", ttl=self.ttl,

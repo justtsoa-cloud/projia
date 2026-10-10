@@ -17,6 +17,7 @@ import platform
 import re
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from tontolo import __version__, http
 
@@ -100,6 +101,10 @@ async def download_update(dest_dir: Path, target: str, arch: str | None = None,
     sums_asset = next((a for a in assets if a["name"] == "SHA256SUMS"), None)
     if asset is None or sums_asset is None:
         return {"ok": False, "error": "Fichier ou SHA256SUMS absent de la release"}
+    for a in (asset, sums_asset):
+        host = urlsplit(a["browser_download_url"]).hostname or ""
+        if not (host == "github.com" or host.endswith(".githubusercontent.com")):
+            return {"ok": False, "error": "Origine du téléchargement non reconnue"}
     client = http.client()
     sums = parse_sums((await client.get(sums_asset["browser_download_url"], timeout=30)).text)
     expected = sums.get(asset["name"])

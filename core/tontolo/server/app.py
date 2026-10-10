@@ -30,10 +30,21 @@ from tontolo.catalog.models import Category, ModelInfo
 from tontolo.config import Settings, load_settings, save_settings
 from tontolo.providers.registry import ProviderRegistry
 from tontolo.router.classifier import classify
+from tontolo.security import LOOPBACK_NAMES, host_of, key_allowed, origin_allowed
 from tontolo.update import check_update, download_update
 
 LOOPBACK = {"127.0.0.1", "::1", "localhost"}
 MEDIA_TURN_KINDS = {"image_gen", "image_edit", "tts", "music_sfx", "video_gen"}
+
+
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024
+
+
+async def _read_limited(file: UploadFile) -> bytes:
+    data = await file.read(MAX_UPLOAD_BYTES + 1)
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(413, "Fichier trop volumineux (25 Mo maximum)")
+    return data
 
 
 def _first_image(content: Any) -> bytes | None:
@@ -125,6 +136,13 @@ def create_app(
     async def auth(request: Request, call_next: Any) -> Response:
         core: Core | None = getattr(request.app.state, "core", None)
         token = core.settings.server.token if core else None
+        # Anti-CSRF : une page web ne peut pas piloter le serveur local.
+        if not origin_allowed(request.headers.get("origin")):
+            return JSONResponse({"error": {"message": "Origine refusée"}}, status_code=403)
+        # Anti-DNS rebinding : en écoute locale, seul un Host de boucle locale est accepté.
+        bind = core.settings.server.host if core else "127.0.0.1"
+        if bind in LOOPBACK and host_of(request.headers.get("host", "")) not in LOOPBACK_NAMES:
+            return JSONResponse({"error": {"message": "Hôte refusé"}}, status_code=403)
         if token and request.url.path not in ("/health",):
             given = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
             if not hmac.compare_digest(given, token):
@@ -246,7 +264,7 @@ def create_app(
     async def v1_transcribe(request: Request, file: UploadFile = File(...),
                             model: str = Form("auto"), language: str | None = Form(None)) -> Any:
         core = core_of(request)
-        job = await core.media.submit("stt", model=model, input_bytes=await file.read(),
+        job = await core.media.submit("stt", model=model, input_bytes=await _read_limited(file),
                                       input_name=file.filename or "audio.wav",
                                       params={"language": language} if language else {})
         done = await core.media.wait(job["id"])
@@ -513,7 +531,7 @@ def create_app(
                            model: str | None = Form(None),
                            file: UploadFile = File(...)) -> dict[str, Any]:
         return await core_of(request).media.submit(
-            kind, prompt, model=model, input_bytes=await file.read(),
+            kind, prompt, model=model, input_bytes=await _read_limited(file),
             input_name=file.filename or "fichier")
 
     @app.get("/tontolo/media")
@@ -564,7 +582,10 @@ def create_app(
 
     @app.post("/tontolo/sync")
     async def sync_import(request: Request) -> dict[str, int]:
-        return {"applied": await core_of(request).db.import_sync(await request.json())}
+        try:
+            return {"applied": await core_of(request).db.import_sync(await request.json())}
+        except (KeyError, TypeError, ValueError) as exc:
+            raise HTTPException(400, "Lot de synchronisation invalide") from exc
 
     @app.get("/tontolo/mcp")
     async def mcp_get(request: Request) -> dict[str, Any]:
@@ -576,7 +597,14 @@ def create_app(
     async def mcp_put(request: Request) -> dict[str, bool]:
         core = core_of(request)
         body = await request.json()
-        save_config(core.mcp.config_path, body.get("servers", []))
+        servers = [s for s in body.get("servers", []) if isinstance(s, dict)]
+        client_local = (request.client is not None
+                        and request.client.host in ("127.0.0.1", "::1"))
+        if any(s.get("transport") == "stdio" for s in servers) and not (
+                client_local and core.settings.server.host in LOOPBACK):
+            # Un serveur stdio lance un programme : jamais configurable à distance.
+            raise HTTPException(403, "Serveurs MCP stdio : configuration locale uniquement")
+        save_config(core.mcp.config_path, servers)
         await core.mcp.close()
         return {"ok": True}
 
@@ -606,6 +634,9 @@ def create_app(
         token = core.settings.server.token
         if token and not hmac.compare_digest(websocket.query_params.get("token", ""), token):
             await websocket.close(code=4401)
+            return
+        if not origin_allowed(websocket.headers.get("origin")):
+            await websocket.close(code=4403)
             return
         await websocket.accept()
         q: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
@@ -648,6 +679,8 @@ async def _validate_key(core: Core, provider: str, key: str) -> tuple[bool, str]
         if p is None or not p.get("base_url"):
             return False, "Fournisseur inconnu"
         base = p["base_url"]
+        if not key_allowed(provider, base):
+            return False, "Adresse du fournisseur non fiable (HTTPS requis, hôte épinglé)"
         url = f"{base}/key" if provider == "openrouter" else f"{base}/models"
         headers = {"Authorization": f"Bearer {key}"}
     try:

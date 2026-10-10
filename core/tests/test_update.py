@@ -11,11 +11,11 @@ import respx
 from tontolo.update import download_update, parse_sums, parse_version, pick_asset
 
 ASSETS = [
-    {"name": "Tontolo-0.2.0-x86_64.AppImage", "browser_download_url": "https://dl/x86"},
-    {"name": "Tontolo-0.2.0-aarch64.AppImage", "browser_download_url": "https://dl/arm"},
-    {"name": "tontolo-0.2.0-arm64-v8a.apk", "browser_download_url": "https://dl/apk64"},
-    {"name": "tontolo-0.2.0-armeabi-v7a.apk", "browser_download_url": "https://dl/apk32"},
-    {"name": "SHA256SUMS", "browser_download_url": "https://dl/sums"},
+    {"name": "Tontolo-0.2.0-x86_64.AppImage", "browser_download_url": "https://github.com/dl/x86"},
+    {"name": "Tontolo-0.2.0-aarch64.AppImage", "browser_download_url": "https://github.com/dl/arm"},
+    {"name": "tontolo-0.2.0-arm64-v8a.apk", "browser_download_url": "https://github.com/dl/apk64"},
+    {"name": "tontolo-0.2.0-armeabi-v7a.apk", "browser_download_url": "https://github.com/dl/apk32"},
+    {"name": "SHA256SUMS", "browser_download_url": "https://github.com/dl/sums"},
 ]
 
 
@@ -39,16 +39,16 @@ async def test_download_verifies_checksum(tmp_path: Path) -> None:
     release = {"tag_name": "v0.2.0", "assets": ASSETS}
     respx.get("https://api.github.com/repos/raantss18/tontolo/releases/latest").mock(
         return_value=httpx.Response(200, json=release))
-    respx.get("https://dl/x86").mock(return_value=httpx.Response(200, content=payload))
-    respx.get("https://dl/sums").mock(return_value=httpx.Response(
+    respx.get("https://github.com/dl/x86").mock(return_value=httpx.Response(200, content=payload))
+    respx.get("https://github.com/dl/sums").mock(return_value=httpx.Response(
         200, text=f"{good}  Tontolo-0.2.0-x86_64.AppImage\n"))
     res = await download_update(tmp_path, "linux", "x86_64", current="0.1.0")
     assert res["ok"] and Path(res["path"]).read_bytes() == payload
     assert Path(res["path"]).stat().st_mode & 0o111
 
-    respx.get("https://dl/sums").mock(return_value=httpx.Response(
+    respx.get("https://github.com/dl/sums").mock(return_value=httpx.Response(
         200, text=f"{'0' * 64}  tontolo-0.2.0-arm64-v8a.apk\n"))
-    respx.get("https://dl/apk64").mock(return_value=httpx.Response(200, content=payload))
+    respx.get("https://github.com/dl/apk64").mock(return_value=httpx.Response(200, content=payload))
     bad = await download_update(tmp_path, "android", current="0.1.0")
     assert not bad["ok"] and "invalide" in bad["error"]
     assert not list(tmp_path.glob("*.apk*"))

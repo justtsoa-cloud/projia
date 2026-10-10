@@ -15,7 +15,7 @@ from typing import Any
 
 import httpx
 
-from tontolo import http, secrets
+from tontolo import http, secrets, security
 from tontolo.catalog.models import ModelInfo
 from tontolo.providers.base import ChatResult, ErrorKind, ProviderError, Scope, accumulate
 
@@ -30,7 +30,7 @@ def classify_error(status: int | None, body: str, headers: dict[str, str]) -> Pr
             retry_after = float(ra)
         except ValueError:
             retry_after = None
-    msg = body[:500]
+    msg = secrets.redact(body[:500])
     try:
         data = json.loads(body)
         err = data.get("error", data)
@@ -81,6 +81,9 @@ class OpenAICompatClient:
     def _headers(self) -> dict[str, str]:
         headers = {"Content-Type": "application/json"}
         key = secrets.get_key(self.pid)
+        if key and not security.key_allowed(self.pid, self._base_url()):
+            raise ProviderError(f"Hôte non fiable pour {self.pid} : clé non envoyée",
+                                ErrorKind.AUTH, scope=Scope.PROVIDER)
         if key:
             headers["Authorization"] = f"Bearer {key}"
         elif not self.provider.get("keyless"):

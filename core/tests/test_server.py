@@ -30,12 +30,12 @@ def client(settings: Settings, catalog_service: CatalogService, fake: FakeProvid
 
     monkeypatch.setattr(CatalogService, "load", fake_load)
     app = create_app(settings, registry=ProviderRegistry(lambda p: fake), refresh=False)
-    with TestClient(app) as c:
+    with TestClient(app, base_url="http://127.0.0.1") as c:
         yield c
 
 
 def test_openai_sdk_chat(client: TestClient) -> None:
-    oai = openai.OpenAI(base_url="http://testserver/v1", api_key="inutile",
+    oai = openai.OpenAI(base_url="http://127.0.0.1/v1", api_key="inutile",
                         http_client=client)
     models = [m.id for m in oai.models.list()]
     assert "auto" in models and "fake:chatty" in models
@@ -48,7 +48,7 @@ def test_openai_sdk_chat(client: TestClient) -> None:
 def test_openai_sdk_stream_with_switch(client: TestClient, fake: FakeProvider) -> None:
     fake.fail("chatty", ProviderError("limite", ErrorKind.RATE_LIMIT, status=429,
                                       retry_after=60))
-    oai = openai.OpenAI(base_url="http://testserver/v1", api_key="x", http_client=client)
+    oai = openai.OpenAI(base_url="http://127.0.0.1/v1", api_key="x", http_client=client)
     stream = oai.chat.completions.create(model="auto", stream=True,
                                          messages=[{"role": "user", "content": "Salut"}])
     text = "".join((ch.choices[0].delta.content or "") for ch in stream if ch.choices)
@@ -94,7 +94,7 @@ def test_image_generation_with_fallback(client: TestClient, catalog_service: Cat
         return mp.MediaOutput(b"\x89PNG fake", "image/png")
 
     monkeypatch.setattr(mp, "generate_image", fake_gen)
-    oai = openai.OpenAI(base_url="http://testserver/v1", api_key="x", http_client=client)
+    oai = openai.OpenAI(base_url="http://127.0.0.1/v1", api_key="x", http_client=client)
     img = oai.images.generate(prompt="un phare", model="auto")
     assert calls == ["img-1", "img-2"]
     assert img.data and img.data[0].b64_json
@@ -116,7 +116,7 @@ def test_transcription(client: TestClient, catalog_service: CatalogService,
         return mp.MediaOutput(b"bonjour", "text/plain", text="bonjour")
 
     monkeypatch.setattr(mp, "transcribe", fake_stt)
-    oai = openai.OpenAI(base_url="http://testserver/v1", api_key="x", http_client=client)
+    oai = openai.OpenAI(base_url="http://127.0.0.1/v1", api_key="x", http_client=client)
     tr = oai.audio.transcriptions.create(model="auto", file=("a.wav", b"RIFF...."))
     assert tr.text == "bonjour"
 
@@ -142,7 +142,7 @@ def test_token_required(settings: Settings, catalog_service: CatalogService,
     monkeypatch.setattr(CatalogService, "load", fake_load)
     settings.server.token = "secret"
     app = create_app(settings, registry=ProviderRegistry(lambda p: fake), refresh=False)
-    with TestClient(app) as c:
+    with TestClient(app, base_url="http://127.0.0.1") as c:
         assert c.get("/tontolo/conversations").status_code == 401
         ok = c.get("/tontolo/conversations", headers={"Authorization": "Bearer secret"})
         assert ok.status_code == 200

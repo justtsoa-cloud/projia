@@ -68,6 +68,7 @@ _KEYWORDS: dict[Category, tuple[tuple[str, float], ...]] = {
          r"calculate|compute)\b", 2),
         (r"\d+\s*[-+*/^]\s*\d+", 1),
         (r"\b(kajy|fitoviana|porofo)\b", 2),
+        (r"\b(latex|tikz|calcul diff[ée]rentiel|calculus|alg[èe]bre|analyse r[ée]elle)\b", 2),
     ),
     Category.TRANSLATION: (
         (r"\b(tradui[st]|traduction|traduire|en anglais|en fran[çc]ais|en malgache)\b", 4),
@@ -79,6 +80,7 @@ _KEYWORDS: dict[Category, tuple[tuple[str, float], ...]] = {
          r"dissertation|r[ée]sum[ée]|slogan|courriel|e-?mail)\b", 2),
         (r"\b(write|poem|letter|story|essay|article|speech|summar(y|ize)|email)\b", 2),
         (r"\b(soraty|tantara|tononkalo|taratasy)\b", 2),
+        (r"\b(dossier|manuel|cours|rapport|m[ée]moire|document|chapitres?)\b", 1.5),
     ),
     Category.SEARCH: (
         (r"\b(actualit[ée]s?|aujourd'hui|derni[èe]res? (nouvelles|infos)|cette semaine|"

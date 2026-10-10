@@ -25,7 +25,7 @@ from typing import Any
 
 import httpx
 
-from tontolo import http, secrets
+from tontolo import http, secrets, security
 from tontolo.catalog.models import ModelInfo
 from tontolo.catalog.sources import pollinations
 from tontolo.providers.base import ErrorKind, ProviderError
@@ -50,6 +50,8 @@ def ext_for(mime: str) -> str:
 
 def _auth(provider: dict[str, Any]) -> dict[str, str]:
     key = secrets.get_key(provider["id"])
+    if key and not security.key_allowed(provider["id"], provider.get("base_url", "")):
+        raise ProviderError(f"Hôte non fiable pour {provider['id']}", ErrorKind.AUTH)
     if not key and not provider.get("keyless"):
         raise ProviderError(f"Aucune clé pour {provider['id']}", ErrorKind.AUTH)
     return {"Authorization": f"Bearer {key}"} if key else {}
