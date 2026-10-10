@@ -5,6 +5,9 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+### Corrigé
+- CLI : au premier lancement, `catalog list` attend le chargement des classements.
+
 ## [0.1.0] - 2026-10-10
 
 ### Ajouté

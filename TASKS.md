@@ -63,4 +63,9 @@ Légende : `[x]` fait · `[~]` en cours · `[ ]` à faire
 - [x] Docs : README, ARCHITECTURE, SOURCES, ATTRIBUTIONS, COMPLIANCE, RELEASING, CHANGELOG, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT
 - [x] Workflows CI + release (wheel, AppImage, APK par ABI, SHA256SUMS)
 - [x] Tests finaux (pytest, flutter test, émulateur)
-- [ ] Dépôt public `raantss18/tontolo`, tag `v0.1.0`, release vérifiée
+- [x] Dépôt public `raantss18/tontolo`, tag `v0.1.0`, release vérifiée
+
+## Après v0.1.0
+- [ ] Publication F-Droid (à étudier)
+- [ ] Flatpak (optionnel)
+- [ ] Tester sur un vrai téléphone et une tablette

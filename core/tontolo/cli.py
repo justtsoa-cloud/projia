@@ -31,8 +31,11 @@ def _fmt_ts(ts: float | None) -> str:
 async def cmd_catalog_list(args: argparse.Namespace) -> int:
     core = await Core.start(refresh=False)
     try:
-        if args.refresh or not core.catalog.catalog.models:
+        if args.refresh:
             await core.catalog.refresh()
+        elif core.catalog._task is not None:
+            # Premier lancement : attendre les classements (chargés en arrière-plan).
+            await core.catalog._task
         usable = core.catalog.usable_providers()
         models = core.catalog.catalog.filter(category=args.category, free_only=args.free,
                                              usable=usable if args.usable else None)
