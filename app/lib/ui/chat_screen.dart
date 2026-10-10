@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../core/backend.dart';
 import '../core/chat_controller.dart';
+import '../core/image_prep.dart';
 import '../core/updater.dart';
 import 'update_sheet.dart';
 import '../main.dart';
@@ -62,9 +63,10 @@ class _ChatScreenState extends State<ChatScreen> {
     final res = await FilePicker.pickFiles(type: FileType.image);
     if (res.isEmpty) return;
     final f = res.first;
-    final bytes = await f.xFile.readAsBytes();
-    final ext = (f.extension ?? 'png').replaceFirst('.', '').toLowerCase();
-    setState(() => attachments.add(ChatController.dataUrl(bytes, 'image/${ext == 'jpg' ? 'jpeg' : ext}')));
+    final raw = await f.xFile.readAsBytes();
+    final (bytes, mime) = await prepareImage(raw); // photo réduite : envoi et stockage plus légers
+    if (!mounted) return;
+    setState(() => attachments.add(ChatController.dataUrl(bytes, mime)));
   }
 
   /// Dictée : enregistrement local puis transcription (même bascule que le texte).

@@ -5,6 +5,17 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.2.2] - 2026-10-10
+
+### Corrigé
+- « Édite cette photo » répondait « Aucune source gratuite disponible » : aucun service
+  gratuit ne retouche réellement une photo. Un modèle gratuit à vision décrit désormais la
+  photo, puis une image est recréée avec la transformation demandée ; un avertissement
+  explique qu'il s'agit d'une réinterprétation (ou d'une création à partir du texte seul si
+  aucune IA gratuite ne peut lire la photo).
+- Les photos jointes sont réduites (1024 px) avant l'envoi : elles étaient trop lourdes pour
+  les IA gratuites et alourdissaient la base locale.
+
 ## [0.2.1] - 2026-10-10
 
 ### Corrigé

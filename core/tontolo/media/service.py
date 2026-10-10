@@ -35,7 +35,19 @@ UNAVAILABLE_MSG = {
                  "autoriser un fournisseur payant (avec plafond) dans Réglages › Avancé.",
     "music_sfx": "Aucune source gratuite de musique ou d'effets sonores n'est disponible "
                  "pour le moment.",
+    "image_edit": "Aucune source gratuite ne sait retoucher une photo pour le moment, et la "
+                  "création de remplacement a échoué. Réessayez dans un instant.",
 }
+
+REINTERPRETATION_NOTE = (
+    "Aucune retouche de photo n'est disponible gratuitement : la photo a été décrite par une "
+    "IA, puis recréée avec votre transformation. Le résultat est une réinterprétation, pas "
+    "une retouche exacte."
+)
+NO_VISION_NOTE = (
+    "Aucune IA gratuite n'a pu lire votre photo : l'image a été créée à partir de votre "
+    "texte seul, sans reprendre la photo."
+)
 
 TEXT_IN_IMAGE_WARNING = (
     "Les modèles d'image rendent mal les équations et les textes longs : pour une figure "
@@ -117,6 +129,30 @@ class MediaService:
         await self.db.upsert_job(job)
         self._emit({"type": "job", **job})
         chain = self._candidates(kind, model)
+        done, errors = await self._try_chain(job, kind, chain)
+        if not done and kind == "image_edit":
+            # Aucune édition gratuite : on décrit la photo puis on la recrée (réinterprétation).
+            done, more = await self._edit_fallback(job)
+            errors += more
+        if done:
+            await self.db.upsert_job(job)
+            await self.router.persist()
+            self._emit({"type": "job", **job})
+            await self.purge()
+            return
+        job["status"] = "failed"
+        if errors:
+            job["error"] = "Toutes les sources gratuites ont échoué : " + "; ".join(errors[:4])
+        else:
+            job["error"] = UNAVAILABLE_MSG.get(
+                kind, "Aucune source gratuite disponible pour ce type de média.")
+        await self.db.upsert_job(job)
+        await self.router.persist()
+        self._emit({"type": "job", **job})
+
+    async def _try_chain(self, job: dict[str, Any], kind: str,
+                         chain: list[Any]) -> tuple[bool, list[str]]:
+        """Essaie les candidats dans l'ordre ; en cas de succès, remplit `job`."""
         errors: list[str] = []
         for cand in chain:
             m = cand.model
@@ -142,25 +178,41 @@ class MediaService:
                 continue
             self.router.quota.on_success(m)
             self.router.reliability.record(m.key, True)
-            path = self.dir / kind / f"{job['id']}.{mp.ext_for(out.mime)}"
+            path = self.dir / job["kind"] / f"{job['id']}.{mp.ext_for(out.mime)}"
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(out.data)
             job.update(status="done", model=m.key, result_path=str(path), error=None)
             job["params"].update(mime=out.mime, text=out.text, local_tts=out.local_tts,
                                  model_name=m.name)
-            await self.db.upsert_job(job)
-            await self.router.persist()
-            self._emit({"type": "job", **job})
-            await self.purge()
-            return
-        job["status"] = "failed"
-        job["error"] = UNAVAILABLE_MSG.get(kind) if not chain else (
-            "Toutes les sources gratuites ont échoué : " + "; ".join(errors[:4]))
-        if not chain and kind not in UNAVAILABLE_MSG:
-            job["error"] = "Aucune source gratuite disponible pour ce type de média."
-        await self.db.upsert_job(job)
-        await self.router.persist()
-        self._emit({"type": "job", **job})
+            return True, errors
+        return False, errors
+
+    async def _edit_fallback(self, job: dict[str, Any]) -> tuple[bool, list[str]]:
+        """Édition de photo sans source gratuite : un modèle gratuit à vision décrit la photo,
+        puis on crée une nouvelle image avec la transformation demandée. Dit clairement à
+        l'utilisateur qu'il s'agit d'une réinterprétation et non d'une retouche exacte."""
+        import base64
+
+        params = job["params"]
+        description: str | None = None
+        if params.get("input_path"):
+            data = Path(params["input_path"]).read_bytes()
+            mime = ("image/jpeg" if data[:2] == b"\xff\xd8" else
+                    "image/webp" if data[:4] == b"RIFF" else "image/png")
+            description = await self.router.describe_image(
+                f"data:{mime};base64," + base64.b64encode(data).decode())
+        prompt = (f"{description} — Transformation demandée : {job['prompt']}"
+                  if description else job["prompt"])
+        gen_job = {**job, "kind": "image_gen", "prompt": prompt[:900],
+                   "params": {k: v for k, v in params.items() if k not in ("input_path", "image")}}
+        done, errors = await self._try_chain(
+            gen_job, "image_gen", self._candidates("image_gen", None))
+        if done:
+            for key in ("status", "model", "result_path", "error"):
+                job[key] = gen_job.get(key)
+            job["params"].update(gen_job["params"])
+            job["params"]["warning"] = REINTERPRETATION_NOTE if description else NO_VISION_NOTE
+        return done, errors
 
     async def _call(self, kind: str, m: Any, provider: dict[str, Any],
                     job: dict[str, Any]) -> mp.MediaOutput:

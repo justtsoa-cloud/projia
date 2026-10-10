@@ -241,3 +241,51 @@ def test_regenerate_image_request_stays_media(client: TestClient,
     assert len(calls) == 2
     assert [m["role"] for m in msgs] == ["user", "assistant"]       # ni doublon ni texte
     assert msgs[1]["content"].startswith("[média:")
+
+
+def _png_data_url() -> str:
+    import base64
+
+    return "data:image/png;base64," + base64.b64encode(b"\x89PNG fake photo").decode()
+
+
+def _edit_request(client: TestClient, cid: str) -> dict[str, Any]:
+    client.post("/tontolo/chat", json={"conversation_id": cid, "content": [
+        {"type": "text", "text": "Edite cette photo de façon très créative"},
+        {"type": "image_url", "image_url": {"url": _png_data_url()}}]})
+    msgs = client.get(f"/tontolo/conversations/{cid}").json()["messages"]
+    job_id = msgs[1]["content"].removeprefix("[média:").removesuffix("]")
+    job: dict[str, Any] = client.get(f"/tontolo/media/{job_id}").json()
+    return job
+
+
+def test_photo_edit_falls_back_to_describe_then_recreate(
+        client: TestClient, fake: FakeProvider, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Aucune édition gratuite : la photo est décrite par une IA à vision puis recréée."""
+    prompts: list[str] = []
+
+    async def fake_gen(model: Any, provider: Any, prompt: str, params: Any) -> mp.MediaOutput:
+        prompts.append(prompt)
+        return mp.MediaOutput(b"\x89PNG new", "image/png")
+
+    monkeypatch.setattr(mp, "generate_image", fake_gen)
+    fake.behaviors["vision-x"] = lambda m, msgs: {
+        "role": "assistant", "content": "Deux verres sur une table sombre, lumière chaude."}
+    job = _edit_request(client, "conv-edit-1")
+    assert job["status"] == "done" and job["kind"] == "image_edit"
+    assert "Deux verres sur une table sombre" in prompts[0]
+    assert "Edite cette photo" in prompts[0]
+    assert "réinterprétation" in job["params"]["warning"]
+
+
+def test_photo_edit_without_vision_model_still_creates_image(
+        client: TestClient, fake: FakeProvider, catalog_service: CatalogService,
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_gen(model: Any, provider: Any, prompt: str, params: Any) -> mp.MediaOutput:
+        return mp.MediaOutput(b"\x89PNG new", "image/png")
+
+    monkeypatch.setattr(mp, "generate_image", fake_gen)
+    catalog_service.catalog.models["fake:vision-x"].input_modalities = ["text"]  # plus de vision
+    job = _edit_request(client, "conv-edit-2")
+    assert job["status"] == "done"
+    assert "texte seul" in job["params"]["warning"]

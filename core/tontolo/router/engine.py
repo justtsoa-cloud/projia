@@ -378,6 +378,39 @@ class Router:
         """Appel court à un petit modèle gratuit (résumé, mémoire, classifieur)."""
         return await self._quick(messages)
 
+    async def describe_image(self, data_url: str) -> str | None:
+        """Description d'une photo par un modèle gratuit à vision (pour la recréer ensuite)."""
+        usable = self.catalog.usable_providers()
+        cands = [m for m in self.catalog.catalog.models.values()
+                 if m.is_free and m.is_text and m.supports_vision and m.provider in usable
+                 and self.quota.available(m)]
+        cands.sort(key=lambda m: -(m.quality.get("vision", 0.0)
+                                   + 0.3 * self.reliability.get(m.key)))
+        messages: list[dict[str, Any]] = [
+            {"role": "system", "content": (
+                "Décris précisément cette photo pour qu'un générateur d'images puisse la "
+                "recréer : sujet, objets, couleurs, lumière, ambiance, composition. Réponds "
+                "en une à trois phrases, en français, sans introduction.")},
+            {"role": "user", "content": [
+                {"type": "text", "text": "Décris cette photo."},
+                {"type": "image_url", "image_url": {"url": data_url}}]},
+        ]
+        for m in cands[:4]:
+            try:
+                client = self.registry.get(self.catalog.catalog.providers[m.provider])
+                self.quota.record_request(m)
+                res = await client.chat(m, messages, max_tokens=300, temperature=0.2)
+            except ProviderError as err:
+                self.quota.on_error(m, err)
+                continue
+            except Exception:
+                continue
+            text = res.message.get("content")
+            if text and str(text).strip():
+                self.quota.on_success(m)
+                return str(text).strip()[:600]
+        return None
+
     async def _summarize(self, messages: list[dict[str, Any]]) -> str | None:
         flat = "\n".join(f"{m.get('role')}: {m.get('content')}" for m in messages
                          if isinstance(m.get("content"), str))

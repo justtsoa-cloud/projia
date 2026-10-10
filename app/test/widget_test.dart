@@ -1,7 +1,10 @@
 // Tests de l'interface : rendu Markdown/LaTeX, bandeaux, comparaison de versions.
 
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tontolo/core/image_prep.dart';
 import 'package:tontolo/core/speech.dart';
 import 'package:tontolo/core/updater.dart';
 import 'package:tontolo/l10n/strings.dart';
@@ -9,6 +12,7 @@ import 'package:tontolo/ui/message_view.dart';
 
 void main() {
   notesTests();
+  imageTests();
   test('comparaison de versions', () {
     expect(Updater.isNewer('0.2.0', '0.1.0'), isTrue);
     expect(Updater.isNewer('0.10.0', '0.9.9'), isTrue);
@@ -63,4 +67,32 @@ void notesTests() {
     expect(notes.first.$2.length, 2);
     expect(notes.expand((n) => n.$2), isNot(contains('ceci ne doit pas apparaître')));
   });
+}
+
+void imageTests() {
+  testWidgets('photo réduite avant envoi', (tester) async {
+    await tester.runAsync(() async {
+      // Image de 2000×1000 px générée en mémoire.
+      final rec = ui.PictureRecorder();
+      ui.Canvas(rec).drawRect(const ui.Rect.fromLTWH(0, 0, 2000, 1000), ui.Paint()..color = const Color(0xFF3EB489));
+      final img = await rec.endRecording().toImage(2000, 1000);
+      final png = (await img.toByteData(format: ui.ImageByteFormat.png))!.buffer.asUint8List();
+      final (out, mime) = await prepareImage(png);
+      final d = await ui.ImageDescriptor.encoded(await ui.ImmutableBuffer.fromUint8List(out));
+      expect(mime, 'image/png');
+      expect(d.width, maxImageSide);
+      expect(d.height, 512);
+      // Une petite image reste intacte.
+      final small = (await (await (ui.PictureRecorder()..let((r) => ui.Canvas(r).drawRect(const ui.Rect.fromLTWH(0, 0, 64, 64), ui.Paint())))
+          .endRecording().toImage(64, 64)).toByteData(format: ui.ImageByteFormat.png))!.buffer.asUint8List();
+      expect((await prepareImage(small)).$1.length, small.length);
+    });
+  });
+}
+
+extension _Let<T> on T {
+  T let(void Function(T) f) {
+    f(this);
+    return this;
+  }
 }

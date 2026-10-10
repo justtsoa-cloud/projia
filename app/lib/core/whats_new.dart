@@ -13,6 +13,15 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.2.2': [
+    NewsItem(Icons.auto_fix_high, 'Retouche créative de vos photos',
+        'Aucun service gratuit ne retouche vraiment une photo : Tontolo la fait décrire par une IA gratuite à vision, puis recrée une image avec votre transformation. Un message l\'indique clairement.',
+        'Creative photo editing',
+        'No free service truly retouches photos: Tontolo has a free vision AI describe it, then recreates an image with your transformation. A message says so clearly.'),
+    NewsItem(Icons.photo_size_select_large, 'Photos allégées',
+        'Les photos jointes sont réduites avant l\'envoi : plus rapide, et compatible avec les IA gratuites.',
+        'Lighter photos', 'Attached photos are resized before sending: faster and compatible with free AIs.'),
+  ],
   '0.2.1': [
     NewsItem(Icons.restart_alt, 'L\'application ne s\'arrête plus',
         'Quitter l\'application puis la rouvrir fonctionne : le moteur déjà démarré est retrouvé au lieu de planter.',
