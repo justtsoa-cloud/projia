@@ -1,7 +1,5 @@
 // Écran principal : conversation + champ de saisie. Rien d'autre par défaut.
 
-import 'dart:io';
-
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,6 +10,8 @@ import 'package:share_plus/share_plus.dart';
 
 import '../core/backend.dart';
 import '../core/chat_controller.dart';
+import '../core/updater.dart';
+import 'update_sheet.dart';
 import '../main.dart';
 import 'message_view.dart';
 import 'model_picker.dart';
@@ -32,6 +32,8 @@ class _ChatScreenState extends State<ChatScreen> {
   String? forcedCategory;
   final recorder = AudioRecorder();
   bool recording = false;
+  // Suivi automatique du bas : désactivé dès que l'utilisateur remonte le fil.
+  bool stickToBottom = true;
 
   @override
   void dispose() {
@@ -47,6 +49,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void _send(ChatController chat) {
     final text = input.text.trim();
     if (text.isEmpty && attachments.isEmpty) return;
+    stickToBottom = true;
     chat.send(text, images: List.of(attachments), category: forcedCategory);
     input.clear();
     setState(() {
@@ -122,13 +125,35 @@ class _ChatScreenState extends State<ChatScreen> {
     await AppScope.of(context).backend.sendJson('PUT', '/tontolo/conversations/${chat.conversationId}/pin', {'pinned': true});
   }
 
-  void _scrollToEnd() {
+  /// Suivi du bas : jamais pendant que le doigt est posé ou que le fil défile (inertie
+  /// comprise) ; il ne reprend que si l'utilisateur s'arrête en bas.
+  bool _touching = false;
+
+  void _scrollToEnd({bool force = false}) {
+    if (!force && (!stickToBottom || _touching)) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (scroll.hasClients) {
-        scroll.animateTo(scroll.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 150), curve: Curves.easeOut);
-      }
+      if (!scroll.hasClients) return;
+      // Revérifié ici : l'état a pu changer (doigt posé, remontée) depuis la programmation.
+      if (!force && (!stickToBottom || _touching || scroll.position.isScrollingNotifier.value)) return;
+      // jumpTo : pas d'animation concurrente avec le doigt de l'utilisateur.
+      scroll.jumpTo(scroll.position.maxScrollExtent);
     });
+  }
+
+  void _updateStick() {
+    if (!scroll.hasClients) return;
+    final nearBottom = scroll.position.maxScrollExtent - scroll.position.pixels < 80;
+    if (nearBottom != stickToBottom) {
+      stickToBottom = nearBottom; // immédiat, avant tout saut déjà programmé
+      if (mounted) setState(() {});
+    }
+  }
+
+  bool _onScroll(ScrollNotification n) {
+    if (n is ScrollEndNotification) {
+      if (!_touching) _updateStick();
+    }
+    return false;
   }
 
   Future<void> _showWhy(ChatMessage m) async {
@@ -199,7 +224,16 @@ class _ChatScreenState extends State<ChatScreen> {
                         input.text = s;
                         _send(chat);
                       })
-                    : ListView.builder(
+                    : Listener(
+                        onPointerDown: (_) => _touching = true,
+                        onPointerUp: (_) {
+                          _touching = false;
+                          _updateStick(); // position finale du geste ; l'inertie met à jour en fin de défilement
+                        },
+                        onPointerCancel: (_) => _touching = false,
+                        child: NotificationListener<ScrollNotification>(
+                        onNotification: _onScroll,
+                        child: ListView.builder(
                         controller: scroll,
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         itemCount: chat.messages.length,
@@ -214,8 +248,24 @@ class _ChatScreenState extends State<ChatScreen> {
                             onEdit: m.role == 'user' && m.seq != null && !chat.busy ? () => _editMessage(chat, m) : null,
                           );
                         },
-                      ),
+                      ))),
               ),
+              if (!stickToBottom && chat.messages.isNotEmpty)
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12, bottom: 4),
+                    child: FloatingActionButton.small(
+                      heroTag: 'toBottom',
+                      tooltip: context.t('to_bottom'),
+                      onPressed: () {
+                        setState(() => stickToBottom = true);
+                        _scrollToEnd(force: true);
+                      },
+                      child: const Icon(Icons.arrow_downward),
+                    ),
+                  ),
+                ),
               if (chat.status != null) _StatusLine(chat.status!),
               if (chat.pending != null) _PendingBar(chat),
               _InputBar(this, chat, backend),
@@ -410,7 +460,9 @@ class _StatusLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = status.startsWith('tool|')
+    final text = status == 'thinking'
+        ? context.t('thinking')
+        : status.startsWith('tool|')
         ? '⚙ ${status.substring(5)}'
         : status.startsWith('waiting|')
             ? context.t('waiting', {'s': status.substring(8)})
@@ -450,17 +502,17 @@ class _UpdateBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final up = AppScope.of(context).updater;
-    if (up.status.name != 'ready' || up.latest == null) return const SizedBox.shrink();
-    final linux = Platform.isLinux && Platform.environment['APPIMAGE'] != null;
+    if (up.latest == null || (up.status != UpdateStatus.ready && up.status != UpdateStatus.downloading)) {
+      return const SizedBox.shrink();
+    }
+    final downloading = up.status == UpdateStatus.downloading;
     return MaterialBanner(
       leading: const Icon(Icons.system_update),
-      content: Text(context.t('update_ready', {'v': up.latest!})),
+      content: Text(downloading
+          ? '${context.t('update_downloading')} ${(up.progress * 100).round()} %'
+          : context.t('update_ready', {'v': up.latest!})),
       actions: [
-        if (up.file != null)
-          FilledButton(
-            onPressed: linux ? up.installLinuxAndRestart : up.installAndroid,
-            child: Text(linux ? context.t('restart') : context.t('install')),
-          ),
+        TextButton(onPressed: () => showUpdateSheet(context), child: Text(context.t('see_changes'))),
       ],
     );
   }

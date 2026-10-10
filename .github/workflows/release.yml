@@ -132,7 +132,8 @@ jobs:
         run: |
           v=${GITHUB_REF_NAME#v}
           awk -v v="$v" '$0 ~ "^## \\[" v "\\]" {f=1; next} /^## \[/ {f=0} f' CHANGELOG.md > notes.md
-          { echo; echo "### Taille des fichiers"; cat size-report.md
+          { cat .github/release-compat.md
+            echo; echo "### Taille des fichiers"; cat size-report.md
             echo; echo "Vérification : \`sha256sum -c SHA256SUMS --ignore-missing\`"; } >> notes.md
       - name: Publication de la release
         env:

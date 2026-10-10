@@ -18,6 +18,14 @@ os.environ.setdefault("TONTOLO_NO_KEYRING", "1")
 _t0 = time.monotonic()
 
 
+def _log_crash() -> None:
+    home = os.environ["TONTOLO_HOME"]
+    os.makedirs(home, exist_ok=True)
+    with open(os.path.join(home, "crash.log"), "a", encoding="utf-8") as fh:
+        traceback.print_exc(file=fh)
+    traceback.print_exc()
+
+
 def main() -> None:
     import uvicorn
 
@@ -33,17 +41,22 @@ def main() -> None:
     config = uvicorn.Config(app, host="127.0.0.1", port=settings.server.port,
                             log_level="warning", loop="asyncio", http="h11",
                             lifespan="on", access_log=False)
-    uvicorn.Server(config).run()
+    # Sous Android, la fin du fil Python ferait tomber toute l'application : le serveur
+    # est donc relancé en cas d'erreur inattendue (3 essais), sans jamais quitter le fil.
+    for attempt in range(3):
+        try:
+            uvicorn.Server(config).run()
+            return
+        except BaseException:
+            _log_crash()
+            time.sleep(1 + attempt)
+            config = uvicorn.Config(app, host="127.0.0.1", port=settings.server.port,
+                                    log_level="warning", loop="asyncio", http="h11",
+                                    lifespan="on", access_log=False)
 
 
 if __name__ == "__main__":
     try:
         main()
-    except Exception:
-        log = os.path.join(os.environ["TONTOLO_HOME"], "crash.log")
-        os.makedirs(os.environ["TONTOLO_HOME"], exist_ok=True)
-        with open(log, "w", encoding="utf-8") as fh:
-            traceback.print_exc(file=fh)
-        traceback.print_exc()
-        # Pas de sys.exit : sous Android il terminerait toute l'application ;
-        # l'interface affiche l'erreur et propose de réessayer.
+    except BaseException:
+        _log_crash()

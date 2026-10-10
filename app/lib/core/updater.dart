@@ -19,7 +19,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'prefs.dart';
 
-const appVersion = '0.2.0';
+const appVersion = '0.2.1';
 const repo = 'raantss18/tontolo';
 
 enum UpdateStatus { idle, checking, downloading, ready, failed, upToDate }
@@ -32,7 +32,40 @@ class Updater extends ChangeNotifier {
   String? latest;
   String? releaseUrl;
   String? message;
+  String notesRaw = '';
   File? file;
+
+  /// Notes de la release groupées par rubrique (Ajouté, Corrigé, Sécurité…).
+  List<(String, List<String>)> get notes => parseNotes(notesRaw);
+
+  static List<(String, List<String>)> parseNotes(String body) {
+    final out = <(String, List<String>)>[];
+    String? head;
+    var items = <String>[];
+    void flush() {
+      final h = head;
+      if (h != null && items.isNotEmpty) out.add((h, items));
+      items = [];
+    }
+
+    for (final raw in const LineSplitter().convert(body)) {
+      final line = raw.trimRight();
+      if (line.startsWith('### ')) {
+        flush();
+        final title = line.substring(4).trim();
+        if (title.toLowerCase().startsWith('taille')) break; // tableau des tailles : inutile ici
+        head = title;
+      } else if (line.startsWith('- ') && head != null) {
+        items.add(_clean(line.substring(2)));
+      } else if (line.startsWith('  ') && items.isNotEmpty && line.trim().isNotEmpty) {
+        items[items.length - 1] = '${items.last} ${_clean(line.trim())}'; // ligne de suite
+      }
+    }
+    flush();
+    return out;
+  }
+
+  static String _clean(String s) => s.replaceAll('`', '').replaceAll('**', '').trim();
   double progress = 0;
   Timer? _timer;
 
@@ -85,6 +118,7 @@ class Updater extends ChangeNotifier {
       final rel = jsonDecode(r.body) as Map<String, dynamic>;
       latest = '${rel['tag_name']}'.replaceFirst('v', '');
       releaseUrl = rel['html_url'] as String?;
+      notesRaw = '${rel['body'] ?? ''}';
       if (!isNewer(latest!, appVersion)) return _set(UpdateStatus.upToDate);
       if (t.$1 == 'linux' && Platform.environment['APPIMAGE'] == null) {
         // Installation hors AppImage (paquet, sources) : on signale seulement.
@@ -106,8 +140,7 @@ class Updater extends ChangeNotifier {
       if (expected == null) throw Exception('Empreinte SHA-256 absente');
       file = await _download(asset, expected);
       message = 'Version $latest prête à installer';
-      _set(UpdateStatus.ready);
-      if (t.$1 == 'android') await installAndroid();
+      _set(UpdateStatus.ready); // l'installation est proposée par l'interface, jamais lancée d'office
     } catch (e) {
       message = '$e';
       _set(UpdateStatus.failed);

@@ -49,6 +49,9 @@ def parse_text_models(data: Any) -> list[ModelInfo]:
 
 def parse_image_models(data: Any) -> list[ModelInfo]:
     names = [d if isinstance(d, str) else d.get("name") for d in data or []]
+    # « auto » : sans paramètre de modèle, le service choisit lui-même (plus fiable que
+    # « sana », parfois indisponible) ; sert de second candidat de repli.
+    names = ["auto", *names] if data else names
     return [
         ModelInfo(
             provider="pollinations", model_id=n, name=f"Pollinations {n}", family=n,

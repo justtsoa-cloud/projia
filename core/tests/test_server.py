@@ -170,3 +170,74 @@ def test_native_chat_detects_image_request(client: TestClient,
         events = [json.loads(line[5:]) for line in r.iter_lines() if line.startswith("data:")]
     done = next(e for e in events if e["type"] == "done")
     assert done["job"]["status"] == "done" and done["model"] == "fake:img-1"
+
+
+def test_turn_survives_client_leaving_server(client: TestClient, fake: FakeProvider) -> None:
+    """Un autre client peut se rattacher au tour en cours, puis l'arrêter."""
+    import threading
+    import time
+
+    fake.chunk_delay = 0.15
+    cid = "conv-lente-1"
+    body = {"conversation_id": cid, "content": "Une réponse lente pour tester",
+            "use_tools": False}
+    t = threading.Thread(target=lambda: client.post("/tontolo/chat", json=body), daemon=True)
+    t.start()
+    for _ in range(100):
+        r = client.get(f"/tontolo/conversations/{cid}")
+        if r.status_code == 200 and r.json()["active"]:
+            break
+        time.sleep(0.02)
+    assert r.json()["active"] is True
+    busy = client.post("/tontolo/chat", json=body)
+    assert busy.status_code == 409                       # un seul tour actif par conversation
+    assert client.post(f"/tontolo/chat/{cid}/stop").json()["stopped"] is True
+    t.join(timeout=5)
+    assert client.get(f"/tontolo/conversations/{cid}").json()["active"] is False
+
+
+@pytest.mark.parametrize("status", [502, 200])
+async def test_pollinations_retries_then_succeeds(status: int,
+                                                  monkeypatch: pytest.MonkeyPatch) -> None:
+    """Le service gratuit est parfois instable : 3 essais avant d'abandonner."""
+    import asyncio
+
+    import httpx
+    import respx
+
+    from tontolo.catalog.models import ModelInfo
+
+    async def fast_sleep(_: float) -> None:
+        return None
+
+    monkeypatch.setattr(asyncio, "sleep", fast_sleep)
+    model = ModelInfo(provider="pollinations", model_id="auto", is_free=True, needs_key=False,
+                      output_modalities=["image"], media=["image_gen"])
+    with respx.mock:
+        route = respx.get(url__startswith="https://image.pollinations.ai/prompt/")
+        route.side_effect = [httpx.Response(status if status != 200 else 502),
+                             httpx.Response(502),
+                             httpx.Response(200, content=b"\xff\xd8img",
+                                            headers={"content-type": "image/jpeg"})]
+        out = await mp.generate_image(model, {"id": "pollinations"}, "un chat", {})
+    assert out.mime == "image/jpeg" and route.call_count == 3
+    assert "model" not in route.calls[0].request.url.params   # « auto » : pas de modèle imposé
+
+
+def test_regenerate_image_request_stays_media(client: TestClient,
+                                              monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+
+    async def fake_gen(model: Any, provider: Any, prompt: str, params: Any) -> mp.MediaOutput:
+        calls.append(prompt)
+        return mp.MediaOutput(b"\x89PNG", "image/png")
+
+    monkeypatch.setattr(mp, "generate_image", fake_gen)
+    cid = "conv-image-1"
+    client.post("/tontolo/chat", json={"conversation_id": cid,
+                                       "content": "Dessine un phare au coucher du soleil"})
+    client.post(f"/tontolo/chat/{cid}/regenerate", json={"approved": True})
+    msgs = client.get(f"/tontolo/conversations/{cid}").json()["messages"]
+    assert len(calls) == 2
+    assert [m["role"] for m in msgs] == ["user", "assistant"]       # ni doublon ni texte
+    assert msgs[1]["content"].startswith("[média:")

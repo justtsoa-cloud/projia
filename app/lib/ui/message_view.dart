@@ -45,7 +45,9 @@ class MessageView extends StatelessWidget {
               child: Image.memory(_decodeDataUrl(img), height: 180, cacheHeight: 360, fit: BoxFit.cover),
             ),
           ),
-        if (message.text.isEmpty && message.streaming && message.job == null)
+        if (message.reasoning.isNotEmpty)
+          _Reasoning(text: message.reasoning, live: message.streaming && message.text.isEmpty),
+        if (message.text.isEmpty && message.streaming && message.job == null && message.reasoning.isEmpty)
           const _TypingSkeleton()
         else if (message.text.isNotEmpty)
           isUser ? SelectableText(message.text) : RichMarkdown(message.text),
@@ -103,6 +105,36 @@ class MessageView extends StatelessWidget {
               ]),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Réflexion du modèle : visible en direct (dernières lignes), repliée une fois la réponse écrite.
+class _Reasoning extends StatelessWidget {
+  const _Reasoning({required this.text, required this.live});
+  final String text;
+  final bool live;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).hintColor);
+    final tail = text.length > 160 ? '…${text.substring(text.length - 160)}' : text;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          childrenPadding: EdgeInsets.zero,
+          dense: true,
+          leading: live
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.psychology_outlined, size: 18),
+          title: Text(live ? context.t('thinking') : context.t('thought'), style: style),
+          subtitle: live ? Text(tail, style: style, maxLines: 3, overflow: TextOverflow.ellipsis) : null,
+          children: [SelectableText(text, style: style)],
+        ),
       ),
     );
   }

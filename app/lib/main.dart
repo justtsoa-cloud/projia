@@ -8,11 +8,13 @@ import 'core/backend.dart';
 import 'core/chat_controller.dart';
 import 'core/prefs.dart';
 import 'core/updater.dart';
+import 'core/whats_new.dart';
 import 'l10n/strings.dart';
 import 'ui/chat_screen.dart';
 import 'ui/creations_screen.dart';
 import 'ui/onboarding.dart';
 import 'ui/search_dialog.dart';
+import 'ui/update_sheet.dart';
 import 'ui/settings_screen.dart';
 import 'ui/theme.dart';
 
@@ -89,6 +91,49 @@ class Shell extends StatefulWidget {
 
 class _ShellState extends State<Shell> {
   int index = 0;
+  bool _sheetOpen = false;
+  Updater? _updater;
+
+  @override
+  void initState() {
+    super.initState();
+    // Après le premier affichage : nouveautés de la version (après mise à jour) et annonce
+    // d'une nouvelle version dès qu'elle est prête.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _updater = AppScope.of(context).updater..addListener(_onUpdate);
+      _maybeWhatsNew();
+      _onUpdate();
+    });
+  }
+
+  @override
+  void dispose() {
+    _updater?.removeListener(_onUpdate);
+    super.dispose();
+  }
+
+  Future<void> _maybeWhatsNew() async {
+    final prefs = AppScope.of(context).prefs;
+    if (prefs.lastSeenVersion == appVersion) return;
+    final firstInstall = prefs.lastSeenVersion.isEmpty;
+    prefs.lastSeenVersion = appVersion;
+    if (firstInstall || newsFor(appVersion).isEmpty) return; // 1re installation : l'accueil suffit
+    _sheetOpen = true;
+    await showWhatsNew(context);
+    _sheetOpen = false;
+  }
+
+  Future<void> _onUpdate() async {
+    final up = AppScope.of(context).updater;
+    final prefs = AppScope.of(context).prefs;
+    if (_sheetOpen || up.status != UpdateStatus.ready || up.latest == null) return;
+    if (prefs.promptedUpdate == up.latest) return; // annoncé une seule fois par version
+    prefs.promptedUpdate = up.latest!;
+    _sheetOpen = true;
+    await showUpdateSheet(context);
+    _sheetOpen = false;
+  }
 
   @override
   Widget build(BuildContext context) {

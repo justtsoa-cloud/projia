@@ -18,6 +18,7 @@ import json
 import os
 import shutil
 import tempfile
+import time
 import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
@@ -72,21 +73,7 @@ async def generate_image(
     model: ModelInfo, provider: dict[str, Any], prompt: str, params: dict[str, Any]
 ) -> MediaOutput:
     if model.provider == "pollinations":
-        q = {"width": str(params.get("width", 1024)), "height": str(params.get("height", 1024)),
-             "model": model.model_id, "nologo": "true", "private": "true"}
-        if params.get("seed") is not None:
-            q["seed"] = str(params["seed"])
-        url = pollinations.IMAGE_URL + urllib.parse.quote(prompt, safe="")
-        try:
-            resp = await http.client().get(url, params=q, timeout=180.0)
-        except httpx.HTTPError as exc:
-            raise ProviderError(type(exc).__name__, ErrorKind.NETWORK) from exc
-        if resp.status_code >= 400:
-            raise classify_error(resp.status_code, resp.text, dict(resp.headers))
-        mime = resp.headers.get("content-type", "image/jpeg").split(";")[0]
-        if not mime.startswith("image/"):
-            raise ProviderError("Réponse non image", ErrorKind.SERVER)
-        return MediaOutput(resp.content, mime)
+        return await _pollinations_image(model, prompt, params)
     body: dict[str, Any] = {"model": model.model_id, "prompt": prompt, "n": 1}
     if params.get("aspect_ratio"):
         body["aspect_ratio"] = params["aspect_ratio"]
@@ -106,6 +93,36 @@ async def generate_image(
         r = await http.client().get(item["url"], timeout=120.0)
         return MediaOutput(r.content, r.headers.get("content-type", "image/png"))
     raise ProviderError("Aucune image renvoyée", ErrorKind.SERVER)
+
+
+async def _pollinations_image(model: ModelInfo, prompt: str,
+                              params: dict[str, Any]) -> MediaOutput:
+    """Pollinations (sans clé) : service parfois instable → 3 essais avec graine différente."""
+    url = pollinations.IMAGE_URL + urllib.parse.quote(prompt, safe="")
+    last: ProviderError | None = None
+    for attempt in range(3):
+        q = {"width": str(params.get("width", 1024)), "height": str(params.get("height", 1024)),
+             "nologo": "true", "private": "true"}
+        if model.model_id != "auto":
+            q["model"] = model.model_id
+        seed = params.get("seed")
+        q["seed"] = str(seed if seed is not None and attempt == 0 else int(time.time()) + attempt)
+        try:
+            resp = await http.client().get(url, params=q, timeout=120.0)
+        except httpx.HTTPError as exc:
+            last = ProviderError(type(exc).__name__, ErrorKind.NETWORK)
+        else:
+            mime = resp.headers.get("content-type", "").split(";")[0]
+            if resp.status_code < 400 and mime.startswith("image/") and resp.content:
+                return MediaOutput(resp.content, mime)
+            last = (classify_error(resp.status_code, resp.text, dict(resp.headers))
+                    if resp.status_code >= 400 else
+                    ProviderError("Réponse non image", ErrorKind.SERVER))
+            if last.kind in (ErrorKind.RATE_LIMIT, ErrorKind.QUOTA, ErrorKind.AUTH):
+                break                      # inutile d'insister : on laisse la bascule agir
+        await asyncio.sleep(1.5 * (attempt + 1))
+    assert last is not None
+    raise last
 
 
 async def transcribe(

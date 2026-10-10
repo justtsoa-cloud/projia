@@ -63,15 +63,24 @@ class Backend extends ChangeNotifier {
 
   Future<void> _startEmbedded() async {
     if (_pythonStarted) return;
+    final support = await getApplicationSupportDirectory();
+    final home = Directory('${support.path}/tontolo');
+    await home.create(recursive: true);
+    // Quitter l'application (bouton Retour) ne tue pas le processus Android : le moteur Python
+    // y reste en vie, mais l'interface est recréée. On le retrouve (port + jeton mémorisés)
+    // au lieu d'en démarrer un second, ce qui est impossible dans un même processus.
+    final info = File('${home.path}/core.json');
+    if (await _reuseRunningCore(info)) {
+      _pythonStarted = true;
+      return;
+    }
     final socket = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
     final port = socket.port;
     await socket.close();
     final rnd = Random.secure();
     token = List.generate(32, (_) => rnd.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
     baseUrl = 'http://127.0.0.1:$port';
-    final support = await getApplicationSupportDirectory();
-    final home = Directory('${support.path}/tontolo');
-    await home.create(recursive: true);
+    await info.writeAsString(jsonEncode({'port': port, 'token': token}), flush: true);
     _pythonStarted = true;
     // Le cœur tourne dans un fil d'exécution d'arrière-plan : l'interface reste fluide.
     unawaited(SeriousPython.run(
@@ -82,6 +91,25 @@ class Backend extends ChangeNotifier {
         'TONTOLO_PLATFORM': Platform.isAndroid ? 'android' : 'linux',
       },
     ));
+  }
+
+  /// Vrai si un moteur déjà démarré (même processus) répond avec le jeton mémorisé.
+  Future<bool> _reuseRunningCore(File info) async {
+    try {
+      if (!await info.exists()) return false;
+      final j = jsonDecode(await info.readAsString()) as Map<String, dynamic>;
+      final url = 'http://127.0.0.1:${j['port']}';
+      final t = '${j['token']}';
+      final r = await http
+          .get(Uri.parse('$url/tontolo/status'), headers: {'Authorization': 'Bearer $t'})
+          .timeout(const Duration(seconds: 2));
+      if (r.statusCode != 200) return false;
+      baseUrl = url;
+      token = t;
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> _waitHealthy({required Duration timeout}) async {
@@ -124,13 +152,17 @@ class Backend extends ChangeNotifier {
     }
   }
 
-  /// Flux d'événements SSE (`data: {...}`) d'une requête POST.
-  Stream<Map<String, dynamic>> sse(String path, Object body) async* {
+  /// Flux d'événements SSE (`data: {...}`). La génération tourne côté cœur : fermer ce flux
+  /// (quitter la discussion) ne l'interrompt pas ; on peut s'y rattacher avec `follow`.
+  Stream<Map<String, dynamic>> follow(String conversationId) =>
+      sse('/tontolo/chat/$conversationId/stream', null, method: 'GET');
+
+  Stream<Map<String, dynamic>> sse(String path, Object? body, {String method = 'POST'}) async* {
     final client = http.Client();
     try {
-      final req = http.Request('POST', uri(path))
-        ..headers.addAll({...headers, 'Content-Type': 'application/json', 'Accept': 'text/event-stream'})
-        ..body = jsonEncode(body);
+      final req = http.Request(method, uri(path))
+        ..headers.addAll({...headers, 'Content-Type': 'application/json', 'Accept': 'text/event-stream'});
+      if (body != null) req.body = jsonEncode(body);
       final resp = await client.send(req);
       if (resp.statusCode >= 400) {
         final text = await resp.stream.bytesToString();

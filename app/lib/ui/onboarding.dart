@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 
+import '../core/updater.dart' show appVersion;
 import '../main.dart';
 
 class Onboarding extends StatefulWidget {
@@ -15,7 +16,11 @@ class _OnboardingState extends State<Onboarding> {
   final controller = PageController();
   int page = 0;
 
-  void _finish() => AppScope.of(context).prefs.onboarded = true;
+  void _finish() {
+    final prefs = AppScope.of(context).prefs;
+    prefs.lastSeenVersion = appVersion; // 1re installation : pas de « nouveautés » à afficher
+    prefs.onboarded = true;
+  }
 
   @override
   Widget build(BuildContext context) {

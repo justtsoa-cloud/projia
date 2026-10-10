@@ -20,6 +20,7 @@ class FakeProvider:
     errors: dict[str, list[ProviderError]] = field(default_factory=dict)
     calls: list[tuple[str, int]] = field(default_factory=list)
     fail_mid_stream: set[str] = field(default_factory=set)
+    chunk_delay: float = 0.0  # simule une génération lente
 
     def fail(self, model_id: str, *errors: ProviderError) -> None:
         self.errors.setdefault(model_id, []).extend(errors)
@@ -58,6 +59,10 @@ class FakeProvider:
         msg = self._answer(model, messages)
         text = msg.get("content") or ""
         for i in range(0, len(text), 8):
+            if self.chunk_delay:
+                import asyncio
+
+                await asyncio.sleep(self.chunk_delay)
             yield {"delta": {"content": text[i:i + 8]}}
         if msg.get("tool_calls"):
             yield {"delta": {"tool_calls": [dict(tc, index=i)

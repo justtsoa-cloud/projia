@@ -8,6 +8,7 @@ from typing import Any
 from tontolo import http
 from tontolo.agent.loop import ChatService
 from tontolo.agent.mcp_client import McpManager
+from tontolo.agent.turns import TurnManager
 from tontolo.catalog.service import CatalogService
 from tontolo.config import Settings, load_settings
 from tontolo.media.service import MediaService
@@ -26,6 +27,7 @@ class Core:
     media: MediaService
     mcp: McpManager
     events: list[Any] = field(default_factory=list)
+    turns: TurnManager = field(default_factory=TurnManager)
 
     @classmethod
     async def start(
@@ -47,6 +49,8 @@ class Core:
         return core
 
     async def stop(self) -> None:
+        for cid in list(self.turns.turns):
+            await self.turns.stop(cid)
         await self.mcp.close()
         await self.db.close()
         await http.aclose()

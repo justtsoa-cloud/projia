@@ -10,6 +10,7 @@ import '../main.dart';
 import 'about_screen.dart';
 import 'personalization.dart';
 import 'message_view.dart' show openSafeLink;
+import 'update_sheet.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -78,6 +79,29 @@ class _Simple extends StatelessWidget {
             ],
             onChanged: (v) => prefs.locale = v ?? 'fr',
           ),
+        ),
+        ListTile(
+          leading: const Icon(Icons.new_releases_outlined),
+          title: Text(context.t('whats_new')),
+          subtitle: Text('${context.t('version')} $appVersion'),
+          onTap: () => showWhatsNew(context),
+        ),
+        if (scope.updater.status == UpdateStatus.ready && scope.updater.latest != null)
+          ListTile(
+            leading: Icon(Icons.system_update, color: Theme.of(context).colorScheme.primary),
+            title: Text(context.t('update_ready', {'v': scope.updater.latest!})),
+            subtitle: Text(context.t('see_changes')),
+            onTap: () => showUpdateSheet(context),
+          ),
+        ListTile(
+          leading: const Icon(Icons.refresh),
+          title: Text(context.t('check_updates')),
+          onTap: () async {
+            await scope.updater.run(manual: true);
+            if (context.mounted && scope.updater.status == UpdateStatus.upToDate) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('up_to_date'))));
+            }
+          },
         ),
         SwitchListTile(
           title: Text(context.t('auto_update')),

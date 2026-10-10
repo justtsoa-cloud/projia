@@ -8,7 +8,15 @@ class Prefs extends ChangeNotifier {
 
   final SharedPreferences _sp;
 
-  static Future<Prefs> load() async => Prefs(await SharedPreferences.getInstance());
+  static Future<Prefs> load() async {
+    final sp = await SharedPreferences.getInstance();
+    // Mise à jour depuis une version qui ne mémorisait pas la dernière version vue :
+    // on la considère comme 0.2.0 pour présenter les nouveautés (et non « 1re installation »).
+    if ((sp.getBool('onboarded') ?? false) && (sp.getString('lastSeenVersion') ?? '').isEmpty) {
+      await sp.setString('lastSeenVersion', '0.2.0');
+    }
+    return Prefs(sp);
+  }
 
   ThemeMode get themeMode => ThemeMode.values[_sp.getInt('theme') ?? 0];
   set themeMode(ThemeMode m) => _set(() => _sp.setInt('theme', m.index));
@@ -29,6 +37,14 @@ class Prefs extends ChangeNotifier {
   /// Vitesse de lecture à voix haute (0.3 lent → 0.8 rapide).
   double get speechRate => _sp.getDouble('speechRate') ?? 0.5;
   set speechRate(double v) => _set(() => _sp.setDouble('speechRate', v));
+
+  /// Dernière version dont les nouveautés ont été présentées (« Quoi de neuf »).
+  String get lastSeenVersion => _sp.getString('lastSeenVersion') ?? '';
+  set lastSeenVersion(String v) => _set(() => _sp.setString('lastSeenVersion', v));
+
+  /// Version de mise à jour dont l'annonce a déjà été affichée (une seule fois par version).
+  String get promptedUpdate => _sp.getString('promptedUpdate') ?? '';
+  set promptedUpdate(String v) => _set(() => _sp.setString('promptedUpdate', v));
 
   bool get onboarded => _sp.getBool('onboarded') ?? false;
   set onboarded(bool v) => _set(() => _sp.setBool('onboarded', v));

@@ -19,6 +19,7 @@ class ChatMessage {
   List<String> images = []; // pièces jointes (data URL)
   List<Map<String, dynamic>> sources = [];
   bool streaming;
+  String reasoning = ''; // réflexion du modèle (affichée à part, repliable)
   String? uid;
   int? seq; // position en base (modifier et renvoyer)
 }
@@ -61,9 +62,21 @@ class ChatController extends ChangeNotifier {
   Future<void> open(String id) async {
     newChat();
     conversationId = id;
-    final data = await backend.getJson('/tontolo/conversations/$id') as Map<String, dynamic>;
-    for (final m in (data['messages'] as List).cast<Map<String, dynamic>>()) {
-      final role = m['role'] as String;
+    try {
+      final data = await backend.getJson('/tontolo/conversations/$id') as Map<String, dynamic>;
+      await _loadMessages((data['messages'] as List).cast<Map<String, dynamic>>());
+      notifyListeners();
+      // Réponse encore en cours de génération : on s'y rattache (rejeu puis direct).
+      if (data['active'] == true && conversationId == id) _run(backend.follow(id), replay: true);
+    } catch (e) {
+      messages.add(ChatMessage(role: 'notice', text: 'error|$e'));
+      notifyListeners();
+    }
+  }
+
+  Future<void> _loadMessages(List<Map<String, dynamic>> items) async {
+    for (final m in items) {
+      final role = m['role'] as String? ?? '';
       if (role == 'tool' || role == 'system') continue;
       final meta = (m['_meta'] as Map?)?.cast<String, dynamic>() ?? {};
       final msg = ChatMessage(role: role, model: meta['model'] as String?)
@@ -88,7 +101,6 @@ class ChatController extends ChangeNotifier {
       if (role == 'assistant' && msg.text.isEmpty && msg.job == null && m['tool_calls'] != null) continue;
       messages.add(msg);
     }
-    notifyListeners();
   }
 
   Future<void> send(String text, {List<String> images = const [], String? category}) async {
@@ -166,7 +178,12 @@ class ChatController extends ChangeNotifier {
     }
   }
 
+  /// Arrêt demandé par l'utilisateur : interrompt aussi la génération côté cœur.
   void stop() {
+    final cid = conversationId;
+    if (cid != null) {
+      backend.sendJson('POST', '/tontolo/chat/$cid/stop').catchError((_) {});
+    }
     _sub?.cancel();
     _sub = null;
     busy = false;
@@ -177,11 +194,15 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _run(Stream<Map<String, dynamic>> events) {
+  void _run(Stream<Map<String, dynamic>> events, {bool replay = false}) {
     busy = true;
     status = null;
     notifyListeners();
     ChatMessage? current;
+    // Rattachement : le rejeu recommence au début du tour, on repart d'une réponse vide.
+    if (replay && messages.isNotEmpty && messages.last.role == 'assistant' && messages.last.uid == null) {
+      messages.removeLast();
+    }
     ChatMessage ensureCurrent() {
       if (current == null) {
         current = ChatMessage(role: 'assistant', streaming: true);
@@ -216,6 +237,10 @@ class ChatController extends ChangeNotifier {
         case 'delta':
           final c = ensureCurrent();
           if (ev['content'] != null) c.text += ev['content'] as String;
+          final r = ev['reasoning'] ?? ev['reasoning_content'];
+          if (r != null) c.reasoning += r as String;
+          status = c.text.isEmpty && c.reasoning.isNotEmpty ? 'thinking' : null;
+        case 'stopped':
           status = null;
         case 'stream_reset':
           ensureCurrent().text = '';
@@ -240,7 +265,7 @@ class ChatController extends ChangeNotifier {
           final msg = (ev['message'] as Map).cast<String, dynamic>();
           if (ev['job'] != null) {
             c.job = (ev['job'] as Map).cast<String, dynamic>();
-            c.text = c.job!['status'] == 'done' ? '' : '${msg['content'] ?? ''}';
+            c.text = ''; // l'état (image, erreur) est affiché par la carte média, pas en double
           } else if (msg['tool_calls'] != null && (msg['content'] ?? '').toString().isEmpty) {
             // Étape d'outil : la réponse finale arrivera dans un message suivant.
             messages.remove(c);

@@ -47,9 +47,15 @@ plateformes en ligne.
 
 ## Installation
 
-### Android
-Téléchargez l'APK de votre appareil (en général `arm64-v8a`) depuis la
-[dernière release](https://github.com/raantss18/tontolo/releases/latest), puis ouvrez-le.
+### Android (7.0 à 16)
+Téléchargez l'APK de votre appareil depuis la
+[dernière release](https://github.com/raantss18/tontolo/releases/latest), puis ouvrez-le :
+
+| Fichier | Appareils |
+|---|---|
+| `arm64-v8a` | **Presque tous les téléphones et tablettes depuis 2016** (ARMv8, 64 bits) — le bon choix en cas de doute |
+| `armeabi-v7a` | Appareils anciens ou d'entrée de gamme (ARM 32 bits) |
+| `x86_64` | Émulateurs, Chromebooks, Android x86 (Intel/AMD) |
 
 ### Linux (application)
 ```bash
@@ -59,7 +65,7 @@ chmod +x Tontolo-*-x86_64.AppImage
 
 ### Linux (CLI et serveur)
 ```bash
-pip install "tontolo[linux] @ https://github.com/raantss18/tontolo/releases/latest/download/tontolo-0.2.0-py3-none-any.whl"
+pip install "tontolo[linux] @ https://github.com/raantss18/tontolo/releases/latest/download/tontolo-0.2.1-py3-none-any.whl"
 tontolo catalog list --free --category code
 tontolo chat "Explique-moi les intégrales"
 tontolo serve            # API compatible OpenAI sur http://127.0.0.1:8765/v1

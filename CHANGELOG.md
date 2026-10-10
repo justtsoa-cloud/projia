@@ -5,6 +5,33 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.2.1] - 2026-10-10
+
+### Corrigé
+- **L'application s'arrêtait quand on la quittait puis la rouvrait** : Android garde le
+  processus (et le moteur Python) mais recrée l'interface, qui tentait d'en démarrer un
+  second. Le moteur déjà en marche est maintenant retrouvé et réutilisé.
+- Quitter une discussion pendant qu'un modèle répond n'interrompt plus la réponse : elle
+  continue côté moteur, est enregistrée, et on s'y rattache en revenant (rejeu puis direct).
+  Le moteur embarqué est aussi protégé contre les arrêts inattendus.
+- Impossible de remonter le fil pendant que le modèle écrit ou réfléchit : le suivi
+  automatique du bas est suspendu tant que le doigt est posé ou que le fil défile, et ne
+  reprend que si l'on s'arrête en bas ; un bouton ramène au dernier message.
+- Message d'erreur d'image affiché en double ; « Réessayer » relançait du texte au lieu de
+  l'image. Pollinations : 3 essais automatiques et variante « auto » plus fiable.
+- Bouton Arrêter : interrompt réellement la génération côté moteur.
+
+### Ajouté
+- Les notes de release indiquent quel fichier choisir (ARMv8/arm64-v8a, armv7, x86_64,
+  AppImage) et les versions d'Android compatibles.
+- La réflexion des modèles à raisonnement est affichée en direct (repliable) au lieu
+  d'un écran vide pendant de longues minutes.
+- **Mises à jour visibles** : annonce avec le résumé des changements dès qu'une version est
+  prête (installer maintenant ou plus tard), bannière dans le chat, entrées dans
+  Réglages › Simple ; l'installation n'est plus lancée sans demander.
+- **Nouveautés** présentées au premier lancement après une mise à jour, et consultables
+  dans Réglages › Simple › Nouveautés de cette version.
+
 ## [0.2.0] - 2026-10-10
 
 ### Ajouté

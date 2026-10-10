@@ -306,6 +306,21 @@ def create_app(
     # --- API native : conversations ---------------------------------------
 
 
+    async def _prefixed(first: list[dict[str, Any]],
+                        gen: AsyncIterator[dict[str, Any]]) -> AsyncIterator[dict[str, Any]]:
+        for ev in first:
+            yield ev
+        async for ev in gen:
+            yield ev
+
+    def _turn(core: Core, cid: str, gen: AsyncIterator[dict[str, Any]],
+              first: list[dict[str, Any]] | None = None) -> StreamingResponse:
+        """Lance un tour détaché (survit à la déconnexion du client) et diffuse son flux."""
+        if core.turns.active(cid) is not None:
+            raise HTTPException(409, "Une réponse est déjà en cours dans cette conversation")
+        turn = core.turns.start(cid, _prefixed(first or [], gen))
+        return _sse(turn.follow())
+
     def _sse(gen: AsyncIterator[dict[str, Any]]) -> StreamingResponse:
         async def run() -> AsyncIterator[str]:
             async for ev in gen:
@@ -330,14 +345,23 @@ def create_app(
             detected = classify([{"role": "user", "content": body.content}]).category
             if detected.value in MEDIA_TURN_KINDS:
                 category = detected
+        # La conversation est créée d'abord : le tour lui est rattaché dès le départ.
+        cid = body.conversation_id
+        first: list[dict[str, Any]] = []
+        if not cid or not await core.db.conversation_exists(cid):
+            text = body.content if isinstance(body.content, str) else next(
+                (p.get("text", "") for p in body.content if p.get("type") == "text"), "")
+            cid = await core.db.create_conversation(text[:60].strip(), cid)
+            first.append({"type": "conversation", "id": cid})
+        body.conversation_id = cid
         if category is not None and category.value in MEDIA_TURN_KINDS:
-            return _sse(_media_turn(core, body, category))
-        return _sse(core.chat.send(body.conversation_id, body.content, model=body.model,
-                                   forced=category, strict=body.strict,
-                                   use_tools=body.use_tools))
+            return _turn(core, cid, _media_turn(core, body, category), first)
+        return _turn(core, cid, core.chat.send(cid, body.content, model=body.model,
+                                               forced=category, strict=body.strict,
+                                               use_tools=body.use_tools), first)
 
-    async def _media_turn(core: Core, body: ChatBody,
-                          category: Category) -> AsyncIterator[dict[str, Any]]:
+    async def _media_turn(core: Core, body: ChatBody, category: Category,
+                          add_user: bool = True) -> AsyncIterator[dict[str, Any]]:
         """Tour de conversation dont le résultat est un média (image, voix, vidéo)."""
         text = body.content if isinstance(body.content, str) else " ".join(
             p.get("text", "") for p in body.content if p.get("type") == "text")
@@ -345,7 +369,8 @@ def create_app(
         if not cid or not await core.db.conversation_exists(cid):
             cid = await core.db.create_conversation(text[:60])
             yield {"type": "conversation", "id": cid}
-        await core.db.add_message(cid, {"role": "user", "content": body.content})
+        if add_user:
+            await core.db.add_message(cid, {"role": "user", "content": body.content})
         image = _first_image(body.content)
         job = await core.media.submit(category.value, text, conversation_id=cid,
                                       model=body.model, input_bytes=image,
@@ -353,8 +378,7 @@ def create_app(
         yield {"type": "job", **job}
         done = await core.media.wait(job["id"]) or job
         yield {"type": "job", **done}
-        note = (f"[média:{done['id']}]" if done["status"] == "done"
-                else str(done.get("error")))
+        note = f"[média:{done['id']}]"      # l'état (réussi ou échec) est lu dans le job
         msg = await core.db.add_message(cid, {"role": "assistant", "content": note},
                                         model=done.get("model"))
         yield {"type": "done", "message": {"role": "assistant", "content": note},
@@ -365,18 +389,45 @@ def create_app(
 
     @app.post("/tontolo/chat/{cid}/resume")
     async def resume(request: Request, cid: str, body: ResumeBody) -> StreamingResponse:
-        return _sse(core_of(request).chat.resume(cid, approved=body.approved,
-                                                 model=body.model))
+        core = core_of(request)
+        return _turn(core, cid, core.chat.resume(cid, approved=body.approved, model=body.model))
 
     @app.post("/tontolo/chat/{cid}/regenerate")
     async def regenerate(request: Request, cid: str, body: ResumeBody | None = None
                          ) -> StreamingResponse:
-        return _sse(core_of(request).chat.regenerate(cid, model=body.model if body else None))
+        core = core_of(request)
+        history = await core.db.get_messages(cid)
+        last_user = next((m for m in reversed(history) if m["role"] == "user"), None)
+        if last_user is not None:
+            kind = classify([{"role": "user", "content": last_user["content"]}]).category
+            if kind.value in MEDIA_TURN_KINDS:
+                # Une demande d'image/voix se relance comme un média, pas comme du texte.
+                await core.db.truncate_after(cid, last_user["_meta"]["seq"])
+                media_body = ChatBody(conversation_id=cid, content=last_user["content"],
+                                      model=body.model if body else None)
+                return _turn(core, cid, _media_turn(core, media_body, kind, add_user=False))
+        return _turn(core, cid, core.chat.regenerate(cid, model=body.model if body else None))
 
     @app.post("/tontolo/chat/{cid}/edit")
     async def edit_message(request: Request, cid: str, body: EditBody) -> StreamingResponse:
-        return _sse(core_of(request).chat.edit_and_resend(cid, body.seq, body.content,
+        core = core_of(request)
+        return _turn(core, cid, core.chat.edit_and_resend(cid, body.seq, body.content,
                                                           model=body.model))
+
+    @app.get("/tontolo/chat/{cid}/stream")
+    async def follow_turn(request: Request, cid: str) -> StreamingResponse:
+        """Se rattacher au tour en cours (ou tout juste terminé) d'une conversation."""
+        turn = core_of(request).turns.get(cid)
+
+        async def empty() -> AsyncIterator[dict[str, Any]]:
+            return
+            yield {}
+
+        return _sse(turn.follow() if turn is not None else empty())
+
+    @app.post("/tontolo/chat/{cid}/stop")
+    async def stop_turn(request: Request, cid: str) -> dict[str, bool]:
+        return {"stopped": await core_of(request).turns.stop(cid)}
 
     @app.post("/tontolo/chat/{cid}/approve-paid")
     async def approve_paid(request: Request, cid: str) -> dict[str, bool]:
@@ -394,7 +445,8 @@ def create_app(
         db = core_of(request).db
         if not await db.conversation_exists(cid):
             raise HTTPException(404, "Conversation introuvable")
-        return {"id": cid, "messages": await db.get_messages(cid, after, limit)}
+        return {"id": cid, "messages": await db.get_messages(cid, after, limit),
+                "active": core_of(request).turns.active(cid) is not None}
 
 
     @app.patch("/tontolo/conversations/{cid}")

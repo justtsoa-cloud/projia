@@ -8,6 +8,7 @@ import 'package:tontolo/l10n/strings.dart';
 import 'package:tontolo/ui/message_view.dart';
 
 void main() {
+  notesTests();
   test('comparaison de versions', () {
     expect(Updater.isNewer('0.2.0', '0.1.0'), isTrue);
     expect(Updater.isNewer('0.10.0', '0.9.9'), isTrue);
@@ -38,5 +39,28 @@ void main() {
     expect(find.text('Titre'), findsOneWidget);
     expect(find.text('print(1)'), findsOneWidget);
     expect(find.byIcon(Icons.copy), findsOneWidget);
+  });
+}
+
+void notesTests() {
+  test('notes de version : rubriques, sans tableau des tailles', () {
+    const body = '''
+### Ajouté
+- **Mémoire** locale avec `compactage`
+  automatique.
+- Raccourcis « / ».
+
+### Corrigé
+- Lecture vocale arrêtable.
+
+### Taille des fichiers
+| Fichier | Taille |
+- ceci ne doit pas apparaître
+''';
+    final notes = Updater.parseNotes(body);
+    expect(notes.map((n) => n.$1), ['Ajouté', 'Corrigé']);
+    expect(notes.first.$2.first, 'Mémoire locale avec compactage automatique.');
+    expect(notes.first.$2.length, 2);
+    expect(notes.expand((n) => n.$2), isNot(contains('ceci ne doit pas apparaître')));
   });
 }
