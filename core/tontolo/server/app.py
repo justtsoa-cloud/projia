@@ -67,6 +67,21 @@ class ChatBody(BaseModel):
     use_tools: bool = True
 
 
+class EditBody(BaseModel):
+    seq: int
+    content: str
+    model: str | None = None
+
+
+class PinBody(BaseModel):
+    pinned: bool
+
+
+class MemoryBody(BaseModel):
+    text: str
+    kind: str = "fact"
+
+
 class ResumeBody(BaseModel):
     approved: bool
     model: str | None = None
@@ -353,6 +368,16 @@ def create_app(
         return _sse(core_of(request).chat.resume(cid, approved=body.approved,
                                                  model=body.model))
 
+    @app.post("/tontolo/chat/{cid}/regenerate")
+    async def regenerate(request: Request, cid: str, body: ResumeBody | None = None
+                         ) -> StreamingResponse:
+        return _sse(core_of(request).chat.regenerate(cid, model=body.model if body else None))
+
+    @app.post("/tontolo/chat/{cid}/edit")
+    async def edit_message(request: Request, cid: str, body: EditBody) -> StreamingResponse:
+        return _sse(core_of(request).chat.edit_and_resend(cid, body.seq, body.content,
+                                                          model=body.model))
+
     @app.post("/tontolo/chat/{cid}/approve-paid")
     async def approve_paid(request: Request, cid: str) -> dict[str, bool]:
         core_of(request).router.approve_paid(cid)
@@ -376,6 +401,32 @@ def create_app(
     async def rename(request: Request, cid: str, body: RenameBody) -> dict[str, bool]:
         await core_of(request).db.rename_conversation(cid, body.title)
         return {"ok": True}
+
+    @app.put("/tontolo/conversations/{cid}/pin")
+    async def pin(request: Request, cid: str, body: PinBody) -> dict[str, bool]:
+        await core_of(request).db.pin_conversation(cid, body.pinned)
+        return {"ok": True}
+
+    @app.get("/tontolo/conversations/{cid}/export")
+    async def export(request: Request, cid: str) -> Response:
+        """Export Markdown d'une conversation (partage, archivage)."""
+        db = core_of(request).db
+        if not await db.conversation_exists(cid):
+            raise HTTPException(404, "Conversation introuvable")
+        convs = {c["id"]: c for c in await db.list_conversations(limit=10_000)}
+        title = convs.get(cid, {}).get("title") or "Conversation"
+        lines = [f"# {title}", ""]
+        for m in await db.get_messages(cid):
+            if m["role"] not in ("user", "assistant"):
+                continue
+            content = m.get("content")
+            if isinstance(content, list):
+                content = "\n".join(p.get("text", "[image]") for p in content)
+            if not content:
+                continue
+            who = "**Vous**" if m["role"] == "user" else f"**Tontolo** · _{m['_meta']['model']}_"
+            lines += [who, "", str(content), ""]
+        return Response("\n".join(lines), media_type="text/markdown; charset=utf-8")
 
     @app.delete("/tontolo/conversations/{cid}")
     async def delete_conv(request: Request, cid: str) -> dict[str, bool]:
@@ -567,6 +618,34 @@ def create_app(
         return {"ok": True}
 
     # --- Dépenses, synchronisation, MCP, mise à jour ---------------------
+
+    @app.get("/tontolo/memory")
+    async def memory_list(request: Request) -> dict[str, Any]:
+        core = core_of(request)
+        return {"enabled": core.settings.memory_enabled,
+                "items": await core.db.list_memories()}
+
+    @app.post("/tontolo/memory")
+    async def memory_add(request: Request, body: MemoryBody) -> dict[str, bool]:
+        ok = await core_of(request).chat.memory.remember(
+            body.text, "instruction" if body.kind == "instruction" else "fact", "manuel")
+        if not ok:
+            raise HTTPException(400, "Souvenir refusé (vide ou contenant un secret)")
+        return {"ok": True}
+
+    @app.delete("/tontolo/memory/{mem_id}")
+    async def memory_delete(request: Request, mem_id: int) -> dict[str, bool]:
+        await core_of(request).db.delete_memory(mem_id)
+        return {"ok": True}
+
+    @app.delete("/tontolo/memory")
+    async def memory_clear(request: Request) -> dict[str, bool]:
+        await core_of(request).db.delete_memory(None)
+        return {"ok": True}
+
+    @app.post("/tontolo/memory/compact")
+    async def memory_compact(request: Request) -> dict[str, int]:
+        return {"count": await core_of(request).chat.memory.maybe_compact(force=True)}
 
     @app.get("/tontolo/spend")
     async def spend(request: Request) -> dict[str, Any]:

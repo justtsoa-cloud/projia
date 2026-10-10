@@ -19,7 +19,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'prefs.dart';
 
-const appVersion = '0.1.0';
+const appVersion = '0.2.0';
 const repo = 'raantss18/tontolo';
 
 enum UpdateStatus { idle, checking, downloading, ready, failed, upToDate }
@@ -95,6 +95,12 @@ class Updater extends ChangeNotifier {
       final asset = _pick(assets, t.$1, t.$2);
       final sums = assets.where((a) => a['name'] == 'SHA256SUMS').firstOrNull;
       if (asset == null || sums == null) throw Exception('Fichier de mise à jour absent');
+      for (final a in [asset, sums]) {
+        final host = Uri.parse('${a['browser_download_url']}').host;
+        if (host != 'github.com' && !host.endsWith('.githubusercontent.com')) {
+          throw Exception('Origine du téléchargement non reconnue');
+        }
+      }
       final sumsText = (await http.get(Uri.parse(sums['browser_download_url']))).body;
       final expected = _parseSums(sumsText)[asset['name']];
       if (expected == null) throw Exception('Empreinte SHA-256 absente');

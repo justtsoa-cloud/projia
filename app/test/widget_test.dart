@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tontolo/core/speech.dart';
 import 'package:tontolo/core/updater.dart';
 import 'package:tontolo/l10n/strings.dart';
 import 'package:tontolo/ui/message_view.dart';
@@ -11,6 +12,14 @@ void main() {
     expect(Updater.isNewer('0.2.0', '0.1.0'), isTrue);
     expect(Updater.isNewer('0.10.0', '0.9.9'), isTrue);
     expect(Updater.isNewer('0.1.0', '0.1.0'), isFalse);
+  });
+
+  test('lecture vocale : texte nettoyé du Markdown et du LaTeX', () {
+    final t = Speech.plainText('# Titre\n\n**gras** [lien](https://x.y) \$\$x^2\$\$ ```code```');
+    expect(t, isNot(contains('#')));
+    expect(t, contains('lien'));
+    expect(t, contains('(formule)'));
+    expect(t, contains('(bloc de code)'));
   });
 
   test('traductions avec repli sur le français', () {

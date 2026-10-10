@@ -26,6 +26,10 @@ class Prefs extends ChangeNotifier {
   String get remoteUrl => _sp.getString('remoteUrl') ?? '';
   set remoteUrl(String v) => _set(() => _sp.setString('remoteUrl', v));
 
+  /// Vitesse de lecture à voix haute (0.3 lent → 0.8 rapide).
+  double get speechRate => _sp.getDouble('speechRate') ?? 0.5;
+  set speechRate(double v) => _set(() => _sp.setDouble('speechRate', v));
+
   bool get onboarded => _sp.getBool('onboarded') ?? false;
   set onboarded(bool v) => _set(() => _sp.setBool('onboarded', v));
 

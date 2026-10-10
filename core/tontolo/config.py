@@ -73,6 +73,11 @@ class Settings(BaseModel):
     media_quota_mb: int = 1024
     language: str = "fr"
     check_updates: bool = True
+    # Mémoire à long terme (locale) et instructions personnalisées.
+    memory_enabled: bool = True
+    memory_max_items: int = 60
+    memory_budget_chars: int = 1500
+    custom_instructions: str = ""
     # Téléchargement et installation automatiques des nouvelles versions.
     auto_update: bool = True
 

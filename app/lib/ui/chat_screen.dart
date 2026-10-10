@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../core/backend.dart';
 import '../core/chat_controller.dart';
@@ -92,6 +93,35 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() => recording = true);
   }
 
+  Future<void> _editMessage(ChatController chat, ChatMessage m) async {
+    final ctrl = TextEditingController(text: m.text);
+    final text = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.t('edit')),
+        content: TextField(controller: ctrl, autofocus: true, minLines: 1, maxLines: 8),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(context.t('cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(context, ctrl.text), child: Text(context.t('send'))),
+        ],
+      ),
+    );
+    if (text != null) chat.editAndResend(m, text);
+  }
+
+  Future<void> _export(ChatController chat) async {
+    final b = AppScope.of(context).backend;
+    final r = await http.get(b.uri('/tontolo/conversations/${chat.conversationId}/export'), headers: b.headers);
+    if (r.statusCode != 200) return;
+    await SharePlus.instance.share(ShareParams(files: [
+      XFile.fromData(r.bodyBytes, mimeType: 'text/markdown', name: 'tontolo-conversation.md'),
+    ]));
+  }
+
+  Future<void> _pin(ChatController chat) async {
+    await AppScope.of(context).backend.sendJson('PUT', '/tontolo/conversations/${chat.conversationId}/pin', {'pinned': true});
+  }
+
   void _scrollToEnd() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (scroll.hasClients) {
@@ -143,6 +173,14 @@ class _ChatScreenState extends State<ChatScreen> {
             actions: [
               IconButton(icon: const Icon(Icons.search), tooltip: context.t('search'), onPressed: () => showSearchDialog(context)),
               IconButton(icon: const Icon(Icons.edit_square), tooltip: context.t('new_chat'), onPressed: chat.newChat),
+              if (chat.conversationId != null)
+                PopupMenuButton<String>(
+                  onSelected: (v) => v == 'export' ? _export(chat) : _pin(chat),
+                  itemBuilder: (context) => [
+                    PopupMenuItem(value: 'pin', child: ListTile(leading: const Icon(Icons.push_pin_outlined), title: Text(context.t('pin')))),
+                    PopupMenuItem(value: 'export', child: ListTile(leading: const Icon(Icons.ios_share), title: Text(context.t('export')))),
+                  ],
+                ),
             ],
           ),
           drawer: const HistoryDrawer(),
@@ -168,7 +206,13 @@ class _ChatScreenState extends State<ChatScreen> {
                         itemBuilder: (context, i) {
                           final m = chat.messages[i];
                           if (m.role == 'notice') return _Notice(m.text, onRetry: chat.retry);
-                          return MessageView(message: m, onWhy: () => _showWhy(m));
+                          final isLast = i == chat.messages.length - 1;
+                          return MessageView(
+                            message: m,
+                            onWhy: () => _showWhy(m),
+                            onRegenerate: isLast && m.role == 'assistant' && chat.canRegenerate ? chat.regenerate : null,
+                            onEdit: m.role == 'user' && m.seq != null && !chat.busy ? () => _editMessage(chat, m) : null,
+                          );
                         },
                       ),
               ),
@@ -206,6 +250,7 @@ class _InputBar extends StatelessWidget {
               ),
             ),
         ]),
+        _SlashTemplates(state.input),
         if (state.attachments.isNotEmpty)
           SizedBox(
             height: 64,
@@ -273,6 +318,40 @@ class _InputBar extends StatelessWidget {
   }
 }
 
+/// Raccourcis « / » : modèles de demandes prêts à compléter (comme les « prompts » enregistrés).
+class _SlashTemplates extends StatelessWidget {
+  const _SlashTemplates(this.input);
+  final TextEditingController input;
+
+  static const keys = ['tpl_resume', 'tpl_explain', 'tpl_translate', 'tpl_fix', 'tpl_code', 'tpl_quiz', 'tpl_email'];
+
+  @override
+  Widget build(BuildContext context) => ValueListenableBuilder<TextEditingValue>(
+        valueListenable: input,
+        builder: (context, value, _) {
+          if (!value.text.startsWith('/')) return const SizedBox.shrink();
+          final q = value.text.substring(1).toLowerCase();
+          final matches = keys.where((k) => context.t(k).toLowerCase().contains(q) || k.contains(q)).toList();
+          return SizedBox(
+            height: 44,
+            child: ListView(scrollDirection: Axis.horizontal, children: [
+              for (final k in matches)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6, top: 4),
+                  child: ActionChip(
+                    label: Text(context.t(k).split(RegExp(r'[:\n]')).first),
+                    onPressed: () {
+                      final t = context.t(k);
+                      input.value = TextEditingValue(text: t, selection: TextSelection.collapsed(offset: t.length));
+                    },
+                  ),
+                ),
+            ]),
+          );
+        },
+      );
+}
+
 class _EmptyState extends StatelessWidget {
   const _EmptyState({required this.onPick});
   final ValueChanged<String> onPick;
@@ -309,7 +388,8 @@ class _Notice extends StatelessWidget {
     final (icon, text, color, action) = switch (parts.first) {
       'switched' => (Icons.swap_horiz, context.t('switched', {'to': parts[1], 'reason': parts.length > 2 ? parts[2] : ''}), scheme.tertiary, false),
       'returned' => (Icons.undo, context.t('returned', {'model': parts[1]}), scheme.secondary, false),
-      'stream_reset' => (Icons.refresh, context.t('stream_reset'), scheme.tertiary, false),
+      'stream_reset' => (Icons.refresh, context.t('stream_interrupted'), scheme.tertiary, false),
+      'memory' => (Icons.bookmark_added_outlined, context.t('memory_saved', {'text': parts.skip(1).join('|')}), scheme.secondary, false),
       _ => (Icons.error_outline, parts.skip(1).join('|'), scheme.error, true),
     };
     return Padding(
@@ -330,7 +410,11 @@ class _StatusLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final text = status.startsWith('tool|') ? '⚙ ${status.substring(5)}' : context.t(status);
+    final text = status.startsWith('tool|')
+        ? '⚙ ${status.substring(5)}'
+        : status.startsWith('waiting|')
+            ? context.t('waiting', {'s': status.substring(8)})
+            : context.t(status);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
       child: Row(children: [
@@ -426,6 +510,7 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
         const Divider(),
         for (final c in items)
           ListTile(
+            leading: c['pinned'] == 1 ? const Icon(Icons.push_pin, size: 18) : null,
             title: Text('${c['title']}'.isEmpty ? '…' : '${c['title']}', maxLines: 1, overflow: TextOverflow.ellipsis),
             selected: c['id'] == scope.chat.conversationId,
             onTap: () {
@@ -434,7 +519,9 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
             },
             trailing: PopupMenuButton<String>(
               onSelected: (v) async {
-                if (v == 'delete') {
+                if (v == 'pin') {
+                  await scope.backend.sendJson('PUT', '/tontolo/conversations/${c['id']}/pin', {'pinned': c['pinned'] != 1});
+                } else if (v == 'delete') {
                   await scope.backend.sendJson('DELETE', '/tontolo/conversations/${c['id']}');
                   if (scope.chat.conversationId == c['id']) scope.chat.newChat();
                 } else {
@@ -457,6 +544,7 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
                 _load();
               },
               itemBuilder: (context) => [
+                PopupMenuItem(value: 'pin', child: Text(c['pinned'] == 1 ? context.t('unpin') : context.t('pin'))),
                 PopupMenuItem(value: 'rename', child: Text(context.t('rename'))),
                 PopupMenuItem(value: 'delete', child: Text(context.t('delete'))),
               ],

@@ -32,8 +32,14 @@
 - **Toujours à jour** : le catalogue se met à jour à chaque utilisation (nouveaux modèles
   gratuits, modèles retirés, changements de quotas) et l'application se met à jour toute
   seule depuis les releases GitHub (fichiers vérifiés par SHA-256).
-- **Fonctionne sans clé** (Pollinations) ; ajoutez vos clés gratuites (OpenRouter, Groq,
-  Gemini, Mistral, NVIDIA…) pour débloquer plus de modèles.
+- **Fonctionne sans clé** : plus de 30 modèles gratuits sans inscription (Pollinations,
+  Kilo Code, LLM7, OVHcloud) ; ajoutez vos clés gratuites (OpenRouter, Groq, Gemini,
+  Mistral, NVIDIA…) pour en débloquer davantage.
+- **Mémoire locale** qui se compacte toute seule, **instructions personnalisées**,
+  régénérer, modifier et renvoyer, épingler, exporter en Markdown, raccourcis « / »,
+  lecture à voix haute avec arrêt.
+- **Sécurisé** : serveur local protégé (jeton, CSRF, DNS rebinding), anti-SSRF, clés
+  épinglées à leur fournisseur, outils sensibles soumis à confirmation.
 - **Compatible OpenAI** : n'importe quel client OpenAI peut pointer sur Tontolo.
 
 Aucune liste de modèles, aucun classement et aucun quota n'est codé en dur : tout vient des
@@ -53,7 +59,7 @@ chmod +x Tontolo-*-x86_64.AppImage
 
 ### Linux (CLI et serveur)
 ```bash
-pip install "tontolo[linux] @ https://github.com/raantss18/tontolo/releases/latest/download/tontolo-0.1.0-py3-none-any.whl"
+pip install "tontolo[linux] @ https://github.com/raantss18/tontolo/releases/latest/download/tontolo-0.2.0-py3-none-any.whl"
 tontolo catalog list --free --category code
 tontolo chat "Explique-moi les intégrales"
 tontolo serve            # API compatible OpenAI sur http://127.0.0.1:8765/v1
@@ -93,7 +99,8 @@ vérifiés par la CI : une release qui les dépasse est bloquée.
 | Démarrage du cœur Python embarqué (imports) | 2,6 s, en arrière-plan | non bloquant |
 | Sélection du modèle (760 modèles) | < 1 ms | < 20 ms |
 | Catalogue depuis le cache | 0,12 s | — |
-| Tests automatisés | 65 (cœur) + 3 (interface) | — |
+| Tests automatisés | 88 (cœur) + 4 (interface) | — |
+| Android | testé sur 10 (API 29) et 16 (API 36) | ≥ 7 (API 24) |
 
 ## Documentation
 

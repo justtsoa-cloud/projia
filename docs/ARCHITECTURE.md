@@ -54,6 +54,15 @@ et taille doivent concorder). `catalog/watcher.py` produit le fil « Nouveautés
 | Mises à jour | Automatiques (demande du mainteneur) | Linux : remplacement de l'AppImage vérifiée (SHA-256) ; Android : installeur système en un appui (pas d'installation silencieuse possible). |
 | Paiement | Plafond > 0 obligatoire | Aucun appel payant sans plafond explicite. |
 
+## Mémoire
+
+`tontolo/memory.py` : souvenirs locaux (table `memories`). Capture explicite
+(« souviens-toi que… ») et extraction automatique tous les 4 messages par un petit modèle
+gratuit ; rappel par pertinence dans un budget de caractères ; compactage automatique au-delà
+de `memory_max_items` (fusion locale des doublons, puis regroupement par modèle, sinon retrait
+des moins utiles). Les secrets sont filtrés avant tout enregistrement. L'historique de chaque
+conversation est en plus résumé automatiquement quand il dépasse le contexte du modèle.
+
 ## Sécurité
 
 - Cœur embarqué : écoute sur 127.0.0.1 uniquement, jeton aléatoire de 256 bits par lancement.
@@ -61,4 +70,13 @@ et taille doivent concorder). `catalog/watcher.py` produit le fil « Nouveautés
 - Clés : Keystore Android / libsecret (application), trousseau ou fichier 0600 (CLI) ;
   jamais en base ni dans les journaux.
 - Contenu web et MCP encadré comme donnée non fiable ; outils à effet de bord soumis à
-  confirmation ; calculatrice limitée à un sous-ensemble mathématique validé.
+  confirmation ; calculatrice limitée à un sous-ensemble mathématique validé, avec délai.
+- Serveur local : refus des en-têtes `Origin` étrangers (CSRF) et des `Host` non locaux
+  (DNS rebinding) ; WebSocket idem.
+- `fetch_url` : pas d'adresse privée, locale ou de métadonnées cloud, redirections
+  revérifiées, 2 Mo maximum (`security.py`, `tools.safe_get`).
+- Fournisseurs : clé envoyée seulement en HTTPS à l'hôte épinglé à la première utilisation
+  (`provider_pins.json`) ; un changement d'hôte dans la source en ligne est refusé.
+- Serveurs MCP `stdio` : configuration locale uniquement. Envois limités à 25 Mo.
+- Application : liens limités à http(s)/mailto, mises à jour uniquement depuis GitHub avec
+  SHA-256, signature APK vérifiée par Android, `allowBackup=false`.

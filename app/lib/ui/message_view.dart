@@ -8,20 +8,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_math_fork/flutter_math.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:http/http.dart' as http;
 import 'package:markdown/markdown.dart' as md;
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/chat_controller.dart';
+import '../core/speech.dart';
 import '../main.dart';
 
 class MessageView extends StatelessWidget {
-  const MessageView({super.key, required this.message, this.onWhy});
+  const MessageView({super.key, required this.message, this.onWhy, this.onRegenerate, this.onEdit});
 
   final ChatMessage message;
   final VoidCallback? onWhy;
+  final VoidCallback? onRegenerate; // dernière réponse uniquement
+  final VoidCallback? onEdit; // messages de l'utilisateur
 
   @override
   Widget build(BuildContext context) {
@@ -51,16 +53,24 @@ class MessageView extends StatelessWidget {
         if (message.sources.isNotEmpty && !message.streaming) _Sources(message.sources),
       ]),
     );
+    final id = message.uid ?? identityHashCode(message).toString();
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Column(
         crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           bubble,
+          if (isUser && onEdit != null && message.text.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, size: 18),
+              tooltip: context.t('edit'),
+              onPressed: onEdit,
+              visualDensity: VisualDensity.compact,
+            ),
           if (!isUser && !message.streaming && (message.modelName ?? message.model) != null)
             Padding(
               padding: const EdgeInsets.only(left: 8, top: 4),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
+              child: Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
                 ActionChip(
                   avatar: const Icon(Icons.info_outline, size: 16),
                   label: Text(message.modelName ?? message.model!, style: const TextStyle(fontSize: 12)),
@@ -77,12 +87,19 @@ class MessageView extends StatelessWidget {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('copied'))));
                     },
                   ),
+                  SpeakButton(id: id, text: message.text),
                   IconButton(
-                    icon: const Icon(Icons.volume_up_outlined, size: 18),
-                    tooltip: context.t('listen'),
-                    onPressed: () => speakLocally(message.text, AppScope.of(context).prefs.locale),
+                    icon: const Icon(Icons.share_outlined, size: 18),
+                    tooltip: context.t('share'),
+                    onPressed: () => SharePlus.instance.share(ShareParams(text: message.text)),
                   ),
                 ],
+                if (onRegenerate != null)
+                  IconButton(
+                    icon: const Icon(Icons.refresh, size: 18),
+                    tooltip: context.t('regenerate'),
+                    onPressed: onRegenerate,
+                  ),
               ]),
             ),
         ],
@@ -91,13 +108,46 @@ class MessageView extends StatelessWidget {
   }
 }
 
-final _tts = FlutterTts();
+/// Bouton lecture / arrêt de la voix (une seule lecture à la fois).
+class SpeakButton extends StatelessWidget {
+  const SpeakButton({super.key, required this.id, required this.text});
+  final String id;
+  final String text;
 
-/// Synthèse vocale du système : gratuite, sans quota, toujours disponible.
-Future<void> speakLocally(String text, String locale) async {
-  final plain = text.replaceAll(RegExp(r'[#*_`>$\\]'), '');
-  await _tts.setLanguage(const {'fr': 'fr-FR', 'en': 'en-US', 'mg': 'fr-FR'}[locale] ?? 'fr-FR');
-  await _tts.speak(plain);
+  @override
+  Widget build(BuildContext context) {
+    final speech = Speech.instance;
+    final prefs = AppScope.of(context).prefs;
+    return ListenableBuilder(
+      listenable: speech,
+      builder: (context, _) {
+        final on = speech.isSpeaking(id);
+        return IconButton(
+          icon: Icon(on ? Icons.stop_circle_outlined : Icons.volume_up_outlined, size: 20,
+              color: on ? Theme.of(context).colorScheme.error : null),
+          tooltip: on ? context.t('stop_reading') : context.t('listen'),
+          onPressed: () async {
+            final messenger = ScaffoldMessenger.of(context);
+            final msg = context.t('tts_unavailable');
+            await speech.toggle(id, text, locale: prefs.locale, rate: prefs.speechRate);
+            // Échec immédiat ou différé (voix en cours d'installation…) : message clair.
+            await Future<void>.delayed(const Duration(seconds: 2));
+            if (speech.lastError != null && !speech.isSpeaking(id)) {
+              speech.lastError = null;
+              messenger.showSnackBar(SnackBar(content: Text(msg)));
+            }
+          },
+        );
+      },
+    );
+  }
+}
+
+/// Ouvre un lien uniquement s'il utilise un schéma sûr (pas de intent:, file:, javascript:…).
+Future<void> openSafeLink(String? href) async {
+  final uri = href == null ? null : Uri.tryParse(href);
+  if (uri == null || !const {'http', 'https', 'mailto'}.contains(uri.scheme)) return;
+  await launchUrl(uri, mode: LaunchMode.externalApplication);
 }
 
 Uint8List _decodeDataUrl(String url) => base64Decode(url.substring(url.indexOf(',') + 1));
@@ -126,7 +176,7 @@ class _Sources extends StatelessWidget {
           for (final (i, s) in sources.take(6).indexed)
             ActionChip(
               label: Text('[${i + 1}] ${Uri.tryParse('${s['url']}')?.host ?? ''}', style: const TextStyle(fontSize: 12)),
-              onPressed: () => launchUrl(Uri.parse('${s['url']}')),
+              onPressed: () => openSafeLink('${s['url']}'),
               visualDensity: VisualDensity.compact,
             ),
         ]),
@@ -145,9 +195,7 @@ class RichMarkdown extends StatelessWidget {
       data: data,
       selectable: true,
       softLineBreak: true,
-      onTapLink: (text, href, title) {
-        if (href != null) launchUrl(Uri.parse(href));
-      },
+      onTapLink: (text, href, title) => openSafeLink(href),
       extensionSet: md.ExtensionSet(
         [...md.ExtensionSet.gitHubFlavored.blockSyntaxes, _MathBlockSyntax()],
         [_MathInlineSyntax(), ...md.ExtensionSet.gitHubFlavored.inlineSyntaxes],
@@ -297,11 +345,7 @@ class _MediaResultState extends State<MediaResult> {
     final mime = '${params['mime'] ?? ''}';
     final warning = params['warning'];
     if (params['local_tts'] == true) {
-      return FilledButton.tonalIcon(
-        icon: const Icon(Icons.volume_up),
-        label: Text(context.t('listen')),
-        onPressed: () => speakLocally('${params['text'] ?? job['prompt']}', AppScope.of(context).prefs.locale),
-      );
+      return SpeakButton(id: 'job-${job['id']}', text: '${params['text'] ?? job['prompt']}');
     }
     if (bytes == null) return const SizedBox(height: 120, child: Center(child: CircularProgressIndicator()));
     final share = IconButton(

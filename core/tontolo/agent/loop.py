@@ -11,6 +11,7 @@ l'événement `tool_confirmation` est émis, la boucle s'arrête, et
 
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 from collections.abc import AsyncIterator
@@ -22,6 +23,7 @@ from tontolo.agent.mcp_client import McpManager
 from tontolo.agent.tools import ToolBox, native_tools, search_raw, untrusted
 from tontolo.catalog.models import Category
 from tontolo.config import Settings
+from tontolo.memory import MemoryService, explicit_memory
 from tontolo.router.engine import Router
 from tontolo.storage.db import Database
 
@@ -35,8 +37,10 @@ Date du jour : {date}."""
 
 class ChatService:
     def __init__(self, settings: Settings, db: Database, router: Router,
-                 mcp: McpManager | None = None) -> None:
+                 mcp: McpManager | None = None, memory: MemoryService | None = None) -> None:
         self.settings = settings
+        self.memory = memory or MemoryService(settings, db, router.quick)
+        self._bg: set[asyncio.Task[None]] = set()
         self.db = db
         self.router = router
         self.workdir = (Path(settings.agent.workdir) if settings.agent.workdir
@@ -73,9 +77,40 @@ class ChatService:
                                                                 conversation_id)
             yield {"type": "conversation", "id": conversation_id}
         user = await self.db.add_message(conversation_id, {"role": "user", "content": content})
-        yield {"type": "user_saved", "uid": user["uid"]}
+        yield {"type": "user_saved", "uid": user["uid"], "seq": user["seq"]}
+        fact = explicit_memory(content) if isinstance(content, str) else None
+        if fact and self.memory.enabled and await self.memory.remember(
+                fact, source=conversation_id):
+            yield {"type": "memory_saved", "text": fact}
         async for ev in self._loop(conversation_id, model=model, forced=forced, strict=strict,
                                    use_tools=use_tools, auto_approve=auto_approve):
+            yield ev
+
+    async def regenerate(
+        self, conversation_id: str, *, model: str | None = None,
+    ) -> AsyncIterator[dict[str, Any]]:
+        """Régénère la dernière réponse (éventuellement avec un autre modèle)."""
+        history = await self.db.get_messages(conversation_id)
+        last_user = max((m["_meta"]["seq"] for m in history if m["role"] == "user"), default=0)
+        if not last_user:
+            yield {"type": "error", "message": "Rien à régénérer."}
+            return
+        await self.db.truncate_after(conversation_id, last_user)
+        async for ev in self._loop(conversation_id, model=model):
+            yield ev
+
+    async def edit_and_resend(
+        self, conversation_id: str, seq: int, content: str, *, model: str | None = None,
+    ) -> AsyncIterator[dict[str, Any]]:
+        """Modifie un message utilisateur, efface la suite et relance."""
+        history = await self.db.get_messages(conversation_id)
+        target = next((m for m in history if m["_meta"]["seq"] == seq), None)
+        if target is None or target["role"] != "user":
+            yield {"type": "error", "message": "Message introuvable."}
+            return
+        await self.db.edit_message(conversation_id, seq, {"role": "user", "content": content})
+        await self.db.truncate_after(conversation_id, seq)
+        async for ev in self._loop(conversation_id, model=model):
             yield ev
 
     async def resume(
@@ -112,6 +147,10 @@ class ChatService:
                 return
             history = await self.db.get_messages(cid)
             messages = [self._system(), *history]
+            mem_block = self.memory.system_block(
+                await self.memory.recall(_last_user_text(history)))
+            if mem_block is not None:
+                messages.insert(1, mem_block)
             # Recherche web forcée pour l'actualité : résultats injectés comme données,
             # utile même si le modèle choisi ne sait pas appeler d'outils.
             if not searched and use_tools:
@@ -147,6 +186,9 @@ class ChatService:
             yield {**final, "uid": saved["uid"], "conversation_id": cid}
             calls = msg.get("tool_calls") or []
             if not calls:
+                task = asyncio.create_task(self.memory.after_turn(cid, [*history, msg]))
+                self._bg.add(task)
+                task.add_done_callback(self._bg.discard)
                 return
             needs_ok = [c for c in calls if (t := box.tools.get(c["function"]["name"]))
                         and t.side_effect]

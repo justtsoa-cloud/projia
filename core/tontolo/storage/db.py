@@ -99,6 +99,17 @@ CREATE TABLE IF NOT EXISTS media_jobs (
 );
 CREATE INDEX IF NOT EXISTS idx_jobs_created ON media_jobs(created_at DESC);
 
+CREATE TABLE IF NOT EXISTS memories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    text TEXT NOT NULL,
+    kind TEXT NOT NULL DEFAULT 'fact',
+    created_at REAL NOT NULL,
+    updated_at REAL NOT NULL,
+    uses INTEGER NOT NULL DEFAULT 0,
+    last_used REAL NOT NULL DEFAULT 0,
+    source TEXT
+);
+
 CREATE TABLE IF NOT EXISTS kv (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
@@ -125,12 +136,21 @@ class Database:
         await self._conn.execute("PRAGMA synchronous=NORMAL")
         await self._conn.execute("PRAGMA foreign_keys=ON")
         await self._conn.executescript(SCHEMA)
+        await self._migrate()
         await self._conn.execute(
             "INSERT OR IGNORE INTO kv(key, value) VALUES ('schema_version', ?)",
             (str(SCHEMA_VERSION),),
         )
         await self._conn.commit()
         return self
+
+    async def _migrate(self) -> None:
+        """Migrations légères (ajout de colonnes) pour les bases existantes."""
+        async with self.conn.execute("PRAGMA table_info(conversations)") as cur:
+            cols = {r[1] for r in await cur.fetchall()}
+        if "pinned" not in cols:
+            await self.conn.execute(
+                "ALTER TABLE conversations ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0")
 
     async def close(self) -> None:
         if self._conn is not None:
@@ -174,16 +194,16 @@ class Database:
     ) -> list[dict[str, Any]]:
         if query:
             rows = await self._fetchall(
-                """SELECT DISTINCT c.id, c.title, c.created_at, c.updated_at
+                """SELECT DISTINCT c.id, c.title, c.created_at, c.updated_at, c.pinned
                    FROM conversations c LEFT JOIN messages m ON m.conversation_id = c.id
                    WHERE c.deleted = 0 AND (c.title LIKE ? OR m.body LIKE ?)
-                   ORDER BY c.updated_at DESC LIMIT ? OFFSET ?""",
+                   ORDER BY c.pinned DESC, c.updated_at DESC LIMIT ? OFFSET ?""",
                 (f"%{query}%", f"%{query}%", limit, offset),
             )
         else:
             rows = await self._fetchall(
-                """SELECT id, title, created_at, updated_at FROM conversations
-                   WHERE deleted = 0 ORDER BY updated_at DESC LIMIT ? OFFSET ?""",
+                """SELECT id, title, created_at, updated_at, pinned FROM conversations
+                   WHERE deleted = 0 ORDER BY pinned DESC, updated_at DESC LIMIT ? OFFSET ?""",
                 (limit, offset),
             )
         return [dict(r) for r in rows]
@@ -192,6 +212,27 @@ class Database:
         await self.conn.execute(
             "UPDATE conversations SET title = ?, updated_at = ? WHERE id = ?", (title, now(), cid)
         )
+        await self.conn.commit()
+
+    async def pin_conversation(self, cid: str, pinned: bool) -> None:
+        await self.conn.execute(
+            "UPDATE conversations SET pinned = ?, updated_at = ? WHERE id = ?",
+            (int(pinned), now(), cid))
+        await self.conn.commit()
+
+    async def truncate_after(self, cid: str, seq: int) -> None:
+        """Supprime les messages après `seq` (régénérer / modifier et renvoyer)."""
+        await self.conn.execute(
+            "DELETE FROM messages WHERE conversation_id = ? AND seq > ?", (cid, seq))
+        await self.conn.execute(
+            "UPDATE conversations SET summary = NULL, summary_upto = 0, updated_at = ? "
+            "WHERE id = ?", (now(), cid))
+        await self.conn.commit()
+
+    async def edit_message(self, cid: str, seq: int, message: dict[str, Any]) -> None:
+        await self.conn.execute(
+            "UPDATE messages SET body = ?, updated_at = ? WHERE conversation_id = ? AND seq = ?",
+            (json.dumps(message, ensure_ascii=False), now(), cid, seq))
         await self.conn.commit()
 
     async def delete_conversation(self, cid: str) -> None:
@@ -391,6 +432,54 @@ class Database:
 
     async def delete_job(self, job_id: str) -> None:
         await self.conn.execute("DELETE FROM media_jobs WHERE id = ?", (job_id,))
+        await self.conn.commit()
+
+    # --- Mémoire à long terme -----------------------------------------
+
+    async def list_memories(self) -> list[dict[str, Any]]:
+        rows = await self._fetchall("SELECT * FROM memories ORDER BY updated_at DESC")
+        return [dict(r) for r in rows]
+
+    async def add_memory(self, text: str, kind: str = "fact", source: str | None = None) -> int:
+        ts = now()
+        cur = await self.conn.execute(
+            "INSERT INTO memories(text, kind, created_at, updated_at, source) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (text, kind, ts, ts, source),
+        )
+        await self.conn.commit()
+        return int(cur.lastrowid or 0)
+
+    async def update_memory(self, mem_id: int, text: str) -> None:
+        await self.conn.execute(
+            "UPDATE memories SET text = ?, updated_at = ? WHERE id = ?", (text, now(), mem_id))
+        await self.conn.commit()
+
+    async def touch_memories(self, ids: list[int]) -> None:
+        if not ids:
+            return
+        ts = now()
+        await self.conn.executemany(
+            "UPDATE memories SET uses = uses + 1, last_used = ? WHERE id = ?",
+            [(ts, i) for i in ids])
+        await self.conn.commit()
+
+    async def delete_memory(self, mem_id: int | None = None) -> None:
+        if mem_id is None:
+            await self.conn.execute("DELETE FROM memories")
+        else:
+            await self.conn.execute("DELETE FROM memories WHERE id = ?", (mem_id,))
+        await self.conn.commit()
+
+    async def replace_memories(self, items: list[dict[str, Any]]) -> None:
+        """Remplace toute la mémoire (résultat d'un compactage), en une transaction."""
+        ts = now()
+        await self.conn.execute("DELETE FROM memories")
+        await self.conn.executemany(
+            "INSERT INTO memories(text, kind, created_at, updated_at, uses, last_used, source) "
+            "VALUES (?, ?, ?, ?, ?, ?, 'compactage')",
+            [(i["text"], i.get("kind", "fact"), i.get("created_at", ts), ts,
+              int(i.get("uses", 0)), float(i.get("last_used", 0))) for i in items])
         await self.conn.commit()
 
     # --- Divers --------------------------------------------------------

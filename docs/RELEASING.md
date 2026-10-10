@@ -29,6 +29,10 @@ Créer un keystore :
 keytool -genkeypair -v -keystore tontolo.jks -keyalg RSA -keysize 4096 -validity 10000 -alias tontolo
 ```
 
+Pour signer une version locale avec la même clé (sinon Android refuse la mise à jour
+d'une version officielle) : `set -a; source release-keys/signing.env; set +a` avant
+`flutter build apk` (le dossier `release-keys/` est ignoré par Git).
+
 **Conservez le keystore hors du dépôt et sauvegardez-le** : sans lui, les mises à jour
 Android ne pourront plus s'installer par-dessus l'application existante.
 Sans ces secrets, la CI signe les APK avec une clé de débogage (avertissement dans les notes).

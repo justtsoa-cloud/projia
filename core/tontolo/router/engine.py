@@ -374,6 +374,10 @@ class Router:
         except Exception:  # le résumé ne doit jamais casser une conversation
             return None
 
+    async def quick(self, messages: list[dict[str, Any]]) -> str | None:
+        """Appel court à un petit modèle gratuit (résumé, mémoire, classifieur)."""
+        return await self._quick(messages)
+
     async def _summarize(self, messages: list[dict[str, Any]]) -> str | None:
         flat = "\n".join(f"{m.get('role')}: {m.get('content')}" for m in messages
                          if isinstance(m.get("content"), str))

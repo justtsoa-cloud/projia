@@ -1,7 +1,6 @@
 // Réglages en deux onglets : Simple (l'essentiel) et Avancé (tout le reste).
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../core/backend.dart';
 import '../core/keys.dart';
@@ -9,6 +8,8 @@ import '../core/sync.dart';
 import '../core/updater.dart';
 import '../main.dart';
 import 'about_screen.dart';
+import 'personalization.dart';
+import 'message_view.dart' show openSafeLink;
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
@@ -42,6 +43,8 @@ class _Simple extends StatelessWidget {
           child: Text(context.t('keys_help'), style: Theme.of(context).textTheme.bodySmall),
         ),
         const ProviderKeys(),
+        _Section(context.t('personalization')),
+        const PersonalizationSection(),
         _Section(context.t('theme')),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -147,7 +150,7 @@ class _ProviderKeysState extends State<ProviderKeys> {
               TextButton.icon(
                 icon: const Icon(Icons.open_in_new),
                 label: Text(context.t('get_key')),
-                onPressed: () => launchUrl(Uri.parse('${p['key_url']}'), mode: LaunchMode.externalApplication),
+                onPressed: () => openSafeLink('${p['key_url']}'),
               ),
             TextField(controller: ctrl, obscureText: true, decoration: InputDecoration(hintText: context.t('paste_key'))),
             if (result != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(result!)),

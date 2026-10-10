@@ -71,12 +71,14 @@ Légende : `[x]` fait · `[~]` en cours · `[ ]` à faire
 - [ ] Tester sur un vrai téléphone et une tablette
 
 ## v0.2.0 — demandes du 2026-10-10
-- [ ] Bug : la lecture vocale ne peut pas être arrêtée (lecture/arrêt, vitesse)
-- [ ] Fonctions inspirées des meilleurs outils (ChatGPT, Claude, Open WebUI, LibreChat, Jan) :
+- [x] Bug : la lecture vocale ne peut pas être arrêtée (lecture/arrêt, vitesse)
+- [x] Fonctions inspirées des meilleurs outils (ChatGPT, Claude, Open WebUI, LibreChat, Jan) :
       régénérer, modifier et renvoyer, instructions personnalisées, export/partage Markdown,
       conversations épinglées, raccourcis « / » (modèles de prompts)
-- [ ] Mémoire à long terme locale avec compactage automatique
-- [ ] Compatibilité Android 10 (API 29) → dernière version, testée sur émulateur API 29 et 36
-- [ ] Audit de sécurité et corrections (CSRF/DNS rebinding, SSRF, épinglage des fournisseurs,
+- [x] Mémoire à long terme locale avec compactage automatique
+- [x] Compatibilité Android 10 (API 29) → dernière version, testée sur émulateur API 29 et 36
+- [x] Audit de sécurité et corrections (CSRF/DNS rebinding, SSRF, épinglage des fournisseurs,
       liens, calculatrice, MCP distant, journaux, mises à jour)
 - [ ] Tests, CI, push GitHub, release v0.2.0
+
+- [x] Bascule sans clé : Kilo Code, LLM7, OVHcloud (signalé le 2026-10-10)

@@ -20,6 +20,7 @@ class ChatMessage {
   List<Map<String, dynamic>> sources = [];
   bool streaming;
   String? uid;
+  int? seq; // position en base (modifier et renvoyer)
 }
 
 class PendingAction {
@@ -65,7 +66,9 @@ class ChatController extends ChangeNotifier {
       final role = m['role'] as String;
       if (role == 'tool' || role == 'system') continue;
       final meta = (m['_meta'] as Map?)?.cast<String, dynamic>() ?? {};
-      final msg = ChatMessage(role: role, model: meta['model'] as String?);
+      final msg = ChatMessage(role: role, model: meta['model'] as String?)
+        ..uid = meta['uid'] as String?
+        ..seq = meta['seq'] as int?;
       final content = m['content'];
       if (content is String) {
         msg.text = content;
@@ -107,12 +110,44 @@ class ChatController extends ChangeNotifier {
     }));
   }
 
+  /// Réessayer après une erreur : si la conversation existe, on régénère la réponse au
+  /// dernier message (sans le dupliquer) ; sinon on renvoie le texte.
   void retry() {
-    if (_lastText == null) return;
-    if (messages.isNotEmpty && messages.last.role == 'notice') messages.removeLast();
-    if (messages.isNotEmpty && messages.last.role == 'user') messages.removeLast();
-    send(_lastText!);
+    if (busy) return;
+    while (messages.isNotEmpty && messages.last.role != 'user') {
+      messages.removeLast();
+    }
+    if (conversationId != null && messages.isNotEmpty) {
+      regenerate(keepLast: true);
+    } else if (_lastText != null) {
+      if (messages.isNotEmpty) messages.removeLast();
+      send(_lastText!);
+    }
   }
+
+  /// Régénère la dernière réponse (même modèle ou celui choisi dans le sélecteur).
+  void regenerate({bool keepLast = false}) {
+    if (busy || conversationId == null) return;
+    if (!keepLast) {
+      while (messages.isNotEmpty && messages.last.role != 'user') {
+        messages.removeLast();
+      }
+    }
+    _run(backend.sse('/tontolo/chat/$conversationId/regenerate', {'approved': true, 'model': modelOverride}));
+  }
+
+  /// Modifie un message utilisateur et relance la conversation à partir de lui.
+  void editAndResend(ChatMessage m, String text) {
+    if (busy || conversationId == null || m.seq == null || text.trim().isEmpty) return;
+    final i = messages.indexOf(m);
+    if (i < 0) return;
+    messages.removeRange(i + 1, messages.length);
+    m.text = text;
+    _run(backend.sse('/tontolo/chat/$conversationId/edit', {'seq': m.seq, 'content': text, 'model': modelOverride}));
+  }
+
+  bool get canRegenerate =>
+      !busy && conversationId != null && messages.isNotEmpty && messages.last.role == 'assistant';
 
   Future<void> resolveTools(bool approved) async {
     pending = null;
@@ -159,6 +194,14 @@ class ChatController extends ChangeNotifier {
       switch (ev['type']) {
         case 'conversation':
           conversationId = ev['id'] as String;
+        case 'user_saved':
+          final lastUser = messages.lastWhere((m) => m.role == 'user', orElse: () => ChatMessage(role: 'user'));
+          lastUser.uid = ev['uid'] as String?;
+          lastUser.seq = ev['seq'] as int?;
+        case 'memory_saved':
+          messages.add(ChatMessage(role: 'notice', text: 'memory|${ev['text']}'));
+        case 'waiting':
+          status = 'waiting|${ev['seconds']}';
         case 'route':
           final c = ensureCurrent();
           c.model = ev['model'] as String?;
