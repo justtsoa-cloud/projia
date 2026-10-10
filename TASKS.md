@@ -87,12 +87,12 @@ Légende : `[x]` fait · `[~]` en cours · `[ ]` à faire
 - [x] « crée la photo » non reconnu comme demande d'image → détection élargie + demandes de suite
 - [x] Historique `[média:…]` pris pour des espaces réservés par les modèles de texte
 - [x] Bascule automatique vers la génération d'image quand un modèle de texte refuse
-- [ ] **Retouche de photo qui ne suit pas la consigne** (« sans changer la personne ni la composition » → une autre personne était générée) :
-  - [ ] Retouche locale fidèle sur l'appareil (lumière, contraste, netteté, couleurs, noir et blanc, sépia, vintage, « professionnel »…) — gratuite, privée, hors ligne
-  - [ ] Route d'envoi : consigne de fidélité ou retouche simple → locale ; transformation créative → réinterprétation (avec avertissement)
-  - [ ] Ne jamais générer une autre personne quand l'utilisateur demande de la conserver : message honnête + alternatives
-  - [ ] Endpoint cœur pour enregistrer un résultat de retouche locale (historique, galerie, mode distant)
-  - [ ] Tests (cœur + Dart), documentation (vie privée : la photo n'est envoyée à aucun service pour la retouche locale)
+- [x] **Retouche de photo qui ne suit pas la consigne** (« sans changer la personne ni la composition » → une autre personne était générée) :
+  - [x] Retouche locale fidèle sur l'appareil (lumière, contraste, netteté, couleurs, noir et blanc, sépia, vintage, « professionnel »…) — gratuite, privée, hors ligne
+  - [x] Route d'envoi : consigne de fidélité ou retouche simple → locale ; transformation créative → réinterprétation (avec avertissement)
+  - [x] Ne jamais générer une autre personne quand l'utilisateur demande de la conserver : message honnête + alternatives
+  - [x] Endpoint cœur pour enregistrer un résultat de retouche locale (historique, galerie, mode distant)
+  - [x] Tests (cœur + Dart), documentation (vie privée : la photo n'est envoyée à aucun service pour la retouche locale)
 - [ ] Publier la 0.2.3 (CI verte, release, vérification)
 
 ## Demande de contenu pour un post

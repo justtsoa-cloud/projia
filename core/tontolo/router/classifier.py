@@ -18,10 +18,17 @@ from tontolo.catalog.models import Category
 _KEYWORDS: dict[Category, tuple[tuple[str, float], ...]] = {
     Category.IMAGE_GEN: (
         (r"\b(dessine|dessiner|illustre|illustration|peins|peindre)\b", 3),
-        (r"\b(g[ée]n[èe]re|cr[ée]e|fais|fabrique|produis)[- ]?(moi )?(une |un )?"
-         r"(image|photo|dessin|logo|affiche|illustration|ic[ôo]ne)", 4),
-        (r"\b(draw|paint|sketch)\b", 3),
-        (r"\b(generate|create|make)( me)? (an? )?(image|picture|photo|logo|poster|icon)", 4),
+        (r"\b(g[ée]n[èe]re|g[ée]n[ée]rer|cr[ée]e|cr[ée]er|fais|faire|fabrique|produis|r[ée]alise|"
+         r"montre|propose|donne|imagine|refais|recr[ée]e)(-moi|-la|-le)?"
+         r"(\s+\S{1,12}){0,3}?\s+(l'|d')?"
+         r"(images?|photos?|photographies?|dessins?|logos?|affiches?|illustrations?|"
+         r"ic[ôo]nes?|visuels?|portraits?|paysages?|fonds? d'[ée]cran|wallpapers?|pochettes?|"
+         r"miniatures?)\b", 4),
+        (r"\b(photo|image)s?\s+(r[ée]alistes?|hyper\s?r[ée]alistes?|cr[ée]ati(f|ve)s?|"
+         r"artistiques?)\b", 2),
+        (r"\b(draw|paint|sketch|render|visuali[sz]e)\b", 3),
+        (r"\b(generate|create|make|produce|show)( me)?(\s+\S{1,10}){0,2}?\s+"
+         r"(images?|pictures?|photos?|logos?|posters?|icons?|illustrations?|wallpapers?)\b", 4),
         (r"\b(manaova|mamorona) sary\b|\bsary\b.*\b(manaova|mamorona)\b", 4),
     ),
     Category.IMAGE_EDIT: (
@@ -167,6 +174,35 @@ def _text_and_parts(message: dict[str, Any]) -> tuple[str, set[str]]:
     return "\n".join(texts), kinds
 
 
+_EDIT_VERBS = re.compile(
+    r"\b([ée]dit\w*|retouch\w*|modifi\w*|chang\w*|remplac\w*|transform\w*|ajout\w*|supprim\w*|"
+    r"enl[èe]v\w*|efface\w*|retire\w*|am[ée]lior\w*|corrig\w*|filtre\w*|rends|mets|rend|"
+    r"[ée]claircis\w*|assombris\w*|recadr\w*|rogn\w*|nettoy\w*|lisse\w*|maquill\w*|colori\w*|"
+    r"restaur\w*|r[ée]par\w*|embelli\w*|optimis\w*|enhance|fix|replace|remove|add|edit|retouch|"
+    r"make (it|this)|turn (it|this)|noir et blanc|s[ée]pia|vintage|professionnel\w*)\b", re.I)
+
+_FOLLOWUP = re.compile(
+    r"^\s*(oui|ok|okay|d'accord|vas-?y|go|allez|essaie|essaye|r[ée]essaie|r[ée]essaye|refais|"
+    r"recommence|encore|une autre|autre|fais-?(le|la)|g[ée]n[èe]re-?(le|la)|cr[ée]e-?(le|la)|"
+    r"montre|je veux la voir|do it|try again|again|go ahead)\b[^.?!]{0,30}[.!]?\s*$", re.I)
+_MEDIA_KINDS = (Category.IMAGE_GEN, Category.IMAGE_EDIT, Category.VIDEO_GEN, Category.TTS,
+                Category.MUSIC_SFX)
+
+
+def _is_followup(text: str) -> bool:
+    return len(text) < 60 and bool(_FOLLOWUP.match(text))
+
+
+def _previous_media_category(messages: list[dict[str, Any]]) -> Category | None:
+    users = [m for m in messages if m.get("role") == "user"][:-1][-2:]
+    for m in reversed(users):
+        t, p = _text_and_parts(m)
+        for cat in _MEDIA_KINDS:
+            if any(rx.search(t) for rx, _ in _COMPILED.get(cat, [])):
+                return cat if "image" not in p else Category.IMAGE_EDIT
+    return None
+
+
 def classify(
     messages: list[dict[str, Any]], *, tools_available: bool = False,
     forced: Category | str | None = None,
@@ -178,6 +214,9 @@ def classify(
         s = sum(w for rx, w in pats if rx.search(text))
         if s:
             scores[cat] = s
+    if "image" in parts and _EDIT_VERBS.search(text):
+        # Une photo jointe + un verbe de retouche = édition (et non une simple question).
+        scores[Category.IMAGE_EDIT] = scores.get(Category.IMAGE_EDIT, 0) + 4
     if "image" in parts:
         if scores.get(Category.IMAGE_EDIT) or scores.get(Category.IMAGE_GEN):
             scores[Category.IMAGE_EDIT] = scores.get(Category.IMAGE_EDIT, 0) + 4
@@ -188,6 +227,12 @@ def classify(
         scores[Category.STT] = scores.get(Category.STT, 0) + (5 if len(text) < 200 else 2)
     if "video" in parts:
         scores[Category.VISION] = scores.get(Category.VISION, 0) + 3
+
+    if not scores.get(Category.IMAGE_GEN) and not parts and _is_followup(text):
+        # « vas-y », « refais », « oui » après une demande d'image : on hérite de la demande.
+        prev = _previous_media_category(messages)
+        if prev is not None:
+            scores[prev] = 4.0
 
     tokens = estimate_tokens(messages)
     ranked = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)

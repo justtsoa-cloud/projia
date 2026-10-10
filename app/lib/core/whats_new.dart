@@ -13,6 +13,20 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.2.3': [
+    NewsItem(Icons.auto_fix_high, 'Retouche fidèle de vos photos',
+        'Une consigne comme « édite cette photo, style professionnel, sans changer la personne » retouche vraiment la photo (lumière, contraste, couleurs, netteté, noir et blanc, vintage…) sur votre téléphone : la personne et la composition ne changent pas, et rien n\'est envoyé en ligne.',
+        'Faithful photo retouching',
+        'An instruction like “edit this photo, professional style, without changing the person” really retouches the photo (light, contrast, colour, sharpness, B&W, vintage…) on your phone: the person and composition stay the same and nothing is sent online.'),
+    NewsItem(Icons.auto_awesome, 'Bascule automatique vers l\'image',
+        'Si un modèle de texte répond « je ne peux pas générer d\'images », Tontolo passe tout seul à la création d\'image, sans que vous ayez à relancer.',
+        'Automatic switch to images',
+        'If a text model says “I can\'t generate images”, Tontolo switches to image creation by itself — no need to retry.'),
+    NewsItem(Icons.spellcheck, 'Vos demandes mieux comprises',
+        '« crée la photo », « fais-moi un paysage », « vas-y refais »… sont reconnus comme des demandes d\'image, y compris quand ils suivent une demande précédente.',
+        'Better understanding',
+        '“create the photo”, “make me a landscape”, “go ahead, redo it”… are now recognised as image requests, even as follow-ups.'),
+  ],
   '0.2.2': [
     NewsItem(Icons.auto_fix_high, 'Retouche créative de vos photos',
         'Aucun service gratuit ne retouche vraiment une photo : Tontolo la fait décrire par une IA gratuite à vision, puis recrée une image avec votre transformation. Un message l\'indique clairement.',

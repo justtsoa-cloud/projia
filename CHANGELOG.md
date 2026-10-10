@@ -5,6 +5,32 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.2.3] - 2026-10-10
+
+### Corrigé
+- **Retouche de photo qui ne suivait pas la consigne** : « édite cette photo de façon
+  professionnelle sans changer la personne ni la composition » générait une autre personne.
+  Les retouches (lumière, contraste, couleurs, netteté, noir et blanc, sépia, vintage,
+  dramatique, HDR, tons chauds/froids, style professionnel, amélioration automatique) sont
+  maintenant appliquées **sur l'appareil, directement sur la photo** : personne et
+  composition intactes, rien n'est envoyé en ligne. Si la consigne demande de changer le
+  contenu (décor, objets, style artistique) tout en interdisant de changer la personne,
+  l'application l'indique honnêtement au lieu de recréer une image qui désobéit.
+- Avec une photo jointe, les verbes de retouche (remplace, transforme, améliore…) sont
+  reconnus comme une édition et non comme une simple question.
+- « crée la photo » (avec un article) n'était pas reconnu comme une demande d'image et partait
+  vers un modèle de texte. Détection élargie : verbes (crée, fais, montre, imagine,
+  refais…), articles quelconques, formes en anglais, et demandes de suite (« vas-y »,
+  « refais », « encore ») qui reprennent la demande d'image précédente.
+- Les réponses « image » de l'historique étaient présentées aux modèles de texte sous la
+  forme brute `[média:…]` : ils les prenaient pour de faux espaces réservés et
+  prétendaient ne pas savoir générer d'images. Elles sont maintenant expliquées en clair.
+
+### Ajouté
+- **Bascule automatique vers l'image** : si un modèle de texte répond qu'il ne peut pas
+  générer d'image alors que l'utilisateur en demandait une, la réponse de refus est écartée
+  et la génération d'image est lancée, sans intervention.
+
 ## [0.2.2] - 2026-10-10
 
 ### Corrigé

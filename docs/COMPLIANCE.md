@@ -20,3 +20,14 @@ Mesures techniques :
 - en-têtes d'identification OpenRouter (`HTTP-Referer`, `X-Title`) ;
 - les conditions propres à chaque modèle (section 5.1 des CGU OpenRouter) s'appliquent à
   l'utilisateur.
+
+## Vie privée des photos
+
+- **Retouche de photo** (« édite cette photo », filtres, style professionnel…) : appliquée
+  **sur l'appareil**, la photo n'est envoyée à aucun service.
+- **Questions sur une photo** (« que vois-tu ? ») et **réinterprétation créative** : la photo est
+  envoyée au fournisseur d'IA gratuit choisi (Kilo Code, OVHcloud, LLM7, OpenRouter…), comme
+  pour toute fonction de vision ; consultez ses conditions. Tontolo l'indique dans le message
+  qui accompagne l'image créée.
+- Si la consigne demande de **ne pas changer la personne**, Tontolo ne recrée jamais une autre
+  image : retouche locale, ou refus explicite.

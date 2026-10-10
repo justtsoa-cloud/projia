@@ -22,6 +22,7 @@ from tontolo.media import providers as mp
 from tontolo.providers.base import ErrorKind, ProviderError
 from tontolo.router.classifier import TaskProfile
 from tontolo.router.engine import Router, human_reason, is_auto
+from tontolo.router.refusal import preserves_subject
 from tontolo.router.scoring import Preference, rank
 from tontolo.storage.db import Database
 
@@ -40,9 +41,17 @@ UNAVAILABLE_MSG = {
 }
 
 REINTERPRETATION_NOTE = (
-    "Aucune retouche de photo n'est disponible gratuitement : la photo a été décrite par une "
-    "IA, puis recréée avec votre transformation. Le résultat est une réinterprétation, pas "
-    "une retouche exacte."
+    "Aucun service gratuit ne retouche vraiment une photo : elle a été envoyée à une IA "
+    "gratuite pour être décrite, puis une nouvelle image a été créée avec votre "
+    "transformation. C'est une réinterprétation : la personne et la composition peuvent "
+    "avoir changé."
+)
+PRESERVE_REFUSAL = (
+    "Impossible gratuitement : modifier le contenu de cette photo sans changer la personne ni "
+    "la composition n'est pas possible avec les services gratuits (ils recréent une autre "
+    "image). Ce qui marche à la place, directement sur votre téléphone et sans rien envoyer : "
+    "éclaircir, contraste, couleurs vives, noir et blanc, sépia, vintage, style professionnel, "
+    "netteté. Par exemple : « édite cette photo, style professionnel »."
 )
 NO_VISION_NOTE = (
     "Aucune IA gratuite n'a pu lire votre photo : l'image a été créée à partir de votre "
@@ -141,7 +150,9 @@ class MediaService:
             await self.purge()
             return
         job["status"] = "failed"
-        if errors:
+        if job["params"].get("refused_preserve"):
+            job["error"] = PRESERVE_REFUSAL
+        elif errors:
             job["error"] = "Toutes les sources gratuites ont échoué : " + "; ".join(errors[:4])
         else:
             job["error"] = UNAVAILABLE_MSG.get(
@@ -195,6 +206,10 @@ class MediaService:
 
         params = job["params"]
         description: str | None = None
+        if preserves_subject(job["prompt"]):
+            # L'utilisateur interdit de changer la personne : recréer une image désobéirait.
+            params["refused_preserve"] = True
+            return False, []
         if params.get("input_path"):
             data = Path(params["input_path"]).read_bytes()
             mime = ("image/jpeg" if data[:2] == b"\xff\xd8" else

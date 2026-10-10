@@ -29,7 +29,8 @@ from tontolo.app_state import Core
 from tontolo.catalog.models import Category, ModelInfo
 from tontolo.config import Settings, load_settings, save_settings
 from tontolo.providers.registry import ProviderRegistry
-from tontolo.router.classifier import classify
+from tontolo.router.classifier import _is_followup, classify
+from tontolo.router.refusal import looks_like_image_refusal, mentions_image
 from tontolo.security import LOOPBACK_NAMES, host_of, key_allowed, origin_allowed
 from tontolo.update import check_update, download_update
 
@@ -45,6 +46,28 @@ async def _read_limited(file: UploadFile) -> bytes:
     if len(data) > MAX_UPLOAD_BYTES:
         raise HTTPException(413, "Fichier trop volumineux (25 Mo maximum)")
     return data
+
+
+def _text_of(content: Any) -> str:
+    if isinstance(content, str):
+        return content
+    return " ".join(p.get("text", "") for p in content if isinstance(p, dict)
+                    and p.get("type") == "text")
+
+
+async def _media_prompt(core: Core, cid: str, text: str) -> str:
+    """Pour une demande de suite (« vas-y », « crée la photo »), reprend la description de la
+    demande d'image précédente pour que le générateur sache quoi créer."""
+    words = text.split()
+    if len(words) >= 6 and not _is_followup(text):
+        return text
+    previous = [_text_of(m["content"]) for m in await core.db.get_messages(cid)
+                if m["role"] == "user"]
+    previous = [t for t in previous if t and t != text]
+    for t in reversed(previous[-3:]):
+        if len(t.split()) >= 3 and (mentions_image(t) or not _is_followup(t)):
+            return f"{t} — {text}" if len(words) < 6 else f"{t}. {text}"
+    return text
 
 
 def _first_image(content: Any) -> bytes | None:
@@ -65,6 +88,16 @@ class ChatBody(BaseModel):
     category: str | None = None
     strict: bool = False
     use_tools: bool = True
+
+
+class LocalMediaBody(BaseModel):
+    conversation_id: str | None = None
+    content: str | list[dict[str, Any]]
+    result_b64: str
+    mime: str = "image/jpeg"
+    kind: str = "image_edit"
+    note: str = ""
+    model_name: str = "Retouche locale (sur l'appareil)"
 
 
 class EditBody(BaseModel):
@@ -340,9 +373,14 @@ def create_app(
             core.catalog.refresh_in_background()  # veille « à chaque utilisation »
         category = Category(body.category) if body.category else None
         if category is None:
-            # Modalité détectée automatiquement (« dessine… », « lis à voix haute… ») :
-            # aucun mode à choisir pour l'utilisateur.
-            detected = classify([{"role": "user", "content": body.content}]).category
+            # Modalité détectée automatiquement (« dessine… », « crée la photo », « vas-y »
+            # après une demande d'image…) : aucun mode à choisir pour l'utilisateur.
+            prior: list[dict[str, Any]] = []
+            if body.conversation_id and await core.db.conversation_exists(body.conversation_id):
+                prior = [{"role": "user", "content": m["content"]}
+                         for m in await core.db.get_messages(body.conversation_id)
+                         if m["role"] == "user"][-3:]
+            detected = classify([*prior, {"role": "user", "content": body.content}]).category
             if detected.value in MEDIA_TURN_KINDS:
                 category = detected
         # La conversation est créée d'abord : le tour lui est rattaché dès le départ.
@@ -356,15 +394,35 @@ def create_app(
         body.conversation_id = cid
         if category is not None and category.value in MEDIA_TURN_KINDS:
             return _turn(core, cid, _media_turn(core, body, category), first)
-        return _turn(core, cid, core.chat.send(cid, body.content, model=body.model,
-                                               forced=category, strict=body.strict,
-                                               use_tools=body.use_tools), first)
+        return _turn(core, cid, _text_turn(core, body, cid, category), first)
+
+    async def _text_turn(core: Core, body: ChatBody, cid: str,
+                         category: Category | None) -> AsyncIterator[dict[str, Any]]:
+        """Tour de texte avec **bascule automatique** : si le modèle répond qu'il ne sait pas
+        générer d'image alors que l'utilisateur en demandait une, on passe à la génération."""
+        text = _text_of(body.content)
+        user_seq = 0
+        switch = False
+        async for ev in core.chat.send(cid, body.content, model=body.model, forced=category,
+                                       strict=body.strict, use_tools=body.use_tools):
+            if ev["type"] == "user_saved":
+                user_seq = int(ev.get("seq") or 0)
+            if (ev["type"] == "done" and mentions_image(text)
+                    and looks_like_image_refusal(str((ev.get("message") or {}).get("content")))):
+                switch = True
+                break                     # on ne montre pas le refus
+            yield ev
+        if switch and user_seq:
+            await core.db.truncate_after(cid, user_seq)
+            yield {"type": "media_switch"}
+            kind = Category.IMAGE_EDIT if _first_image(body.content) else Category.IMAGE_GEN
+            async for ev in _media_turn(core, body, kind, add_user=False):
+                yield ev
 
     async def _media_turn(core: Core, body: ChatBody, category: Category,
                           add_user: bool = True) -> AsyncIterator[dict[str, Any]]:
         """Tour de conversation dont le résultat est un média (image, voix, vidéo)."""
-        text = body.content if isinstance(body.content, str) else " ".join(
-            p.get("text", "") for p in body.content if p.get("type") == "text")
+        text = _text_of(body.content)
         cid = body.conversation_id
         if not cid or not await core.db.conversation_exists(cid):
             cid = await core.db.create_conversation(text[:60])
@@ -372,7 +430,8 @@ def create_app(
         if add_user:
             await core.db.add_message(cid, {"role": "user", "content": body.content})
         image = _first_image(body.content)
-        job = await core.media.submit(category.value, text, conversation_id=cid,
+        prompt = await _media_prompt(core, cid, text)
+        job = await core.media.submit(category.value, prompt, conversation_id=cid,
                                       model=body.model, input_bytes=image,
                                       input_name="image.png")
         yield {"type": "job", **job}
@@ -399,7 +458,9 @@ def create_app(
         history = await core.db.get_messages(cid)
         last_user = next((m for m in reversed(history) if m["role"] == "user"), None)
         if last_user is not None:
-            kind = classify([{"role": "user", "content": last_user["content"]}]).category
+            earlier = [{"role": "user", "content": m["content"]} for m in history
+                       if m["role"] == "user" and m is not last_user][-3:]
+            kind = classify([*earlier, {"role": "user", "content": last_user["content"]}]).category
             if kind.value in MEDIA_TURN_KINDS:
                 # Une demande d'image/voix se relance comme un média, pas comme du texte.
                 await core.db.truncate_after(cid, last_user["_meta"]["seq"])
@@ -428,6 +489,42 @@ def create_app(
     @app.post("/tontolo/chat/{cid}/stop")
     async def stop_turn(request: Request, cid: str) -> dict[str, bool]:
         return {"stopped": await core_of(request).turns.stop(cid)}
+
+    @app.post("/tontolo/chat/local-media")
+    async def local_media(request: Request, body: LocalMediaBody) -> dict[str, Any]:
+        """Enregistre dans la conversation une retouche **faite sur l'appareil** (la photo n'a
+        été envoyée à aucun service) : message, fichier, entrée de la galerie."""
+        core = core_of(request)
+        if len(body.result_b64) > 34_000_000:
+            raise HTTPException(413, "Image trop volumineuse (25 Mo maximum)")
+        try:
+            data = base64.b64decode(body.result_b64, validate=True)
+        except ValueError as exc:
+            raise HTTPException(400, "Image invalide") from exc
+        if body.kind not in ("image_edit", "image_gen"):
+            raise HTTPException(400, "type invalide")
+        text = _text_of(body.content)
+        cid = body.conversation_id
+        if not cid or not await core.db.conversation_exists(cid):
+            cid = await core.db.create_conversation(text[:60].strip(), cid)
+        await core.db.add_message(cid, {"role": "user", "content": body.content})
+        job_id = uuid.uuid4().hex
+        from tontolo.media.providers import ext_for
+
+        path = core.media.dir / body.kind / f"{job_id}.{ext_for(body.mime)}"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+        job = {"id": job_id, "kind": body.kind, "status": "done", "model": "local:retouche",
+               "prompt": text, "result_path": str(path), "conversation_id": cid,
+               "created_at": time.time(),
+               "params": {"mime": body.mime, "warning": body.note,
+                          "model_name": body.model_name}}
+        await core.db.upsert_job(job)
+        msg = await core.db.add_message(cid, {"role": "assistant",
+                                              "content": f"[média:{job_id}]"},
+                                        model="local:retouche")
+        await core.media.purge()
+        return {"conversation_id": cid, "job": job, "uid": msg["uid"]}
 
     @app.post("/tontolo/chat/{cid}/approve-paid")
     async def approve_paid(request: Request, cid: str) -> dict[str, bool]:

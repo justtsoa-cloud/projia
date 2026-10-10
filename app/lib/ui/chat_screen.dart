@@ -1,5 +1,6 @@
 // Écran principal : conversation + champ de saisie. Rien d'autre par défaut.
 
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,6 +12,7 @@ import 'package:share_plus/share_plus.dart';
 import '../core/backend.dart';
 import '../core/chat_controller.dart';
 import '../core/image_prep.dart';
+import '../core/retouch.dart';
 import '../core/updater.dart';
 import 'update_sheet.dart';
 import '../main.dart';
@@ -47,10 +49,35 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void update(VoidCallback fn) => setState(fn);
 
+  // Photos d'origine (pleine résolution) pour la retouche locale, parallèles à `attachments`.
+  final List<Uint8List> originals = [];
+
+  /// Demande d'édition d'une photo jointe : verbes de retouche, filtres, transformations.
+  static final _editRequest = RegExp(
+      r'edit|retouch|modifi|chang|remplac|transform|ajout|supprim|enlev|efface|retir|amelior|'
+      r'corrig|filtre|optimis|embell|eclairc|assombri|contraste|recadr|noir et blanc|sepia|'
+      r'vintage|professionnel|\bstyle\b|rends|\bmets\b',
+      caseSensitive: false);
+
   void _send(ChatController chat) {
     final text = input.text.trim();
     if (text.isEmpty && attachments.isEmpty) return;
     stickToBottom = true;
+    // Photo jointe + consigne de retouche fidèle → traitée sur l'appareil, sans envoi à une IA.
+    if (attachments.length == 1 && originals.length == 1 && forcedCategory == null &&
+        _editRequest.hasMatch(text.toLowerCase())) {
+      final intent = analyzeEdit(text);
+      if (intent.mode == EditMode.local) {
+        chat.sendLocalRetouch(text, originals.first, attachments.first, intent);
+        input.clear();
+        setState(() {
+          attachments.clear();
+          originals.clear();
+        });
+        return;
+      }
+    }
+    originals.clear();
     chat.send(text, images: List.of(attachments), category: forcedCategory);
     input.clear();
     setState(() {
@@ -66,7 +93,10 @@ class _ChatScreenState extends State<ChatScreen> {
     final raw = await f.xFile.readAsBytes();
     final (bytes, mime) = await prepareImage(raw); // photo réduite : envoi et stockage plus légers
     if (!mounted) return;
-    setState(() => attachments.add(ChatController.dataUrl(bytes, mime)));
+    setState(() {
+      attachments.add(ChatController.dataUrl(bytes, mime));
+      originals.add(raw); // pleine résolution, pour la retouche locale
+    });
   }
 
   /// Dictée : enregistrement local puis transcription (même bascule que le texte).
@@ -313,7 +343,10 @@ class _InputBar extends StatelessWidget {
                   child: InputChip(
                     avatar: const Icon(Icons.image_outlined),
                     label: Text('${i + 1}'),
-                    onDeleted: () => state.update(() => state.attachments.removeAt(i)),
+                    onDeleted: () => state.update(() {
+                      state.attachments.removeAt(i);
+                      if (i < state.originals.length) state.originals.removeAt(i);
+                    }),
                   ),
                 ),
             ]),
@@ -441,6 +474,7 @@ class _Notice extends StatelessWidget {
       'switched' => (Icons.swap_horiz, context.t('switched', {'to': parts[1], 'reason': parts.length > 2 ? parts[2] : ''}), scheme.tertiary, false),
       'returned' => (Icons.undo, context.t('returned', {'model': parts[1]}), scheme.secondary, false),
       'stream_reset' => (Icons.refresh, context.t('stream_interrupted'), scheme.tertiary, false),
+      'media' => (Icons.auto_awesome, context.t('media_switch'), scheme.tertiary, false),
       'memory' => (Icons.bookmark_added_outlined, context.t('memory_saved', {'text': parts.skip(1).join('|')}), scheme.secondary, false),
       _ => (Icons.error_outline, parts.skip(1).join('|'), scheme.error, true),
     };

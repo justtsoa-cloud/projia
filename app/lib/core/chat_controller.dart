@@ -3,9 +3,11 @@
 import 'dart:async';
 import 'dart:convert';
 
+
 import 'package:flutter/foundation.dart';
 
 import 'backend.dart';
+import 'retouch.dart';
 
 class ChatMessage {
   ChatMessage({required this.role, this.text = '', this.model, this.modelName, this.streaming = false});
@@ -120,6 +122,49 @@ class ChatController extends ChangeNotifier {
       'model': modelOverride,
       'category': category,
     }));
+  }
+
+  /// Retouche **faite sur l'appareil** (fidèle : la personne et la composition restent
+  /// intactes, rien n'est envoyé à un service en ligne). Le résultat est ensuite enregistré
+  /// dans la conversation et la galerie.
+  Future<void> sendLocalRetouch(String text, Uint8List original, String previewDataUrl,
+      EditIntent intent) async {
+    if (busy) return;
+    busy = true;
+    status = 'retouching';
+    final user = ChatMessage(role: 'user', text: text)..images = [previewDataUrl];
+    final answer = ChatMessage(role: 'assistant', streaming: true)
+      ..modelName = 'Retouche locale (sur l\'appareil)'
+      ..model = 'local:retouche'
+      ..job = {'status': 'running', 'kind': 'image_edit', 'params': <String, dynamic>{}};
+    messages..add(user)..add(answer);
+    notifyListeners();
+    try {
+      final jpg = await retouchPhoto(original, intent.plan);
+      final note = 'Retouche faite sur votre appareil, rien n\'a été envoyé. '
+          '${intent.plan.steps.join(' · ')}. La personne et la composition sont inchangées.';
+      final res = await backend.sendJson('POST', '/tontolo/chat/local-media', {
+        'conversation_id': conversationId,
+        'content': [
+          if (text.isNotEmpty) {'type': 'text', 'text': text},
+          {'type': 'image_url', 'image_url': {'url': previewDataUrl}},
+        ],
+        'result_b64': base64Encode(jpg),
+        'mime': 'image/jpeg',
+        'note': note,
+      }) as Map<String, dynamic>;
+      conversationId = res['conversation_id'] as String;
+      answer
+        ..job = (res['job'] as Map).cast<String, dynamic>()
+        ..uid = res['uid'] as String?
+        ..streaming = false;
+    } catch (e) {
+      messages.remove(answer);
+      messages.add(ChatMessage(role: 'notice', text: 'error|$e'));
+    }
+    busy = false;
+    status = null;
+    notifyListeners();
   }
 
   /// Réessayer après une erreur : si la conversation existe, on régénère la réponse au
@@ -240,6 +285,13 @@ class ChatController extends ChangeNotifier {
           final r = ev['reasoning'] ?? ev['reasoning_content'];
           if (r != null) c.reasoning += r as String;
           status = c.text.isEmpty && c.reasoning.isNotEmpty ? 'thinking' : null;
+        case 'media_switch':
+          // Le modèle de texte a refusé de produire une image : on repart en création d'image.
+          final c = ensureCurrent();
+          c.text = '';
+          c.reasoning = '';
+          messages.insert(messages.length - 1, ChatMessage(role: 'notice', text: 'media|'));
+          status = 'generating';
         case 'stopped':
           status = null;
         case 'stream_reset':

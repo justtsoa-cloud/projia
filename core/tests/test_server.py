@@ -289,3 +289,115 @@ def test_photo_edit_without_vision_model_still_creates_image(
     job = _edit_request(client, "conv-edit-2")
     assert job["status"] == "done"
     assert "texte seul" in job["params"]["warning"]
+
+
+def _chat_events(client: TestClient, cid: str, text: str) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    with client.stream("POST", "/tontolo/chat",
+                       json={"conversation_id": cid, "content": text, "use_tools": False}) as r:
+        out = [json.loads(line[5:]) for line in r.iter_lines() if line.startswith("data:")]
+    return out
+
+
+def _last_done(events: list[dict[str, Any]]) -> dict[str, Any]:
+    return next(e for e in reversed(events) if e["type"] == "done")
+
+
+def test_followup_wording_is_recognised_as_image_request(
+        client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Scénario réel : « crée la photo » (avec « la ») partait vers un modèle de texte."""
+    prompts: list[str] = []
+
+    async def fake_gen(model: Any, provider: Any, prompt: str, params: Any) -> mp.MediaOutput:
+        prompts.append(prompt)
+        return mp.MediaOutput(b"\x89PNG", "image/png")
+
+    monkeypatch.setattr(mp, "generate_image", fake_gen)
+    events = _chat_events(client, "conv-photo-1", "crée la photo")
+    assert any(e["type"] == "job" for e in events) and _last_done(events)["job"]["status"] == "done"
+    # « vas-y » après une demande d'image : on reprend la description précédente.
+    _chat_events(client, "conv-photo-2", "dessine un phare au coucher du soleil")
+    events = _chat_events(client, "conv-photo-2", "vas-y refais")
+    assert _last_done(events)["job"]["status"] == "done"
+    assert "phare" in prompts[-1]
+
+
+def test_auto_switch_when_text_model_refuses_images(
+        client: TestClient, fake: FakeProvider, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Le modèle de texte répond « je ne peux pas générer d'images » : bascule automatique."""
+    async def fake_gen(model: Any, provider: Any, prompt: str, params: Any) -> mp.MediaOutput:
+        return mp.MediaOutput(b"\x89PNG", "image/png")
+
+    monkeypatch.setattr(mp, "generate_image", fake_gen)
+    fake.behaviors["chatty"] = lambda m, msgs: {
+        "role": "assistant",
+        "content": "Je dois être honnête : je ne peux pas générer d'images. Voici un prompt "
+                   "prêt à coller dans Midjourney."}
+    events = _chat_events(client, "conv-refus-1", "Peux-tu me montrer à quoi ressemblerait "
+                                                  "une belle photo de montagne ?")
+    types = [e["type"] for e in events]
+    assert "media_switch" in types, types
+    done = _last_done(events)
+    assert done["job"]["status"] == "done"
+    assert all("ne peux pas générer" not in str(e.get("message", "")) for e in events
+               if e["type"] == "done" and not e.get("job"))
+    msgs = client.get("/tontolo/conversations/conv-refus-1").json()["messages"]
+    assert [m["role"] for m in msgs] == ["user", "assistant"]
+    assert msgs[1]["content"].startswith("[média:")          # le refus n'est pas conservé
+
+
+def test_media_placeholders_are_explained_to_text_models(
+        client: TestClient, fake: FakeProvider, monkeypatch: pytest.MonkeyPatch) -> None:
+    async def fake_gen(model: Any, provider: Any, prompt: str, params: Any) -> mp.MediaOutput:
+        return mp.MediaOutput(b"\x89PNG", "image/png")
+
+    monkeypatch.setattr(mp, "generate_image", fake_gen)
+    _chat_events(client, "conv-ctx-1", "dessine un chat")
+    seen: list[list[dict[str, Any]]] = []
+    fake.behaviors["chatty"] = lambda m, msgs: seen.append(msgs) or {
+        "role": "assistant", "content": "ok"}
+    _chat_events(client, "conv-ctx-1", "Merci, tu peux m'expliquer comment ça marche ?")
+    text = "\n".join(str(m.get("content")) for m in seen[-1])
+    assert "[média:" not in text and "généré une image" in text
+    assert "ne dis jamais que tu ne peux pas" in text
+
+
+def test_preserve_instruction_never_generates_another_person(
+        client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Signalement réel : « sans changer la personne » + remplacement du décor → on refuse
+    honnêtement au lieu de générer une autre personne."""
+    called: list[str] = []
+
+    async def fake_gen(model: Any, provider: Any, prompt: str, params: Any) -> mp.MediaOutput:
+        called.append(prompt)
+        return mp.MediaOutput(b"\x89PNG", "image/png")
+
+    monkeypatch.setattr(mp, "generate_image", fake_gen)
+    client.post("/tontolo/chat", json={"conversation_id": "conv-keep-1", "content": [
+        {"type": "text", "text": "Remplace le décor par une plage sans changer la personne"},
+        {"type": "image_url", "image_url": {"url": _png_data_url()}}]})
+    msgs = client.get("/tontolo/conversations/conv-keep-1").json()["messages"]
+    job_id = msgs[1]["content"].removeprefix("[média:").removesuffix("]")
+    job = client.get(f"/tontolo/media/{job_id}").json()
+    assert job["status"] == "failed" and called == []
+    assert "Impossible gratuitement" in job["error"] and "sur votre téléphone" in job["error"]
+
+
+def test_local_retouch_result_is_stored_in_conversation(client: TestClient) -> None:
+    import base64
+
+    r = client.post("/tontolo/chat/local-media", json={
+        "conversation_id": "conv-local-1", "content": [
+            {"type": "text", "text": "édite cette photo, style professionnel"},
+            {"type": "image_url", "image_url": {"url": _png_data_url()}}],
+        "result_b64": base64.b64encode(b"\xff\xd8\xffJPEG").decode(),
+        "note": "Retouche appliquée sur votre appareil"}).json()
+    assert r["job"]["status"] == "done" and r["job"]["model"] == "local:retouche"
+    msgs = client.get("/tontolo/conversations/conv-local-1").json()["messages"]
+    assert [m["role"] for m in msgs] == ["user", "assistant"]
+    assert client.get(f"/tontolo/media/{r['job']['id']}/file").content == b"\xff\xd8\xffJPEG"
+    assert client.get("/tontolo/media", params={"kind": "image_edit"}).json()[0]["id"] == \
+        r["job"]["id"]
+    bad = client.post("/tontolo/chat/local-media", json={
+        "content": "x", "result_b64": "pas du base64 !!"})
+    assert bad.status_code == 400
