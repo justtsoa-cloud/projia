@@ -10,7 +10,6 @@ via `PUT /tontolo/keys/{fournisseur}` (persist=false), depuis son stockage sécu
 """
 
 import os
-import sys
 import time
 import traceback
 
@@ -46,4 +45,5 @@ if __name__ == "__main__":
         with open(log, "w", encoding="utf-8") as fh:
             traceback.print_exc(file=fh)
         traceback.print_exc()
-        sys.exit(1)
+        # Pas de sys.exit : sous Android il terminerait toute l'application ;
+        # l'interface affiche l'erreur et propose de réessayer.

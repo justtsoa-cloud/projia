@@ -34,6 +34,21 @@ jobs:
       - name: Budget de latence (sélection du modèle < 20 ms)
         run: .venv/bin/pytest -q tests/test_router.py -k selection_is_fast
 
+  minimal:
+    name: Cœur — dépendances minimales (comme sous Android)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: core
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.14"
+      - run: uv venv && uv pip install -e . pytest pytest-asyncio respx
+      - run: .venv/bin/python -c "from tontolo.server.app import create_app; create_app()"
+      - run: .venv/bin/pytest -q
+
   app:
     name: Application Flutter
     runs-on: ubuntu-latest

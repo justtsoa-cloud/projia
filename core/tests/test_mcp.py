@@ -15,6 +15,8 @@ from tontolo.agent.mcp_client import McpManager, save_config
 from tontolo.agent.mcp_lite import LiteSession
 from tontolo.agent.tools import ToolBox
 
+pytest.importorskip("mcp")
+
 
 def _free_port() -> int:
     with socket.socket() as s:

@@ -68,8 +68,11 @@ class CatalogService:
         """Démarrage : catalogue construit depuis le cache, sans réseau ; s'il n'y a pas
         de cache (premier lancement), rafraîchissement bloquant."""
         await self._build(SourceCache(self.cache_dir, offline=True), record=False)
-        if not self.catalog.models:
-            await self.refresh()
+        if not any(m.provider != "local" for m in self.catalog.models.values()):
+            # Premier lancement : catalogues rapides d'abord (quelques secondes) ; les
+            # classements, plus lents, arrivent ensuite en arrière-plan.
+            await self._build(SourceCache(self.cache_dir), record=True, quick=True)
+            self.refresh_in_background()
         return self.catalog
 
     async def refresh(self, force: bool = False) -> list[dict[str, Any]]:
@@ -82,7 +85,8 @@ class CatalogService:
         return self._task
 
     async def _build(
-        self, cache: SourceCache, force: bool = False, record: bool = True
+        self, cache: SourceCache, force: bool = False, record: bool = True,
+        quick: bool = False,
     ) -> list[dict[str, Any]]:
         ttl = self.ttl
         aa_key = secrets.get_key("artificial-analysis")
@@ -90,8 +94,8 @@ class CatalogService:
             openrouter.fetch_models(cache, ttl, force),
             pollinations.fetch_models(cache, ttl, force),
             freeapis.fetch(cache, ttl, force),
-            rankings.fetch_artificial_analysis(cache, aa_key, ttl, force),
-            rankings.fetch_lmarena(cache, ttl, force),
+            _none() if quick else rankings.fetch_artificial_analysis(cache, aa_key, ttl, force),
+            _none() if quick else rankings.fetch_lmarena(cache, ttl, force),
             return_exceptions=True,
         )
         or_models, poll_models, free_res, aa, lma = (
@@ -109,7 +113,7 @@ class CatalogService:
             providers.update(free_providers)
         if not cache.offline:
             models += await self._discover_media(providers, cache)
-        if not models:
+        if not any(m.provider != "local" for m in models):
             return []  # rien en cache ni en ligne : on garde l'ancien catalogue
         ranking_entries = [*(aa or []), *(lma or [])]
         catalog = build_catalog(models, ranking_entries, providers)
@@ -179,3 +183,7 @@ async def close() -> None:
 
 def dump(models: list[ModelInfo]) -> str:
     return json.dumps([m.model_dump() for m in models], ensure_ascii=False, indent=1)
+
+
+async def _none() -> list[Any]:
+    return []

@@ -12,7 +12,7 @@ Légende : `[x]` fait · `[~]` en cours · `[ ]` à faire
 - [x] `core/pyproject.toml`, ruff, mypy, pytest
 - [x] `config.py` (YAML + valeurs par défaut), `secrets.py`, dossier de données
 - [x] `storage/db.py` SQLite WAL + schéma (conversations, messages, quotas, dépenses, jobs, changements)
-- [ ] PoC Android : serious_python + httpx → APK, taille et démarrage mesurés, budgets fixés
+- [x] PoC Android : serious_python + httpx → APK, taille et démarrage mesurés, budgets fixés
 
 ## Phase 2 — Catalogue & veille
 - [x] Modèle `ModelInfo` + cache disque (TTL, ETag, mode dégradé)
@@ -43,24 +43,24 @@ Légende : `[x]` fait · `[~]` en cours · `[ ]` à faire
 - [x] Sécurité : confirmation des effets de bord, contenu web traité comme donnée
 
 ## Phase 7 — UI Flutter
-- [ ] Maquettes (2 propositions, choix documenté)
-- [ ] Chat épuré, Markdown/LaTeX/code, streaming, puce Auto ▾, bandeaux de bascule
-- [ ] Créations, Nouveautés, Réglages Simple/Avancé, À propos/attributions, onboarding
-- [ ] Mise en page adaptative (barre du bas / barre latérale), thème clair/sombre, i18n fr/en/mg
+- [x] Maquettes (2 propositions, choix documenté)
+- [x] Chat épuré, Markdown/LaTeX/code, streaming, puce Auto ▾, bandeaux de bascule
+- [x] Créations, Nouveautés, Réglages Simple/Avancé, À propos/attributions, onboarding
+- [x] Mise en page adaptative (barre du bas / barre latérale), thème clair/sombre, i18n fr/en/mg
 
 ## Phase 8 — Deux modes + sync
-- [ ] Mode local (Python embarqué) / distant (URL + jeton)
-- [ ] Synchronisation de l'historique
+- [x] Mode local (Python embarqué) / distant (URL + jeton)
+- [x] Synchronisation de l'historique
 
 ## Phase 9 — Paiement & finitions
-- [ ] Comptes payants : off/ask/auto, plafonds, journal de dépenses
-- [ ] Mises à jour automatiques depuis les releases GitHub (demande du 2026-10-10) :
+- [x] Comptes payants : off/ask/auto, plafonds, journal de dépenses
+- [x] Mises à jour automatiques depuis les releases GitHub (demande du 2026-10-10) :
       Linux = téléchargement + SHA-256 + remplacement de l'AppImage + redémarrage ;
       Android = téléchargement de l'APK (ABI) + SHA-256 + installeur système (1 appui)
-- [ ] Optimisations, mesures, budgets CI
+- [x] Optimisations, mesures, budgets CI
 
 ## Phase 10 — Publication
-- [ ] Docs : README, ARCHITECTURE, SOURCES, ATTRIBUTIONS, COMPLIANCE, RELEASING, CHANGELOG, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT
-- [ ] Workflows CI + release (wheel, AppImage, APK par ABI, SHA256SUMS)
-- [ ] Tests finaux (pytest, flutter test, émulateur)
+- [x] Docs : README, ARCHITECTURE, SOURCES, ATTRIBUTIONS, COMPLIANCE, RELEASING, CHANGELOG, CONTRIBUTING, SECURITY, CODE_OF_CONDUCT
+- [x] Workflows CI + release (wheel, AppImage, APK par ABI, SHA256SUMS)
+- [x] Tests finaux (pytest, flutter test, émulateur)
 - [ ] Dépôt public `raantss18/tontolo`, tag `v0.1.0`, release vérifiée

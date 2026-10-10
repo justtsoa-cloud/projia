@@ -94,10 +94,10 @@ async def test_context_filter(router: Router) -> None:
     assert "small" not in [c.model.model_id for c in d.chain]
 
 
-async def test_media_category(router: Router) -> None:
+async def test_chat_engine_never_routes_to_media_models(router: Router) -> None:
     d = await router.decide(user("Génère une image d'un phare au coucher du soleil"))
-    assert d.profile.category == Category.IMAGE_GEN
-    assert [c.model.model_id for c in d.chain] == ["img-1"]
+    assert d.profile.category == Category.CHAT
+    assert "img-1" not in [c.model.model_id for c in d.chain]
 
 
 async def test_selection_is_fast(router: Router) -> None:
@@ -108,3 +108,39 @@ async def test_selection_is_fast(router: Router) -> None:
     for _ in range(20):
         await router.decide(msgs)
     assert (time.perf_counter() - t) / 20 < 0.02
+
+
+async def test_first_launch_quick_catalog(settings, monkeypatch) -> None:
+    """Premier lancement sans cache : les classements lents ne bloquent pas le démarrage."""
+    import asyncio
+
+    from tontolo.catalog import service as svc_mod
+    from tontolo.catalog.models import ModelInfo
+
+    slow_called = asyncio.Event()
+
+    async def fast(cache: object, *a: object, **k: object) -> list[ModelInfo]:
+        if getattr(cache, "offline", False):
+            return []
+        return [ModelInfo(provider="pollinations", model_id="m", is_free=True, needs_key=False)]
+
+    async def free(*a: object, **k: object) -> tuple[list[ModelInfo], dict[str, object]]:
+        return [], {}
+
+    async def slow(cache: object, *a: object, **k: object) -> list[object]:
+        if getattr(cache, "offline", False):
+            return []
+        slow_called.set()
+        await asyncio.sleep(3600)
+        return []
+
+    monkeypatch.setattr(svc_mod.openrouter, "fetch_models", fast)
+    monkeypatch.setattr(svc_mod.pollinations, "fetch_models", fast)
+    monkeypatch.setattr(svc_mod.freeapis, "fetch", free)
+    monkeypatch.setattr(svc_mod.rankings, "fetch_lmarena", slow)
+    monkeypatch.setattr(svc_mod.rankings, "fetch_artificial_analysis", slow)
+    s = svc_mod.CatalogService(settings)
+    await asyncio.wait_for(s.load(), timeout=2)
+    assert s.catalog.models
+    assert s._task is not None
+    s._task.cancel()

@@ -7,7 +7,6 @@ import json
 from collections.abc import Iterator
 from typing import Any
 
-import openai
 import pytest
 from fastapi.testclient import TestClient
 
@@ -18,6 +17,8 @@ from tontolo.providers.base import ErrorKind, ProviderError
 from tontolo.providers.fake import FakeProvider
 from tontolo.providers.registry import ProviderRegistry
 from tontolo.server.app import create_app
+
+openai = pytest.importorskip("openai")
 
 
 @pytest.fixture
@@ -155,3 +156,17 @@ def test_sync_roundtrip(client: TestClient) -> None:
     dump = client.get("/tontolo/sync", params={"since": 0}).json()
     assert dump["conversations"] and dump["messages"]
     assert client.post("/tontolo/sync", json=dump).json()["applied"] == 0  # déjà à jour
+
+
+def test_native_chat_detects_image_request(client: TestClient,
+                                           monkeypatch: pytest.MonkeyPatch) -> None:
+    """« Dessine… » sans catégorie forcée passe par le pipeline média, pas par le chat."""
+    async def fake_gen(model: Any, provider: Any, prompt: str, params: Any) -> mp.MediaOutput:
+        return mp.MediaOutput(b"\x89PNG", "image/png")
+
+    monkeypatch.setattr(mp, "generate_image", fake_gen)
+    with client.stream("POST", "/tontolo/chat",
+                       json={"content": "Dessine un phare au coucher du soleil"}) as r:
+        events = [json.loads(line[5:]) for line in r.iter_lines() if line.startswith("data:")]
+    done = next(e for e in events if e["type"] == "done")
+    assert done["job"]["status"] == "done" and done["model"] == "fake:img-1"

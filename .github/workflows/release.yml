@@ -11,9 +11,9 @@ permissions:
 env:
   SERIOUS_PYTHON_VERSION: "3.14"
   # Budgets (section 11) — mesurés en phase 1, la release échoue s'ils sont dépassés.
-  BUDGET_APK_MB: "45"
-  BUDGET_APPIMAGE_MB: "110"
-  BUDGET_WHEEL_KB: "400"
+  BUDGET_APK_MB: "30"
+  BUDGET_APPIMAGE_MB: "55"
+  BUDGET_WHEEL_KB: "150"
 
 jobs:
   checks:

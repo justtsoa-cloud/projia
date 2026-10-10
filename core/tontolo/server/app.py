@@ -29,9 +29,22 @@ from tontolo.app_state import Core
 from tontolo.catalog.models import Category, ModelInfo
 from tontolo.config import Settings, load_settings, save_settings
 from tontolo.providers.registry import ProviderRegistry
+from tontolo.router.classifier import classify
 from tontolo.update import check_update, download_update
 
 LOOPBACK = {"127.0.0.1", "::1", "localhost"}
+MEDIA_TURN_KINDS = {"image_gen", "image_edit", "tts", "music_sfx", "video_gen"}
+
+
+def _first_image(content: Any) -> bytes | None:
+    """Première image jointe (data URL) d'un message, pour l'édition d'image."""
+    if not isinstance(content, list):
+        return None
+    for part in content:
+        url = (part.get("image_url") or {}).get("url", "") if isinstance(part, dict) else ""
+        if url.startswith("data:") and "," in url:
+            return base64.b64decode(url.split(",", 1)[1])
+    return None
 
 
 class ChatBody(BaseModel):
@@ -278,8 +291,13 @@ def create_app(
         if body.conversation_id is None:
             core.catalog.refresh_in_background()  # veille « à chaque utilisation »
         category = Category(body.category) if body.category else None
-        if category is not None and category.value in ("image_gen", "image_edit", "tts",
-                                                        "music_sfx", "video_gen"):
+        if category is None:
+            # Modalité détectée automatiquement (« dessine… », « lis à voix haute… ») :
+            # aucun mode à choisir pour l'utilisateur.
+            detected = classify([{"role": "user", "content": body.content}]).category
+            if detected.value in MEDIA_TURN_KINDS:
+                category = detected
+        if category is not None and category.value in MEDIA_TURN_KINDS:
             return _sse(_media_turn(core, body, category))
         return _sse(core.chat.send(body.conversation_id, body.content, model=body.model,
                                    forced=category, strict=body.strict,
@@ -295,8 +313,10 @@ def create_app(
             cid = await core.db.create_conversation(text[:60])
             yield {"type": "conversation", "id": cid}
         await core.db.add_message(cid, {"role": "user", "content": body.content})
+        image = _first_image(body.content)
         job = await core.media.submit(category.value, text, conversation_id=cid,
-                                      model=body.model)
+                                      model=body.model, input_bytes=image,
+                                      input_name="image.png")
         yield {"type": "job", **job}
         done = await core.media.wait(job["id"]) or job
         yield {"type": "job", **done}
@@ -306,6 +326,7 @@ def create_app(
                                         model=done.get("model"))
         yield {"type": "done", "message": {"role": "assistant", "content": note},
                "model": done.get("model"), "uid": msg["uid"], "conversation_id": cid,
+               "name": (done.get("params") or {}).get("model_name"),
                "job": done}
 
 

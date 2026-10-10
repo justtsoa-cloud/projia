@@ -23,7 +23,7 @@ from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from typing import Any
 
-from tontolo.catalog.models import Category, ModelInfo
+from tontolo.catalog.models import MEDIA_CATEGORIES, Category, ModelInfo
 from tontolo.catalog.service import CatalogService
 from tontolo.config import PaidFallback, Settings
 from tontolo.providers.base import ChatResult, ErrorKind, ProviderError
@@ -133,6 +133,11 @@ class Router:
     ) -> RouteDecision:
         prof = await self.profile(messages, conversation_id=conversation_id,
                                   tools_available=tools_available, forced=forced)
+        if prof.category in MEDIA_CATEGORIES:
+            # Le moteur de chat ne produit que du texte : les médias passent par
+            # MediaService ; ici on répond par un modèle de texte généraliste.
+            prof.category = Category.CHAT
+            prof.modality_out = "text"
         pref: Preference | None = None
         if not is_auto(model):
             pref = Preference(str(model), strict, "request")

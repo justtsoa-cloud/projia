@@ -52,7 +52,8 @@ android {
     }
 
     packaging {
-        jniLibs { useLegacyPackaging = false }
+        // Bibliothèques natives compressées : APK plus léger à télécharger.
+        jniLibs { useLegacyPackaging = true }
     }
 }
 

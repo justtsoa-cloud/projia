@@ -81,13 +81,19 @@ ou un fichier `.env` (voir `.env.example`). Les clés restent sur votre appareil
 
 ## Performances mesurées (v0.1.0)
 
-| Mesure | Valeur | Budget |
+Mesures du 2026-10-10 (émulateur Android 16 x86_64, poste Linux KDE). Les budgets sont
+vérifiés par la CI : une release qui les dépasse est bloquée.
+
+| Mesure | Valeur mesurée | Budget |
 |---|---|---|
-| Sélection du modèle | < 1 ms (catalogue de 760 modèles) | 20 ms |
-| Chargement du catalogue depuis le cache | 0,12 s | — |
-| Cœur Python embarqué par ABI | 14 Mo | — |
-| APK arm64-v8a | _voir la release_ | 45 Mo |
-| Tests du cœur | 64 tests (routeur, quotas, bascule, serveur, MCP, mises à jour) | — |
+| APK arm64-v8a / armeabi-v7a / x86_64 | 24,8 / 23,8 / 25,4 Mo | 30 Mo |
+| AppImage Linux x86_64 | 45 Mo | 55 Mo |
+| Roue Python | 93 Ko | 150 Ko |
+| Interface affichée à froid (Android) | 1,3 à 1,6 s | < 2 s |
+| Démarrage du cœur Python embarqué (imports) | 2,6 s, en arrière-plan | non bloquant |
+| Sélection du modèle (760 modèles) | < 1 ms | < 20 ms |
+| Catalogue depuis le cache | 0,12 s | — |
+| Tests automatisés | 65 (cœur) + 3 (interface) | — |
 
 ## Documentation
 
