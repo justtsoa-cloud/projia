@@ -13,6 +13,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.2.5': [
+    NewsItem(Icons.wifi_off, 'Coupure réseau : fini la cascade de bascules',
+        'Quand c\'est votre connexion qui tombe, Tontolo le détecte, attend le retour du réseau et reprend avec le même modèle au lieu d\'essayer tous les modèles un par un.',
+        'Network drop: no more switch cascade',
+        'When your own connection drops, Tontolo detects it, waits for the network and resumes with the same model instead of trying every model one by one.'),
+    NewsItem(Icons.short_text, 'Bascules résumées',
+        'Une série de bascules tient sur une seule ligne, avec le nombre total.',
+        'Compact switches',
+        'A run of model switches now fits on one line, with the total count.'),
+  ],
   '0.2.4': [
     NewsItem(Icons.functions, 'Formules plus robustes',
         'Les formules dans les tableaux s\'affichent correctement, et un « \$ » oublié par le modèle ne mélange plus deux formules.',

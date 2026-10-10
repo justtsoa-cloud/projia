@@ -5,6 +5,18 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.2.5] - 2026-10-10
+
+### Corrigé
+- Sans connexion Internet (ou avec un réseau mobile qui saute), l'application essayait les
+  modèles un par un en affichant « problème réseau » pour chacun, pénalisait des modèles sains
+  puis échouait avec « Tous les modèles gratuits ont échoué ». Sur une erreur réseau, le cœur
+  teste maintenant la connexion : si l'appareil est hors ligne, il attend jusqu'à 25 s le retour
+  du réseau, reprend avec le **même** modèle (sans bascule, sans pénalité de quota ni de fiabilité)
+  et, sinon, affiche « Pas de connexion Internet » une seule fois.
+- Les connexions persistantes mortes sont abandonnées au retour du réseau.
+- Une série de bascules consécutives s'affiche sur une seule ligne avec le total.
+
 ## [0.2.4] - 2026-10-10
 
 ### Corrigé

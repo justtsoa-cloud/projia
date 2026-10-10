@@ -302,8 +302,18 @@ class ChatController extends ChangeNotifier {
           c.model = ev['to'] as String?;
           c.modelName = ev['to_name'] as String?;
           lastModelName = c.modelName;
+          // Une série de bascules consécutives tient sur une seule ligne (la dernière + le total).
+          var count = 1;
+          final prev = messages.length >= 2 ? messages[messages.length - 2] : null;
+          if (prev != null && prev.role == 'notice' && prev.text.startsWith('switched|')) {
+            final p = prev.text.split('|');
+            count = (p.length > 3 ? int.tryParse(p[3]) ?? 1 : 1) + 1;
+            messages.remove(prev);
+          }
           messages.insert(messages.length - 1,
-              ChatMessage(role: 'notice', text: 'switched|${ev['to_name'] ?? ev['to']}|${ev['reason']}'));
+              ChatMessage(role: 'notice', text: 'switched|${ev['to_name'] ?? ev['to']}|${ev['reason']}|$count'));
+        case 'offline':
+          status = 'offline|${ev['seconds']}';
         case 'tool_call':
           status = 'tool|${ev['name']}';
         case 'tool_result':

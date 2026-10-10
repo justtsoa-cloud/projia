@@ -24,7 +24,7 @@ from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from typing import Any
 
-from tontolo import secrets
+from tontolo import http, secrets
 from tontolo.catalog.models import MEDIA_CATEGORIES, Category, ModelInfo
 from tontolo.catalog.service import CatalogService
 from tontolo.config import PaidFallback, Settings
@@ -49,6 +49,9 @@ log = logging.getLogger(__name__)
 MAX_ATTEMPTS = 8
 SHORT_WAIT = 30.0  # attente maximale avant un nouvel essai automatique (secondes)
 EST_OUTPUT_TOKENS = 1000
+OFFLINE_WAIT = 25.0  # attente maximale du retour de la connexion (secondes)
+OFFLINE_STEP = 4.0
+MAX_RECOVERIES = 2   # nombre de retours de connexion tolérés par tour
 
 _REASONS_FR = {
     ErrorKind.RATE_LIMIT: "limite de débit atteinte",
@@ -89,6 +92,7 @@ class Router:
         self._desired: dict[str, str] = {}          # conversation → modèle à retrouver
         self._paid_ok: set[str] = set()             # conversations où le payant est accepté
         self._class_cache: dict[str, Category] = {}
+        self.probe = http.is_online  # remplaçable (tests)
 
     async def startup(self) -> None:
         if self.db is not None:
@@ -224,7 +228,11 @@ class Router:
         previous: Candidate | None = None
         last_reason, last_until = "", None
         attempts = 0
-        for cand in decision.chain:
+        chain = list(decision.chain)
+        idx = recoveries = 0
+        while idx < len(chain):
+            cand = chain[idx]
+            idx += 1
             if attempts >= MAX_ATTEMPTS:
                 break
             m = cand.model
@@ -264,6 +272,33 @@ class Router:
                 if not (result.message.get("content") or result.message.get("tool_calls")):
                     raise ProviderError("Réponse vide", ErrorKind.SERVER)
             except ProviderError as err:
+                if err.kind == ErrorKind.NETWORK and not await self.probe():
+                    # C'est l'appareil qui est hors ligne, pas le modèle : ne pas défiler toute la
+                    # liste des modèles ni les pénaliser. On attend le retour de la connexion.
+                    if started:
+                        yield {"type": "stream_reset", "model": m.key, "reason": "hors ligne"}
+                    back = False
+                    if recoveries < MAX_RECOVERIES:
+                        deadline = time.monotonic() + OFFLINE_WAIT
+                        while time.monotonic() < deadline:
+                            yield {"type": "offline",
+                                   "seconds": max(1, int(deadline - time.monotonic()))}
+                            await asyncio.sleep(OFFLINE_STEP)
+                            if await self.probe():
+                                back = True
+                                break
+                    if not back:
+                        await self.persist()
+                        yield {"type": "error", "offline": True, "retry_at": None,
+                               "message": "Pas de connexion Internet. Vérifiez le réseau "
+                                          "(Wi-Fi ou données mobiles) puis réessayez.",
+                               "category": prof.category.value}
+                        return
+                    recoveries += 1
+                    await http.reset()
+                    idx -= 1       # on retente le même modèle, sans « bascule »
+                    attempts -= 1
+                    continue
                 until = self.quota.on_error(m, err)
                 if err.kind in (ErrorKind.SERVER, ErrorKind.NETWORK, ErrorKind.UNAVAILABLE,
                                 ErrorKind.BAD_REQUEST):

@@ -42,3 +42,33 @@ async def aclose() -> None:
         if _loop is current and _loop is not None and not _loop.is_closed():
             await _client.aclose()
         _client = None
+
+
+async def reset() -> None:
+    """Abandonne les connexions persistantes (après une coupure réseau, elles sont mortes)."""
+    await aclose()
+
+
+async def is_online(limit: float = 3.0) -> bool:
+    """Vrai si Internet répond (n'importe quelle réponse HTTP d'un hébergeur très disponible).
+
+    Client dédié : le client partagé peut garder des connexions mortes après une coupure."""
+    urls = ("https://www.gstatic.com/generate_204", "https://cloudflare.com/cdn-cgi/trace")
+
+    async def one(url: str) -> bool:
+        try:
+            async with httpx.AsyncClient(timeout=limit, headers={"User-Agent": USER_AGENT}) as c:
+                await c.get(url)
+            return True
+        except httpx.HTTPError:
+            return False
+
+    tasks = [asyncio.create_task(one(u)) for u in urls]
+    try:
+        for fut in asyncio.as_completed(tasks):
+            if await fut:
+                return True
+        return False
+    finally:
+        for t in tasks:
+            t.cancel()

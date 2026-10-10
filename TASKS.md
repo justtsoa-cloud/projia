@@ -101,3 +101,9 @@ Légende : `[x]` fait · `[~]` en cours · `[ ]` à faire
 - [x] Courtes vidéos de démonstration (≈ 30 s) : chat + formules, génération d'image, retouche de photo ; version Android et bureau
 - [x] Visuels prêts pour un post (cadres, légendes), dossier `press/` + captures dans `docs/screenshots/`
 - [x] Publier la 0.2.4 (correctifs trouvés pendant les prises de vue)
+
+## v0.2.5 — Coupure réseau (retour d'un utilisateur)
+- [x] Détecter « appareil hors ligne » (sonde) et ne pas défiler les modèles ni les pénaliser
+- [x] Attente du retour du réseau puis reprise avec le même modèle ; message clair sinon
+- [x] Interface : bascules regroupées sur une ligne, statut « en attente du réseau »
+- [x] Tests (3) et publication

@@ -471,7 +471,14 @@ class _Notice extends StatelessWidget {
     final parts = raw.split('|');
     final scheme = Theme.of(context).colorScheme;
     final (icon, text, color, action) = switch (parts.first) {
-      'switched' => (Icons.swap_horiz, context.t('switched', {'to': parts[1], 'reason': parts.length > 2 ? parts[2] : ''}), scheme.tertiary, false),
+      'switched' => (
+          Icons.swap_horiz,
+          context.t('switched', {'to': parts[1], 'reason': parts.length > 2 ? parts[2] : ''}) +
+              ((parts.length > 3 ? int.tryParse(parts[3]) ?? 1 : 1) > 1
+                  ? ' · ${context.t('switch_count', {'n': parts[3]})}'
+                  : ''),
+          scheme.tertiary,
+          false),
       'returned' => (Icons.undo, context.t('returned', {'model': parts[1]}), scheme.secondary, false),
       'stream_reset' => (Icons.refresh, context.t('stream_interrupted'), scheme.tertiary, false),
       'media' => (Icons.auto_awesome, context.t('media_switch'), scheme.tertiary, false),
@@ -500,6 +507,8 @@ class _StatusLine extends StatelessWidget {
         ? context.t('thinking')
         : status.startsWith('tool|')
         ? '⚙ ${status.substring(5)}'
+        : status.startsWith('offline|')
+        ? context.t('offline_wait')
         : status.startsWith('waiting|')
             ? context.t('waiting', {'s': status.substring(8)})
             : context.t(status);

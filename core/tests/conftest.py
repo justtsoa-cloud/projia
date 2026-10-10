@@ -83,4 +83,9 @@ async def router(settings: Settings, catalog_service: CatalogService, db: Databa
                  fake: FakeProvider) -> Router:
     r = Router(settings, catalog_service, db, registry=ProviderRegistry(lambda p: fake))
     await r.startup()
+
+    async def online() -> bool:
+        return True
+
+    r.probe = online  # pas de vrai réseau dans les tests
     return r
