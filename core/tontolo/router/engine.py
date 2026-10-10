@@ -1,0 +1,346 @@
+"""Moteur de routage : choix du modèle, bascule sur erreur, retour au meilleur.
+
+Le moteur est sans état vis-à-vis de l'historique (il reçoit les messages
+canoniques) ; la persistance des conversations est faite par l'appelant
+(`tontolo.chat.ChatService`). Il produit un flux d'événements :
+
+- `route` : modèle choisi et pourquoi ;
+- `model_returned` : retour au modèle préféré ou au meilleur après une bascule ;
+- `delta` : morceau de réponse ;
+- `stream_reset` : la génération partielle est abandonnée (bascule en cours de flux) ;
+- `model_switched` : ancien, nouveau, raison ;
+- `paid_confirmation` : un appel payant attend l'accord de l'utilisateur (mode `ask`) ;
+- `done` : message final, modèle, consommation ;
+- `error` : plus aucun modèle disponible (phrase humaine + date de retour estimée).
+"""
+
+from __future__ import annotations
+
+import hashlib
+import logging
+import time
+from collections.abc import AsyncIterator
+from datetime import UTC, datetime
+from typing import Any
+
+from tontolo.catalog.models import Category, ModelInfo
+from tontolo.catalog.service import CatalogService
+from tontolo.config import PaidFallback, Settings
+from tontolo.providers.base import ChatResult, ErrorKind, ProviderError
+from tontolo.providers.registry import ProviderRegistry
+from tontolo.router import classifier
+from tontolo.router.classifier import TaskProfile
+from tontolo.router.context import SUMMARY_PROMPT, fit
+from tontolo.router.quota import QuotaManager
+from tontolo.router.scoring import (
+    Candidate,
+    Preference,
+    Reliability,
+    RouteDecision,
+    pick_preference,
+    rank,
+)
+from tontolo.storage.db import Database
+
+log = logging.getLogger(__name__)
+
+MAX_ATTEMPTS = 8
+EST_OUTPUT_TOKENS = 1000
+
+_REASONS_FR = {
+    ErrorKind.RATE_LIMIT: "limite de débit atteinte",
+    ErrorKind.QUOTA: "quota épuisé",
+    ErrorKind.AUTH: "clé refusée",
+    ErrorKind.CONTEXT: "historique trop long",
+    ErrorKind.UNAVAILABLE: "modèle indisponible",
+    ErrorKind.SERVER: "erreur du fournisseur",
+    ErrorKind.NETWORK: "problème réseau",
+    ErrorKind.BAD_REQUEST: "requête refusée",
+}
+
+
+def human_reason(err: ProviderError) -> str:
+    return _REASONS_FR.get(err.kind, str(err.kind))
+
+
+def is_auto(model: str | None) -> bool:
+    return not model or model.lower() in ("auto", "tontolo", "tontolo/auto", "tontolo-auto")
+
+
+class Router:
+    def __init__(
+        self,
+        settings: Settings,
+        catalog: CatalogService,
+        db: Database | None = None,
+        registry: ProviderRegistry | None = None,
+        quota: QuotaManager | None = None,
+        reliability: Reliability | None = None,
+    ) -> None:
+        self.settings = settings
+        self.catalog = catalog
+        self.db = db
+        self.registry = registry or ProviderRegistry()
+        self.quota = quota or QuotaManager()
+        self.reliability = reliability or Reliability()
+        self._desired: dict[str, str] = {}          # conversation → modèle à retrouver
+        self._paid_ok: set[str] = set()             # conversations où le payant est accepté
+        self._class_cache: dict[str, Category] = {}
+
+    async def startup(self) -> None:
+        if self.db is not None:
+            self.quota.load(await self.db.load_quotas())
+            self.reliability.table.update(await self.db.load_reliability())
+
+    async def persist(self) -> None:
+        if self.db is None:
+            return
+        for k, v in self.quota.take_dirty().items():
+            await self.db.save_quota(k, v)
+        for k in list(self.reliability.dirty):
+            ok, total = self.reliability.table[k]
+            await self.db.save_reliability(k, ok, total)
+        self.reliability.dirty.clear()
+
+    def approve_paid(self, conversation_id: str) -> None:
+        self._paid_ok.add(conversation_id)
+
+    # --- Décision --------------------------------------------------------
+
+    async def profile(
+        self, messages: list[dict[str, Any]], *, conversation_id: str | None = None,
+        tools_available: bool = False, forced: Category | str | None = None,
+    ) -> TaskProfile:
+        prof = classifier.classify(messages, tools_available=tools_available, forced=forced)
+        if forced or not self.settings.llm_classifier or not classifier.is_ambiguous(prof):
+            return prof
+        last: dict[str, Any] = next(
+            (m for m in reversed(messages) if m.get("role") == "user"), {})
+        h = hashlib.sha1(f"{conversation_id}:{last.get('content')}".encode()).hexdigest()
+        if h not in self._class_cache:
+            cat = await self._llm_classify(last)
+            if cat is not None:
+                self._class_cache[h] = cat
+        if h in self._class_cache:
+            return classifier.classify(messages, tools_available=tools_available,
+                                       forced=self._class_cache[h])
+        return prof
+
+    async def decide(
+        self, messages: list[dict[str, Any]], *, conversation_id: str | None = None,
+        model: str | None = None, tools_available: bool = False,
+        forced: Category | str | None = None, strict: bool = False,
+    ) -> RouteDecision:
+        prof = await self.profile(messages, conversation_id=conversation_id,
+                                  tools_available=tools_available, forced=forced)
+        pref: Preference | None = None
+        if not is_auto(model):
+            pref = Preference(str(model), strict, "request")
+        elif self.db is not None:
+            pref = pick_preference(await self.db.get_preferences(), conversation_id,
+                                   prof.category)
+        return rank(self.catalog.catalog, prof, usable=self.catalog.usable_providers(),
+                    quota=self.quota, reliability=self.reliability, settings=self.settings,
+                    preference=pref)
+
+    # --- Exécution -------------------------------------------------------
+
+    async def run(
+        self,
+        messages: list[dict[str, Any]],
+        *,
+        conversation_id: str | None = None,
+        tools: list[dict[str, Any]] | None = None,
+        stream: bool = True,
+        model: str | None = None,
+        forced: Category | str | None = None,
+        strict: bool = False,
+        summary: str | None = None,
+        params: dict[str, Any] | None = None,
+    ) -> AsyncIterator[dict[str, Any]]:
+        params = params or {}
+        decision = await self.decide(messages, conversation_id=conversation_id, model=model,
+                                     tools_available=bool(tools), forced=forced, strict=strict)
+        prof = decision.profile
+        conv_key = conversation_id or "_"
+        if not decision.chain:
+            yield self._no_model_event(decision)
+            return
+
+        first = decision.chain[0]
+        desired = self._desired.get(conv_key)
+        if desired and first.model.key == desired:
+            yield {"type": "model_returned", "model": desired, "name": first.model.name}
+            self._desired.pop(conv_key, None)
+        yield {
+            "type": "route", "model": first.model.key, "name": first.model.name,
+            "reason": first.reason(prof.category), "profile": prof.as_dict(),
+            "chain": [c.model.key for c in decision.chain[:5]],
+        }
+
+        previous: Candidate | None = None
+        last_reason, last_until = "", None
+        attempts = 0
+        for cand in decision.chain:
+            if attempts >= MAX_ATTEMPTS:
+                break
+            m = cand.model
+            if not m.is_free:
+                gate = await self._paid_gate(cand, messages, conv_key)
+                if gate is not None:
+                    if gate.get("type") == "paid_confirmation":
+                        yield gate
+                        return
+                    continue
+            if previous is not None:
+                yield {"type": "model_switched", "from": previous.model.key, "to": m.key,
+                       "to_name": m.name, "reason": last_reason,
+                       "until": last_until}
+            attempts += 1
+            adapted, new_summary, dropped = await fit(
+                messages, m, summary=summary, summarizer=self._summarize)
+            if new_summary and conversation_id and self.db is not None:
+                await self.db.set_summary(conversation_id, new_summary, dropped)
+            use_tools = tools if (tools and m.supports_tools) else None
+            self.quota.record_request(m)
+            started = False
+            try:
+                result: ChatResult | None = None
+                client = self.registry.get(self.catalog.catalog.providers[m.provider])
+                if stream:
+                    async for item in client.stream(m, adapted, tools=use_tools, **params):
+                        if "_result" in item:
+                            result = item["_result"]
+                        else:
+                            started = True
+                            yield {"type": "delta", **item["delta"]}
+                else:
+                    result = await client.chat(m, adapted, tools=use_tools, **params)
+                if result is None:
+                    raise ProviderError("Réponse vide", ErrorKind.SERVER)
+                if not (result.message.get("content") or result.message.get("tool_calls")):
+                    raise ProviderError("Réponse vide", ErrorKind.SERVER)
+            except ProviderError as err:
+                until = self.quota.on_error(m, err)
+                if err.kind in (ErrorKind.SERVER, ErrorKind.NETWORK, ErrorKind.UNAVAILABLE,
+                                ErrorKind.BAD_REQUEST):
+                    self.reliability.record(m.key, False)
+                last_reason, last_until = human_reason(err), until or None
+                log.info("Échec %s : %s", m.key, err)
+                if started:
+                    yield {"type": "stream_reset", "model": m.key,
+                           "reason": last_reason}
+                if cand is decision.chain[0] or cand.preferred:
+                    self._desired[conv_key] = m.key
+                previous = cand
+                await self.persist()
+                continue
+            # Succès
+            self.quota.on_success(m)
+            self.reliability.record(m.key, True)
+            cost = 0.0
+            if not m.is_free:
+                cost = (result.usage.get("prompt_tokens", 0) * m.price_in
+                        + result.usage.get("completion_tokens", 0) * m.price_out)
+                if self.db is not None:
+                    await self.db.add_spend(m.key, result.usage.get("prompt_tokens", 0),
+                                            result.usage.get("completion_tokens", 0), cost,
+                                            conversation_id)
+            await self.persist()
+            yield {"type": "done", "message": result.message, "model": m.key,
+                   "name": m.name, "usage": result.usage, "cost": cost,
+                   "finish_reason": result.finish_reason, "profile": prof.as_dict()}
+            return
+
+        await self.persist()
+        yield self._no_model_event(decision, tried=attempts)
+
+    def _no_model_event(self, decision: RouteDecision, tried: int = 0) -> dict[str, Any]:
+        waits = [c.available_at for c in decision.waiting if c.available_at > 0]
+        waits += [t for c in decision.chain if (t := self.quota.available_at(c.model)) > 0]
+        retry_at = min(waits) if waits else None
+        if decision.preferred and decision.preferred.strict and decision.waiting:
+            msg = "Votre modèle préféré est momentanément épuisé (mode strict)."
+        elif tried:
+            msg = "Tous les modèles gratuits disponibles ont échoué pour le moment."
+        else:
+            msg = ("Aucun modèle gratuit disponible pour cette tâche. Ajoutez une clé gratuite "
+                   "dans Réglages ou réessayez plus tard.")
+        if retry_at:
+            when = datetime.fromtimestamp(retry_at, UTC).astimezone().strftime("%H:%M")
+            msg += f" Retour estimé vers {when}."
+        return {"type": "error", "message": msg, "retry_at": retry_at,
+                "category": decision.profile.category.value}
+
+    async def _paid_gate(
+        self, cand: Candidate, messages: list[dict[str, Any]], conv_key: str
+    ) -> dict[str, Any] | None:
+        """None si l'appel payant est permis ; sinon un événement (ou `skip`)."""
+        paid = self.settings.paid
+        m = cand.model
+        if paid.fallback == PaidFallback.OFF and not cand.preferred:
+            return {"type": "skip"}
+        est = (classifier.estimate_tokens(messages) * m.price_in
+               + EST_OUTPUT_TOKENS * m.price_out)
+        if paid.daily_cap_usd <= 0 and paid.monthly_cap_usd <= 0:
+            return {"type": "skip", "reason": "plafond non défini"}
+        if self.db is not None:
+            now = datetime.now(UTC)
+            day = now.replace(hour=0, minute=0, second=0, microsecond=0).timestamp()
+            month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).timestamp()
+            if paid.daily_cap_usd > 0 and await self.db.spend_since(day) + est > \
+                    paid.daily_cap_usd:
+                return {"type": "skip", "reason": "plafond quotidien atteint"}
+            if paid.monthly_cap_usd > 0 and await self.db.spend_since(month) + est > \
+                    paid.monthly_cap_usd:
+                return {"type": "skip", "reason": "plafond mensuel atteint"}
+        if paid.fallback == PaidFallback.ASK and conv_key not in self._paid_ok:
+            return {"type": "paid_confirmation", "model": m.key, "name": m.name,
+                    "estimated_cost_usd": round(est, 6)}
+        return None
+
+    # --- Appels internes (résumé, classifieur) ---------------------------
+
+    def _small_free_model(self) -> ModelInfo | None:
+        usable = self.catalog.usable_providers()
+        best: tuple[float, ModelInfo] | None = None
+        for m in self.catalog.catalog.models.values():
+            if not (m.is_free and m.is_text and m.provider in usable and self.quota.available(m)):
+                continue
+            s = (m.speed if m.speed is not None else 0.5) + self.reliability.get(m.key) \
+                + 0.5 * m.quality.get("chat", 0)
+            if best is None or s > best[0]:
+                best = (s, m)
+        return best[1] if best else None
+
+    async def _quick(self, messages: list[dict[str, Any]]) -> str | None:
+        m = self._small_free_model()
+        if m is None:
+            return None
+        try:
+            client = self.registry.get(self.catalog.catalog.providers[m.provider])
+            self.quota.record_request(m)
+            res = await client.chat(m, messages, max_tokens=600, temperature=0)
+            content = res.message.get("content")
+            return str(content) if content else None
+        except ProviderError as err:
+            self.quota.on_error(m, err)
+            return None
+        except Exception:  # le résumé ne doit jamais casser une conversation
+            return None
+
+    async def _summarize(self, messages: list[dict[str, Any]]) -> str | None:
+        flat = "\n".join(f"{m.get('role')}: {m.get('content')}" for m in messages
+                         if isinstance(m.get("content"), str))
+        return await self._quick([{"role": "system", "content": SUMMARY_PROMPT},
+                                  {"role": "user", "content": flat[-24000:]}])
+
+    async def _llm_classify(self, message: dict[str, Any]) -> Category | None:
+        text = message.get("content") if isinstance(message.get("content"), str) else ""
+        out = await self._quick([{"role": "system", "content": classifier.CLASSIFIER_PROMPT},
+                                 {"role": "user", "content": str(text)[:2000]}])
+        return classifier.parse_llm_category(out or "")
+
+
+def now() -> float:
+    return time.time()

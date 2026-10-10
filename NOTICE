@@ -1,0 +1,10 @@
+Tontolo
+Copyright 2026 Tontolo contributors
+
+Ce produit est distribué sous la licence Apache, version 2.0 (voir LICENSE).
+
+Données tierces affichées par l'application (voir docs/ATTRIBUTIONS.md) :
+- Classements LMArena (lmarena-ai/leaderboard-dataset) — CC BY 4.0
+- Indices Artificial Analysis (https://artificialanalysis.ai/) — attribution requise
+- Catalogue OpenRouter (https://openrouter.ai/)
+- Liste mnfst/awesome-free-llm-apis — CC0 1.0

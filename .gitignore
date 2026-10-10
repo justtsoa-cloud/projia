@@ -1,0 +1,36 @@
+# Secrets — ne jamais versionner
+.env
+*.env
+*.jks
+*.keystore
+key.properties
+secrets.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+dist/
+build/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+
+# Flutter / Dart
+app/.dart_tool/
+app/build/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/android/.gradle/
+app/android/local.properties
+app/android/app/release/
+app/linux/flutter/ephemeral/
+app/app/
+*.iml
+.idea/
+
+# Divers
+*.log
+.DS_Store
