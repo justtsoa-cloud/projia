@@ -18,6 +18,10 @@
 
 ---
 
+<p align="center">
+  <img src="docs/screenshots/presentation.png" alt="Tontolo sur Android : réponse avec formules, retouche de photo, modèles gratuits" width="760">
+</p>
+
 ## Ce que fait Tontolo
 
 - **Choix automatique** du meilleur modèle **gratuit** selon la tâche (code, maths,
@@ -35,6 +39,8 @@
 - **Fonctionne sans clé** : plus de 30 modèles gratuits sans inscription (Pollinations,
   Kilo Code, LLM7, OVHcloud) ; ajoutez vos clés gratuites (OpenRouter, Groq, Gemini,
   Mistral, NVIDIA…) pour en débloquer davantage.
+- **Retouche de photo fidèle** (lumière, contraste, couleurs, noir et blanc, vintage, style
+  professionnel…) faite **sur l'appareil**, sans changer la personne ni la composition.
 - **Mémoire locale** qui se compacte toute seule, **instructions personnalisées**,
   régénérer, modifier et renvoyer, épingler, exporter en Markdown, raccourcis « / »,
   lecture à voix haute avec arrêt.
@@ -65,7 +71,7 @@ chmod +x Tontolo-*-x86_64.AppImage
 
 ### Linux (CLI et serveur)
 ```bash
-pip install "tontolo[linux] @ https://github.com/raantss18/tontolo/releases/latest/download/tontolo-0.2.3-py3-none-any.whl"
+pip install "tontolo[linux] @ https://github.com/raantss18/tontolo/releases/latest/download/tontolo-0.2.4-py3-none-any.whl"
 tontolo catalog list --free --category code
 tontolo chat "Explique-moi les intégrales"
 tontolo serve            # API compatible OpenAI sur http://127.0.0.1:8765/v1
@@ -84,6 +90,20 @@ print(r.model, r.choices[0].message.content)   # modèle réellement utilisé
 Lancez `TONTOLO_TOKEN=un-secret tontolo serve --host 0.0.0.0` sur votre machine Linux, puis
 dans l'application : **Réglages › Avancé › Serveur distant** (URL + jeton). La
 synchronisation de l'historique entre appareils se règle au même endroit.
+
+## Captures
+
+| Réponse avec formules | Retouche fidèle d'une photo | Image gratuite, sans clé |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/android-chat.png" width="220"> | <img src="docs/screenshots/android-retouche-photo.png" width="220"> | <img src="docs/screenshots/android-image-gratuite.png" width="220"> |
+
+| Modèles gratuits | Mode sombre | Clés gratuites |
+|:---:|:---:|:---:|
+| <img src="docs/screenshots/android-modeles-gratuits.png" width="220"> | <img src="docs/screenshots/android-mode-sombre.png" width="220"> | <img src="docs/screenshots/android-reglages.png" width="220"> |
+
+Sur Linux (même application, barre latérale) :
+
+<img src="docs/screenshots/bureau-linux.png" alt="Tontolo sur Linux" width="760">
 
 ## Clés gratuites (facultatif)
 

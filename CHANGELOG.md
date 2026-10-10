@@ -5,6 +5,23 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.2.4] - 2026-10-10
+
+### Corrigé
+- Formules dans un tableau : le rendu échouait quand le style de texte de la cellule n'avait
+  ni taille ni couleur. Un « $ » oublié par le modèle (« en $a**. Géométriquement, $f(a)$ »)
+  reliait deux formules à travers la phrase : une « formule » contenant du gras ou une fin
+  de phrase est maintenant gardée comme texte.
+- Le bloc « Réflexion du modèle » ne pouvait pas afficher son effet au toucher (bulle sans
+  surface Material).
+- Un lecteur audio était créé pour chaque carte d'image : il n'est plus créé que pour un son
+  (mémoire et démarrage allégés).
+- Création d'image : 2 essais de 45 s au plus (au lieu de 3 × 120 s) quand le service gratuit
+  ne répond plus ; l'attente maximale passe d'environ 6 minutes à 90 secondes.
+
+### Ajouté
+- Captures d'écran dans le README et banc de démonstration (`docs/DEMO.md`).
+
 ## [0.2.3] - 2026-10-10
 
 ### Corrigé

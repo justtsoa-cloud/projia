@@ -13,6 +13,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.2.4': [
+    NewsItem(Icons.functions, 'Formules plus robustes',
+        'Les formules dans les tableaux s\'affichent correctement, et un « \$ » oublié par le modèle ne mélange plus deux formules.',
+        'More robust formulas',
+        'Formulas inside tables now render correctly, and a stray “\$” from the model no longer merges two formulas.'),
+    NewsItem(Icons.timer_outlined, 'Images : moins d\'attente',
+        'Si le service gratuit d\'images est indisponible, Tontolo renonce au bout d\'environ 90 secondes au lieu de 6 minutes.',
+        'Images: less waiting',
+        'If the free image service is down, Tontolo gives up after about 90 seconds instead of 6 minutes.'),
+  ],
   '0.2.3': [
     NewsItem(Icons.auto_fix_high, 'Retouche fidèle de vos photos',
         'Une consigne comme « édite cette photo, style professionnel, sans changer la personne » retouche vraiment la photo (lumière, contraste, couleurs, netteté, noir et blanc, vintage…) sur votre téléphone : la personne et la composition ne changent pas, et rien n\'est envoyé en ligne.',

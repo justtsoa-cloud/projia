@@ -19,7 +19,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'prefs.dart';
 
-const appVersion = '0.2.3';
+const appVersion = '0.2.4';
 const repo = 'raantss18/tontolo';
 
 enum UpdateStatus { idle, checking, downloading, ready, failed, upToDate }

@@ -97,10 +97,11 @@ async def generate_image(
 
 async def _pollinations_image(model: ModelInfo, prompt: str,
                               params: dict[str, Any]) -> MediaOutput:
-    """Pollinations (sans clé) : service parfois instable → 3 essais avec graine différente."""
+    """Pollinations (sans clé) : service parfois instable → 2 essais (graine différente), chacun
+    limité à 45 s : mieux vaut basculer ou renoncer vite que laisser l'utilisateur attendre."""
     url = pollinations.IMAGE_URL + urllib.parse.quote(prompt, safe="")
     last: ProviderError | None = None
-    for attempt in range(3):
+    for attempt in range(2):
         q = {"width": str(params.get("width", 1024)), "height": str(params.get("height", 1024)),
              "nologo": "true", "private": "true"}
         if model.model_id != "auto":
@@ -108,7 +109,7 @@ async def _pollinations_image(model: ModelInfo, prompt: str,
         seed = params.get("seed")
         q["seed"] = str(seed if seed is not None and attempt == 0 else int(time.time()) + attempt)
         try:
-            resp = await http.client().get(url, params=q, timeout=120.0)
+            resp = await http.client().get(url, params=q, timeout=45.0)
         except httpx.HTTPError as exc:
             last = ProviderError(type(exc).__name__, ErrorKind.NETWORK)
         else:

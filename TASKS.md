@@ -93,10 +93,11 @@ Légende : `[x]` fait · `[~]` en cours · `[ ]` à faire
   - [x] Ne jamais générer une autre personne quand l'utilisateur demande de la conserver : message honnête + alternatives
   - [x] Endpoint cœur pour enregistrer un résultat de retouche locale (historique, galerie, mode distant)
   - [x] Tests (cœur + Dart), documentation (vie privée : la photo n'est envoyée à aucun service pour la retouche locale)
-- [ ] Publier la 0.2.3 (CI verte, release, vérification)
+- [x] Publier la 0.2.3 (CI verte, release, vérification)
 
 ## Demande de contenu pour un post
-- [ ] Captures d'écran Android (émulateur API 36) : accueil, réponse avec formules, pourquoi ce modèle, sélecteur de modèle, image, réglages/clés, mémoire, retouche, mode sombre, nouveautés
-- [ ] Captures d'écran Linux (application de bureau)
-- [ ] Courtes vidéos de démonstration (≈ 30 s) : chat + formules, génération d'image, retouche de photo ; version Android et bureau
-- [ ] Visuels prêts pour un post (cadres, légendes), dossier `press/` + captures dans `docs/screenshots/`
+- [x] Captures d'écran Android (émulateur API 36) : accueil, réponse avec formules, pourquoi ce modèle, sélecteur de modèle, image, réglages/clés, mémoire, retouche, mode sombre, nouveautés
+- [x] Captures d'écran Linux (application de bureau)
+- [x] Courtes vidéos de démonstration (≈ 30 s) : chat + formules, génération d'image, retouche de photo ; version Android et bureau
+- [x] Visuels prêts pour un post (cadres, légendes), dossier `press/` + captures dans `docs/screenshots/`
+- [x] Publier la 0.2.4 (correctifs trouvés pendant les prises de vue)

@@ -199,7 +199,7 @@ def test_turn_survives_client_leaving_server(client: TestClient, fake: FakeProvi
 @pytest.mark.parametrize("status", [502, 200])
 async def test_pollinations_retries_then_succeeds(status: int,
                                                   monkeypatch: pytest.MonkeyPatch) -> None:
-    """Le service gratuit est parfois instable : 3 essais avant d'abandonner."""
+    """Le service gratuit est parfois instable : 2 essais avant d'abandonner."""
     import asyncio
 
     import httpx
@@ -216,11 +216,10 @@ async def test_pollinations_retries_then_succeeds(status: int,
     with respx.mock:
         route = respx.get(url__startswith="https://image.pollinations.ai/prompt/")
         route.side_effect = [httpx.Response(status if status != 200 else 502),
-                             httpx.Response(502),
                              httpx.Response(200, content=b"\xff\xd8img",
                                             headers={"content-type": "image/jpeg"})]
         out = await mp.generate_image(model, {"id": "pollinations"}, "un chat", {})
-    assert out.mime == "image/jpeg" and route.call_count == 3
+    assert out.mime == "image/jpeg" and route.call_count == 2
     assert "model" not in route.calls[0].request.url.params   # « auto » : pas de modèle imposé
 
 

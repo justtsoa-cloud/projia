@@ -37,3 +37,6 @@ app/app/
 
 # Clés de signature locales (jamais versionnées)
 release-keys/
+
+# Contenus de démonstration (captures, vidéos) : générés, non versionnés
+press/

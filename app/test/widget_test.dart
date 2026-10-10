@@ -34,6 +34,36 @@ void main() {
     expect(tr('en', 'switched', {'to': 'A', 'reason': 'quota'}), 'Switched to A (quota)');
   });
 
+  test('formule en ligne plausible ou non', () {
+    expect(plausibleInlineTex('f(x) = x^2'), isTrue);
+    expect(plausibleInlineTex(r'\frac{a}{b}'), isTrue);
+    expect(plausibleInlineTex('a**. Géométriquement, '), isFalse); // « \$ » oublié par le modèle
+    expect(plausibleInlineTex('a. Ensuite on pose b'), isFalse);
+  });
+
+  testWidgets('un « \$ » oublié ne mélange pas les formules', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(body: SingleChildScrollView(child: RichMarkdown(
+        r'Si \$f\$ est **dérivable** en \$a**. Géométriquement, \$f(a)\$ est la pente en \$a\$.',
+      ))),
+    ));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    // « Géométriquement » reste du texte lisible (pas avalé dans une formule).
+    expect(find.textContaining('Géométriquement', findRichText: true), findsOneWidget);
+  });
+
+  testWidgets('formules dans un tableau : aucune erreur de rendu', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(body: SingleChildScrollView(child: RichMarkdown(
+        '| Fonction | Dérivée |\n|---|---|\n| \$x^2\$ | \$2x\$ |\n| \$\\frac{a}{b}\$ | \$\\sqrt{x}\$ |\n\nTexte \$a^2+b^2=c^2\$.',
+      ))),
+    ));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    expect(find.byType(RichMarkdown), findsOneWidget);
+  });
+
   testWidgets('Markdown, code et LaTeX', (tester) async {
     await tester.pumpWidget(const MaterialApp(
       home: Scaffold(body: SingleChildScrollView(child: RichMarkdown(
