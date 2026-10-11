@@ -148,16 +148,25 @@ class MemoryService:
         await self._compact()
         return True
 
-    async def recall(self, query: str, exclude_source: str | None = None
-                     ) -> list[dict[str, Any]]:
-        """Souvenirs pertinents pour `query`, dans le budget de caractères. Seulement les
-        consignes et les souvenirs qui partagent des mots avec la demande ; ceux tirés de la
-        discussion en cours sont exclus (le fil les contient déjà)."""
+    async def recall(self, query: str, exclude_source: str | None = None,
+                     thread: str | None = None) -> list[dict[str, Any]]:
+        """Souvenirs pertinents pour `query`, dans le budget de caractères (seulement ceux qui
+        partagent des mots avec la demande, plus les consignes).
+
+        - Partageables : ajoutés à la main ou dits explicitement (« souviens-toi… »).
+        - Extraits automatiquement : rappelés uniquement dans LEUR discussion (`thread`), où
+          ils prolongent le fil après son résumé ; jamais dans une autre discussion."""
         if not self.enabled:
             return []
-        mems = [m for m in await self.db.list_memories()
-                if (m.get("source") in (None, "manuel") or m["kind"] == "explicit")
-                and (not exclude_source or m.get("source") != exclude_source)]
+
+        def allowed(m: dict[str, Any]) -> bool:
+            if exclude_source and m.get("source") == exclude_source:
+                return False
+            if m.get("source") in (None, "manuel") or m["kind"] in ("explicit", "instruction"):
+                return True
+            return thread is not None and m.get("source") == thread
+
+        mems = [m for m in await self.db.list_memories() if allowed(m)]
         if not mems:
             return []
         q = tokens(query)

@@ -128,3 +128,12 @@ async def test_compaction_does_not_lose_concurrent_capture(
     release.set()
     await asyncio.gather(compact, capture)
     assert any(m["source"] == "fil" for m in await db.list_memories())
+
+
+async def test_automatic_memories_stay_in_their_own_thread(
+        db: Database, settings: Settings) -> None:
+    mem = MemoryService(settings, db)
+    await mem.remember("Le projet de mémoire porte sur les baobabs", source="fil-a")
+    assert [m["text"] for m in await mem.recall("baobabs", thread="fil-a")] == [
+        "Le projet de mémoire porte sur les baobabs"]
+    assert await mem.recall("baobabs", thread="fil-b") == []  # jamais dans un autre fil

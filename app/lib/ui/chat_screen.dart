@@ -965,6 +965,18 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
                 ),
             ]),
           ),
+        if (folder != null)
+          SwitchListTile(
+            dense: true,
+            secondary: const Icon(Icons.hub_outlined, size: 20),
+            title: Text(context.t('folder_share')),
+            subtitle: Text(context.t('folder_share_help')),
+            value: folders.any((f) => f['folder'] == folder && f['shared'] == true),
+            onChanged: (v) async {
+              await scope.backend.sendJson('PUT', '/tontolo/folders/share', {'folder': folder, 'share': v});
+              _load();
+            },
+          ),
         for (final c in items)
           ListTile(
             leading: c['pinned'] == 1

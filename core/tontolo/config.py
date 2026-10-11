@@ -86,6 +86,9 @@ class Settings(BaseModel):
     # Équipe de modèles : un second modèle (autre famille) vérifie les réponses de maths,
     # code et raisonnement, et signale une erreur éventuelle.
     team_review: bool = True
+    # Dossiers dont les discussions partagent leur contexte (titres et résumés), en priorité
+    # secondaire après le fil. Par défaut un dossier ne sert qu'au rangement.
+    shared_folders: list[str] = Field(default_factory=list)
 
     @property
     def data_dir(self) -> Path:

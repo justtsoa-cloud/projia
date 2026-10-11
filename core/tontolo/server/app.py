@@ -271,6 +271,11 @@ class ImportBody(BaseModel):
     folder: str | None = Field(default=None, max_length=60)
 
 
+class FolderShareBody(BaseModel):
+    folder: str = Field(min_length=1, max_length=60)
+    share: bool
+
+
 class RenameBody(BaseModel):
     title: str | None = None
     folder: str | None = None
@@ -862,7 +867,20 @@ def create_app(
 
     @app.get("/tontolo/folders")
     async def folders(request: Request) -> list[dict[str, Any]]:
-        return await core_of(request).db.list_folders()
+        core = core_of(request)
+        shared = set(core.settings.shared_folders)
+        return [{**f, "shared": f["folder"] in shared} for f in await core.db.list_folders()]
+
+    @app.put("/tontolo/folders/share")
+    async def share_folder(request: Request, body: FolderShareBody) -> dict[str, bool]:
+        """Active ou coupe le partage de contexte entre les discussions d'un dossier."""
+        core = core_of(request)
+        shared = [f for f in core.settings.shared_folders if f != body.folder]
+        if body.share:
+            shared.append(body.folder)
+        core.settings.shared_folders = shared
+        save_settings(core.settings)
+        return {"ok": True}
 
     @app.put("/tontolo/conversations/{cid}/pin")
     async def pin(request: Request, cid: str, body: PinBody) -> dict[str, bool]:

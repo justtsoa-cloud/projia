@@ -520,6 +520,8 @@ const Map<String, Map<String, String>> _t = {
     'size_kb': '{n} Ko',
     'size_mb': '{n} Mo',
     'learn_level_is': 'Ton niveau : {l}',
+    'folder_share': 'Partager le contexte de ce dossier',
+    'folder_share_help': 'Les discussions du dossier voient les titres et résumés des autres (après leur propre fil). Désactivé : chacune reste isolée.',
   },
   'en': {
     'app': 'Tontolo', 'chat': 'Chat', 'creations': 'Creations', 'settings': 'Settings',
@@ -913,6 +915,8 @@ const Map<String, Map<String, String>> _t = {
     'size_kb': '{n} KB',
     'size_mb': '{n} MB',
     'learn_level_is': 'Your level: {l}',
+    'folder_share': 'Share this folder\'s context',
+    'folder_share_help': 'Chats in this folder see the others\' titles and summaries (after their own thread). Off: each stays isolated.',
   },
   'mg': {
     'app': 'Tontolo', 'chat': 'Resaka', 'creations': 'Famoronana', 'settings': 'Kirakira',
@@ -1346,6 +1350,8 @@ const Map<String, Map<String, String>> _t = {
     'size_kb': '{n} Ko',
     'size_mb': '{n} Mo',
     'learn_level_is': 'Ny ambaratonganao: {l}',
+    'folder_share': 'Zarao ny votoatin\'ity lahatahiry ity',
+    'folder_share_help': 'Hitan\'ny resaka ao amin\'ny lahatahiry ny lohateny sy famintinana ny hafa (aorian\'ny tadiny). Raha atsahatra: mitokana ny tsirairay.',
   },
 };
 

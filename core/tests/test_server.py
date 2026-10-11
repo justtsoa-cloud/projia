@@ -556,7 +556,8 @@ def test_folders_and_full_text_search(client: TestClient) -> None:
     ev = _events(client, "/tontolo/chat", {"content": "Recette du romazava 100% malgache"})
     cid = next(e["id"] for e in ev if e["type"] == "conversation")
     assert client.patch(f"/tontolo/conversations/{cid}", json={"folder": "Cuisine"}).json()["ok"]
-    assert client.get("/tontolo/folders").json() == [{"folder": "Cuisine", "count": 1}]
+    assert client.get("/tontolo/folders").json() == [{"folder": "Cuisine", "count": 1,
+                                                       "shared": False}]
     in_folder = client.get("/tontolo/conversations", params={"folder": "Cuisine"}).json()
     assert [c["id"] for c in in_folder] == [cid] and in_folder[0]["folder"] == "Cuisine"
     hits = client.get("/tontolo/conversations", params={"q": "romazava"}).json()

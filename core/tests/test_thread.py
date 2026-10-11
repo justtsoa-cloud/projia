@@ -105,3 +105,26 @@ async def test_summary_cannot_return_after_edit_or_delete(db: Database) -> None:
     await db.delete_conversation(cid)
     await db.set_summary(cid, "Résumé du fil supprimé", 1, revision)
     assert await db.get_summary(cid) == (None, 0)
+
+
+def test_folder_context_only_when_shared(client: TestClient, fake: FakeProvider) -> None:
+    core = client.app.state.core  # type: ignore[attr-defined]
+    first = _chat(client, {"content": "Bonjour, révisons les statistiques"})
+    cid = next(e["id"] for e in first if e["type"] == "conversation")
+
+    async def setup() -> None:
+        await core.db.set_folder(cid, "Maths")
+        other = await core.db.create_conversation("Variance")
+        await core.db.set_folder(other, "Maths")
+        await core.db.set_summary(other, "Moyenne et variance vues ensemble.", 2)
+
+    client.portal.call(setup)  # type: ignore[attr-defined]
+    _chat(client, {"conversation_id": cid, "content": "et l'écart type ?"})
+    assert "Moyenne et variance" not in json.dumps(fake.last_messages, ensure_ascii=False)
+    assert client.put("/tontolo/folders/share", json={"folder": "Maths", "share": True}).json()
+    folders = client.get("/tontolo/folders").json()
+    assert any(f["folder"] == "Maths" and f["shared"] for f in folders)
+    _chat(client, {"conversation_id": cid, "content": "et la médiane ?"})
+    text = json.dumps(fake.last_messages, ensure_ascii=False)
+    assert "dossier partagé « Maths »" in text and "Moyenne et variance" in text
+    assert fake.last_messages[-1]["content"] == "et la médiane ?"  # le fil reste au plus près
