@@ -873,3 +873,19 @@ def test_html_document_converted_to_pdf_uses_its_content(
     assert "Avenue de Morondava" in seen[0] and "page.html" in seen[0]
     drafts = client.get(f"/tontolo/conversations/{doc['conversation_id']}/tasks").json()
     assert drafts[0]["kind"] == "draft" and drafts[0]["title"].startswith("baobabs.pdf")
+
+
+def test_home_name_and_recent(client: TestClient) -> None:
+    core = client.app.state.core  # type: ignore[attr-defined]
+    assert client.get("/tontolo/home").json() == {"name": "", "name_from": "", "recent": []}
+
+    async def setup() -> None:
+        await core.db.add_memory("L'utilisateur s'appelle Antsa", "explicit", None)
+        await core.db.create_conversation("Révision des probabilités")
+
+    client.portal.call(setup)  # type: ignore[attr-defined]
+    home = client.get("/tontolo/home").json()
+    assert home["name"] == "Antsa" and home["name_from"] == "memory"
+    assert home["recent"][0]["title"] == "Révision des probabilités"
+    client.put("/tontolo/settings", json={"user_name": "Antsa Malala"})
+    assert client.get("/tontolo/home").json()["name_from"] == "settings"

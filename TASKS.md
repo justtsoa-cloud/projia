@@ -235,6 +235,6 @@ l'emploi ; bureau Linux = fichiers + commandes confirmées dans un dossier chois
 - [x] A16. Terminal intégré au bureau Linux : une session par discussion (pas un onglet par commande), commandes de l'agent visibles et confirmées, saisie libre de l'utilisateur
 - [x] A16b. Vérification demandée : l'agent lit le terminal (terminal_read), y tape (terminal_send), voit la page (browser_look, testé avec un vrai modèle à vision), manipule le navigateur (testé avec Vivaldi réel) ; audit : discussion propre à chaque tour, secrets masqués, liens symboliques, dossiers cachés, boutons confirmés
 - [x] A17. Tâches complexes : résultats intermédiaires (parties, étapes, sorties longues, brouillons) dans le dossier privé de l app, 7 jours après la fin, visibles et synchronisés (choix du propriétaire)
-- [ ] A10. Tests, émulateur, publication 0.5.1 (émulateur OK : mise à jour en place, onglet Agent, réponse continuée en arrière-plan puis rattachée ; tag v0.5.1 poussé)
+- [x] A10. Tests, émulateur, publication 0.5.1 — publiée (émulateur OK : mise à jour en place, onglet Agent, réponse continuée en arrière-plan puis rattachée ; tag v0.5.1 poussé)
 - [x] A18. Espace disque : tous les caches de l'appareil dans UN dossier, sans doublons (fichiers temporaires de partage, profil du navigateur, médias synchronisés), avec plafonds et nettoyage
-- [ ] A19. Accueil d'une nouvelle discussion animé et vivant (comme Claude) : salutation selon l'heure et le prénom si connu (« Bonjour Antsa », « Bonsoir Antsa »), suggestions qui changent
+- [x] A19. Accueil d'une nouvelle discussion animé et vivant (comme Claude) : salutation selon l'heure et le prénom si connu (« Bonjour Antsa », « Bonsoir Antsa »), suggestions qui changent

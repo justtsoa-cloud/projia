@@ -34,6 +34,7 @@ from tontolo.app_state import Core
 from tontolo.catalog.models import Category, ModelInfo
 from tontolo.config import Settings, load_settings, save_settings
 from tontolo.creator import intent as file_intent
+from tontolo.memory import name_from
 from tontolo.providers.registry import ProviderRegistry
 from tontolo.router.classifier import _is_followup, classify
 from tontolo.router.quota import QuotaManager
@@ -1496,6 +1497,20 @@ def create_app(
         if result.get("ok"):
             space.keep_only(Path(result["path"]).parent, Path(result["path"]))
         return result
+
+    @app.get("/tontolo/home")
+    async def home(request: Request) -> dict[str, Any]:
+        """Accueil d'une nouvelle discussion : prénom (réglage, sinon mémoire) et sujets
+        récents pour des suggestions personnalisées."""
+        core = core_of(request)
+        name = core.settings.user_name.strip()
+        if not name and core.settings.memory_enabled:
+            name = name_from([str(m.get("text") or "") for m in await core.db.list_memories()])
+        recent = [{"id": c["id"], "title": c["title"]}
+                  for c in await core.db.list_conversations(6, 0, None, None)
+                  if str(c.get("title") or "").strip()][:4]
+        return {"name": name, "name_from": "settings" if core.settings.user_name.strip()
+                else ("memory" if name else ""), "recent": recent}
 
     @app.get("/tontolo/storage")
     async def storage(request: Request) -> dict[str, Any]:

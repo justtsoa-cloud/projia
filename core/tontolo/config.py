@@ -93,6 +93,8 @@ class Settings(BaseModel):
     auto_compact: bool = True
     # Tâches complexes : plan en étapes (en parallèle sur plusieurs modèles ou pas à pas).
     task_planning: bool = True
+    # Prénom pour l'accueil (« Bonsoir » + prénom) ; vide : compte ou mémoire, sinon aucun.
+    user_name: str = Field(default="", max_length=40)
 
     @property
     def data_dir(self) -> Path:

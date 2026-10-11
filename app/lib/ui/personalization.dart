@@ -17,6 +17,7 @@ class PersonalizationSection extends StatefulWidget {
 
 class _PersonalizationSectionState extends State<PersonalizationSection> {
   final instructions = TextEditingController();
+  final userName = TextEditingController();
   List<Map<String, dynamic>> memories = [];
   bool enabled = true;
   bool speedFirst = false;
@@ -35,6 +36,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
   @override
   void dispose() {
     instructions.dispose();
+    userName.dispose();
     super.dispose();
   }
 
@@ -54,6 +56,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
     setState(() {
       loaded = true;
       instructions.text = '${s['custom_instructions'] ?? ''}';
+      userName.text = '${s['user_name'] ?? ''}';
       enabled = m['enabled'] == true;
       speedFirst = s['speed_first'] == true;
       teamReview = s['team_review'] != false; // absent (ancien cœur) : affiché actif
@@ -86,6 +89,20 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
     final prefs = AppScope.of(context).prefs;
     final small = Theme.of(context).textTheme.bodySmall;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        child: TextField(
+          controller: userName,
+          maxLength: 40,
+          textCapitalization: TextCapitalization.words,
+          decoration: InputDecoration(labelText: context.t('user_name'), helperText: context.t('user_name_help'), helperMaxLines: 2),
+          onEditingComplete: () => _call('PUT', '/tontolo/settings', {'user_name': userName.text.trim()}),
+          onTapOutside: (_) {
+            FocusScope.of(context).unfocus();
+            _call('PUT', '/tontolo/settings', {'user_name': userName.text.trim()});
+          },
+        ),
+      ),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: TextField(

@@ -137,3 +137,16 @@ async def test_automatic_memories_stay_in_their_own_thread(
     assert [m["text"] for m in await mem.recall("baobabs", thread="fil-a")] == [
         "Le projet de mémoire porte sur les baobabs"]
     assert await mem.recall("baobabs", thread="fil-b") == []  # jamais dans un autre fil
+
+
+def test_name_learned_from_memory() -> None:
+    from tontolo.memory import name_from
+
+    assert name_from(["Aime le café", "L'utilisateur s'appelle Rivo"]) == "Rivo"
+    assert name_from(["Je m'appelle Hery"]) == "Hery"
+    assert name_from(["my name is Lova"]) == "Lova"
+    assert name_from(["Anarako Fara"]) == "Fara"
+    # Le prénom de quelqu'un d'autre n'est jamais pris pour celui de l'utilisateur.
+    others = ["Mon frère s'appelle Rivo", "His name is Paul", "Le chat se nomme Mimi"]
+    assert name_from(others) == ""
+    assert name_from(["Je ne m'appelle pas comme ça"]) == ""

@@ -32,7 +32,7 @@ bool isAndroidAuthCallback(Uri uri) =>
 String authCallbackUrl({required bool android}) => android ? androidCallbackUrl : callbackUrl;
 
 class Session {
-  Session(this.accessToken, this.refreshToken, this.expiresAt, this.userId, this.email, this.provider);
+  Session(this.accessToken, this.refreshToken, this.expiresAt, this.userId, this.email, this.provider, [this.name = '']);
 
   final String accessToken;
   final String refreshToken;
@@ -40,25 +40,32 @@ class Session {
   final String userId;
   final String email;
   final String provider;
+  final String name; // nom affiché par Google ou GitHub (pour « Bonjour » + prénom)
+
+  /// Prénom : premier mot du nom du compte.
+  String get firstName => name.trim().split(RegExp(r'\s+')).first;
 
   bool get expired => DateTime.now().millisecondsSinceEpoch ~/ 1000 > expiresAt - 60;
 
   Map<String, dynamic> toJson() => {
         'access_token': accessToken, 'refresh_token': refreshToken, 'expires_at': expiresAt,
-        'user_id': userId, 'email': email, 'provider': provider,
+        'user_id': userId, 'email': email, 'provider': provider, 'name': name,
       };
 
   static Session fromJson(Map<String, dynamic> j) => Session('${j['access_token']}', '${j['refresh_token']}',
-      (j['expires_at'] as num).toInt(), '${j['user_id']}', '${j['email'] ?? ''}', '${j['provider'] ?? ''}');
+      (j['expires_at'] as num).toInt(), '${j['user_id']}', '${j['email'] ?? ''}', '${j['provider'] ?? ''}',
+      '${j['name'] ?? ''}');
 
   /// Réponse de `/auth/v1/token`.
   static Session fromToken(Map<String, dynamic> t) {
     final user = (t['user'] as Map?)?.cast<String, dynamic>() ?? {};
     final meta = (user['app_metadata'] as Map?)?.cast<String, dynamic>() ?? {};
+    final profile = (user['user_metadata'] as Map?)?.cast<String, dynamic>() ?? {};
+    final name = '${profile['full_name'] ?? profile['name'] ?? profile['given_name'] ?? ''}';
     final expiresAt = (t['expires_at'] as num?)?.toInt() ??
         DateTime.now().millisecondsSinceEpoch ~/ 1000 + ((t['expires_in'] as num?)?.toInt() ?? 3600);
     return Session('${t['access_token']}', '${t['refresh_token']}', expiresAt, '${user['id']}',
-        '${user['email'] ?? ''}', '${meta['provider'] ?? ''}');
+        '${user['email'] ?? ''}', '${meta['provider'] ?? ''}', name);
   }
 }
 

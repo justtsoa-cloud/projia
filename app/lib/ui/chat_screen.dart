@@ -22,6 +22,7 @@ import '../main.dart';
 import 'message_view.dart';
 import 'model_picker.dart';
 import 'import_flow.dart';
+import 'home_view.dart';
 import 'learn.dart';
 import 'search_dialog.dart';
 import 'task_results.dart';
@@ -432,8 +433,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 child: chat.messages.isEmpty && chat.learn
                     ? LearnEmptyState(onPrefill: (text, {photo = false}) => _prefill(text, photo: photo))
                     : chat.messages.isEmpty
-                    ? _EmptyState(
-                        onPick: (s) {
+                    ? HomeView(
+                        key: ValueKey('home-${chat.agent}'),
+                        chat: chat,
+                        onSend: (s) {
                           input.text = s;
                           _send(chat);
                         },
@@ -649,128 +652,6 @@ class _SlashTemplates extends StatelessWidget {
 }
 
 /// Raccourci de l'écran d'accueil : pré-remplit la demande (et demande une photo si besoin).
-class _Shortcut {
-  const _Shortcut(this.icon, this.key, this.prefill, {this.photo = false, this.tone = 0});
-  final IconData icon;
-  final String key; // titre : '<key>', sous-titre : '<key>_sub'
-  final String prefill;
-  final bool photo;
-  final int tone; // 0 primaire, 1 secondaire, 2 tertiaire
-}
-
-const _shortcuts = [
-  _Shortcut(Icons.brush_outlined, 'sc_image', 'sc_image_p', tone: 0),
-  _Shortcut(Icons.movie_outlined, 'sc_video', 'sc_video_p', tone: 2),
-  _Shortcut(Icons.auto_fix_high_outlined, 'sc_retouch', 'sc_retouch_p', photo: true, tone: 1),
-  _Shortcut(Icons.travel_explore, 'sc_search', 'sc_search_p', tone: 0),
-  _Shortcut(Icons.translate, 'sc_translate', 'sc_translate_p', tone: 2),
-  _Shortcut(Icons.school_outlined, 'sc_explain', 'sc_explain_p', tone: 1),
-  _Shortcut(Icons.summarize_outlined, 'sc_summary', 'sc_summary_p', tone: 0),
-  _Shortcut(Icons.note_add_outlined, 'sc_file', 'sc_file_p', tone: 2),
-];
-
-const _examples = ['sugg1', 'sugg2', 'sugg3', 'sugg4', 'sugg5', 'sugg6', 'sugg7', 'sugg8', 'sugg9'];
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.onPick, required this.onPrefill});
-  final ValueChanged<String> onPick;
-  final void Function(String text, {bool photo}) onPrefill;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final width = MediaQuery.sizeOf(context).width;
-    final cols = width >= 1100 ? 4 : (width >= 600 ? 3 : 2);
-    // Trois exemples qui changent chaque jour, pour donner des idées sans encombrer.
-    final day = DateTime.now().difference(DateTime(2026)).inDays;
-    final picks = [for (var i = 0; i < 3; i++) _examples[(day * 3 + i) % _examples.length]];
-    (Color, Color) tone(int t) => switch (t) {
-          1 => (scheme.secondaryContainer, scheme.onSecondaryContainer),
-          2 => (scheme.tertiaryContainer, scheme.onTertiaryContainer),
-          _ => (scheme.primaryContainer, scheme.onPrimaryContainer),
-        };
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Image.asset('assets/icon.png', width: 52, height: 52),
-            const SizedBox(height: 10),
-            Text(context.t('hello'), style: Theme.of(context).textTheme.titleLarge, textAlign: TextAlign.center),
-            const SizedBox(height: 20),
-            GridView.count(
-              crossAxisCount: cols,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-              childAspectRatio: cols == 2 ? 2.15 : 2.6,
-              children: [
-                for (final s in _shortcuts)
-                  Builder(builder: (context) {
-                    final (bg, fg) = tone(s.tone);
-                    return Material(
-                      color: bg.withValues(alpha: 0.55),
-                      borderRadius: BorderRadius.circular(18),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(18),
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          onPrefill(context.t(s.prefill), photo: s.photo);
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          child: Row(children: [
-                            CircleAvatar(radius: 17, backgroundColor: bg, child: Icon(s.icon, size: 19, color: fg)),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(context.t(s.key),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Theme.of(context).textTheme.titleSmall?.copyWith(height: 1.15)),
-                                  const SizedBox(height: 2),
-                                  Text(context.t('${s.key}_sub'),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant, height: 1.15)),
-                                ],
-                              ),
-                            ),
-                          ]),
-                        ),
-                      ),
-                    );
-                  }),
-              ],
-            ),
-            const SizedBox(height: 18),
-            Text(context.t('try_this'), style: Theme.of(context).textTheme.labelLarge?.copyWith(color: scheme.onSurfaceVariant)),
-            const SizedBox(height: 6),
-            Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 8,
-              runSpacing: 6,
-              children: [
-                for (final k in picks)
-                  ActionChip(
-                    avatar: const Icon(Icons.bolt, size: 16),
-                    label: Text(context.t(k)),
-                    onPressed: () => onPick(context.t(k)),
-                  ),
-              ],
-            ),
-          ]),
-        ),
-      ),
-    );
-  }
-}
-
 /// Bandeau discret non bloquant : bascule, retour, erreur (phrase humaine + une action).
 /// Erreur du chat traduite depuis son code (`errorc|code|retry_at|message d'origine`).
 String _sourceName(BuildContext context, String source) => switch (source) {

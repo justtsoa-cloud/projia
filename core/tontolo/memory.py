@@ -87,6 +87,25 @@ def similarity(a: str, b: str) -> float:
     return len(ta & tb) / max(len(ta), len(tb))
 
 
+# Uniquement le prénom de l'UTILISATEUR (première personne, ou « l'utilisateur… ») : « mon
+# frère s'appelle Rivo » ne doit jamais donner « Bonsoir Rivo ».
+_NAME = re.compile(
+    r"(?:\bje m'appelle|\bmon (?:pré)?nom est|\bl'utilisateur s'appelle|\bl'utilisateur se "
+    r"nomme|\b(?:le )?prénom de l'utilisateur(?: est)?\s*:?|\bmy name is|\bi am called|"
+    r"\bi'm called|\bcall me|\bthe user(?:'s name)? is (?:called|named)|\bthe user's name is|"
+    r"\banarako|\bny anarako dia)\s+([A-ZÀ-ÖØ-Þ][\w'-]{1,30})", re.I)
+_NOT_NAMES = {"pas", "not", "tontolo", "un", "une", "le", "la", "a", "an", "the"}
+
+
+def name_from(memories: list[str]) -> str:
+    """Prénom que l'utilisateur a donné pour lui-même (« je m'appelle … », « my name is … »)."""
+    for text in memories:
+        m = _NAME.search(text)
+        if m and m.group(1).lower() not in _NOT_NAMES:
+            return m.group(1)[:30]
+    return ""
+
+
 def explicit_memory(text: str) -> str | None:
     """« Souviens-toi que je préfère le tutoiement » → « je préfère le tutoiement »."""
     m = _EXPLICIT.match(text or "")
