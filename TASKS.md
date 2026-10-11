@@ -154,7 +154,7 @@ Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cass�
 - [x] F1. Aide par fournisseur d'API : étapes simples et lien direct pour obtenir la clé (fr/en/mg)
 - [x] F2. Réglages simplifiés : proposer les serveurs d'API payants avec plafond de dépense (simple)
 - [ ] F3. Mode Apprendre (élèves / étudiants), inspiré de Khanmigo, MagicSchool, MIA Seconde, Dinobot : bascule Général / Apprendre bien visible, niveau scolaire, guidage pas à pas sans donner la réponse, indices, quiz interactifs, fiches, correction d'exercice en photo, plan de révision
-- [~] F4. Comptes (Google / GitHub) et synchronisation entre appareils : discussions, mémoires, clés d'API (chiffrées de bout en bout) — code, tests, SQL et doc faits ; **reste à l'auteur** : exécuter docs/accounts/supabase_sync.sql et activer Google/GitHub dans Supabase (docs/ACCOUNTS.md) ; relecture du protocole par Codex demandée
+- [~] F4. Comptes et synchronisation chiffrée : code, tests, SQL et doc faits ; Supabase configuré le 2026-10-11 (table sync_items + RLS vérifiées, URL de retour localhost:43823, **connexion GitHub active**) ; reste : Google (facultatif), essai de connexion réel sur téléphone par l'auteur, relecture du protocole par Codex
 - [x] F5. Guide de publication : Play Store, F-Droid, dépôts Linux (Flathub, AUR, Snap, .deb)
 - [x] F6. Audit de vulnérabilités + compatibilité de saut de mise à jour (0.2.0 → 0.3.0) sur émulateur
 - [x] F7. Publier la 0.3.0
@@ -178,3 +178,5 @@ Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cass�
 - [x] B4. « Rajoute des détails et des exemples » après une carte mentale : modifier le fichier existant (même format, source précédent repris), pas une réponse texte
 - [x] B5. Photo d'exercice + « traite l'exercice 8… rends la réponse en pdf » → retouche d'image absurde : une tâche sur le CONTENU de la photo (exercice, question, résous…) n'est jamais une retouche ; photo + demande de fichier → transcription de la photo puis création du fichier
 - [x] B6. Question simple (« sites pour créer des portfolios ? ») → « Nombre maximal d'étapes atteint » : le modèle enchaîne les recherches ; au dernier tour, répondre sans outil avec ce qui a été trouvé, et ne pas répéter un même appel d'outil
+- [x] P1. Persistance du fil (signalé le 2026-10-11 : réponse à l'exercice d'une autre discussion) : priorités fil > dossier > mémoire, mémoire filtrée, résumé du fil en arrière-plan, photos anciennes allégées — v0.4.6
+- [x] V1. Publicité 60 s verticale en anglais, musique jazz originale (press/campaign-v04/)
