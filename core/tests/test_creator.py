@@ -195,3 +195,18 @@ async def test_self_review_after_fallback_is_not_counted() -> None:
     models = Fallback(["# Doc\ntexte"])
     out, steps = await _run(models, "docx")
     assert [s["step"] for s in out.steps] == ["doc_writing"] and "doc_fixing" not in steps
+
+
+async def test_writer_failure_is_retried_once() -> None:
+    class Flaky(FakeModels):
+        failed = False
+
+        async def ask(self, messages: list[dict[str, Any]], *, category: Any = None,
+                      model: str | None = None) -> tuple[str, str, str]:
+            if not Flaky.failed:
+                Flaky.failed = True
+                raise TimeoutError
+            return await super().ask(messages, category=category, model=model)
+
+    out, _ = await _run(Flaky(["# Plan\ntexte"]), "docx")
+    assert out.filename == "plan.docx"

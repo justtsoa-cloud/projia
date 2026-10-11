@@ -5,6 +5,15 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.4.5] - 2026-10-11
+
+### Corrigé
+- Création de fichier en échec quand le modèle rédacteur tardait ou devenait indisponible : un
+  second essai est fait automatiquement (le routeur choisit un autre modèle) ; en cas d'échec, la
+  cause est affichée sous le message.
+- CI de publication : 3 essais pour l'empaquetage du cœur Python (téléchargements coupés qui
+  avaient fait échouer les publications 0.4.2 et 0.4.3, dont le contenu est inclus ici).
+
 ## [0.4.4] - 2026-10-11
 
 ### Corrigé (retours d'utilisateurs)

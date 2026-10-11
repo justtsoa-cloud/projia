@@ -207,7 +207,13 @@ class Creator:
         loop = asyncio.get_running_loop()
         deadline = loop.time() + TOTAL_TIMEOUT
         yield {"type": "step", "step": "doc_writing"}
-        text, writer, writer_name = await self.ask(messages, category=category)
+        try:
+            text, writer, writer_name = await self.ask(messages, category=category)
+        except (TimeoutError, CreationError):
+            # Rédacteur trop lent ou indisponible : un second essai (le routeur choisit à
+            # nouveau, le modèle en échec est en pause) plutôt qu'un échec immédiat.
+            yield {"type": "step", "step": "doc_writing"}
+            text, writer, writer_name = await self.ask(messages, category=category)
         steps: list[dict[str, Any]] = [{"step": "doc_writing", "model": writer_name}]
         models = [writer]
         result: Output | None = None

@@ -696,7 +696,9 @@ String mediaError(BuildContext context, Map<String, dynamic> job) {
     'video_quota' => context.t('err_video_quota'),
     'sources_failed' => context.t('err_sources_failed'),
     'no_source' => context.t(kind == 'video_gen' ? 'err_no_video' : 'err_no_source'),
-    'file_failed' => context.t('err_file'),
+    'file_failed' => job['error'] != null && '${job['error']}'.isNotEmpty
+        ? '${context.t('err_file')}\n(${'${job['error']}'.length > 160 ? '${'${job['error']}'.substring(0, 160)}…' : job['error']})'
+        : context.t('err_file'),
     _ => null,
   };
   if (msg == null) return '${job['error'] ?? context.t('error_generic')}';
