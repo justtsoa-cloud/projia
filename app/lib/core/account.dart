@@ -10,15 +10,17 @@ import 'dart:math';
 import 'package:crypto/crypto.dart' as hash;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 
 const supabaseUrl = String.fromEnvironment('TONTOLO_STATS_URL');
 const supabaseKey = String.fromEnvironment('TONTOLO_STATS_KEY');
 
-/// Retour de connexion : schéma de l'application (Android) ou serveur local (bureau).
-const androidCallback = 'io.github.raantss18.tontolo://login-callback';
-const desktopCallback = 'http://localhost:43823/';
+/// Retour de connexion : petit serveur local de l'application (Android et bureau), qui ne
+/// reçoit qu'une requête puis s'arrête. Le code reçu est inutilisable sans le vérificateur
+/// PKCE gardé en mémoire.
+const callbackPort = 43823;
+const callbackUrl = 'http://localhost:$callbackPort/';
 
 class Session {
   Session(this.accessToken, this.refreshToken, this.expiresAt, this.userId, this.email, this.provider);
@@ -119,23 +121,32 @@ class Account extends ChangeNotifier {
   Future<void> signIn(String provider) async {
     if (!configured) throw AccountError('acc_not_configured');
     final verifier = _verifier();
-    final callback = Platform.isAndroid ? androidCallback : desktopCallback;
     final url = Uri.parse('$supabaseUrl/auth/v1/authorize').replace(queryParameters: {
       'provider': provider,
-      'redirect_to': callback,
+      'redirect_to': callbackUrl,
       'code_challenge': challengeOf(verifier),
       'code_challenge_method': 's256',
     });
-    String result;
+    final Uri back;
+    HttpServer? server;
     try {
-      result = await FlutterWebAuth2.authenticate(
-        url: url.toString(),
-        callbackUrlScheme: Platform.isAndroid ? 'io.github.raantss18.tontolo' : 'http://localhost:43823',
-      );
+      server = await HttpServer.bind(InternetAddress.loopbackIPv4, callbackPort);
+      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) throw AccountError('acc_failed');
+      final req = await server.first.timeout(const Duration(minutes: 5));
+      back = req.uri;
+      // Page de retour : propose de revenir dans l'application (Android : lien intent://).
+      req.response
+        ..statusCode = 200
+        ..headers.contentType = ContentType.html
+        ..write(_donePage(Platform.isAndroid));
+      await req.response.close();
+    } on AccountError {
+      rethrow;
     } catch (e) {
       throw AccountError('acc_cancelled');
+    } finally {
+      await server?.close(force: true);
     }
-    final back = Uri.parse(result);
     final params = {...back.queryParameters, ...Uri.splitQueryString(back.fragment)};
     if (params['error'] != null) {
       final desc = '${params['error_description']}'.toLowerCase();
@@ -149,6 +160,15 @@ class Account extends ChangeNotifier {
     if (r.statusCode != 200) throw AccountError('acc_failed');
     await _save(Session.fromToken(jsonDecode(utf8.decode(r.bodyBytes)) as Map<String, dynamic>));
   }
+
+  static String _donePage(bool android) => '<!doctype html><meta charset="utf-8">'
+      '<meta name="viewport" content="width=device-width,initial-scale=1">'
+      '<body style="font-family:sans-serif;text-align:center;padding:40px">'
+      '<h2>Tontolo</h2><p>Connexion terminée. Vous pouvez revenir dans l\'application.</p>'
+      '${android ? '<p><a href="intent://#Intent;package=io.github.raantss18.tontolo;end" '
+          'style="font-size:20px">Revenir à Tontolo</a></p>'
+          '<script>location.href="intent://#Intent;package=io.github.raantss18.tontolo;end"</script>' : ''}'
+      '</body>';
 
   /// Jeton d'accès valide (rafraîchi si besoin) ; null si déconnecté ou session révoquée.
   Future<String?> token() async {
