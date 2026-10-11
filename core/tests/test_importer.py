@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from typing import ClassVar
 
 import pytest
 
@@ -107,7 +108,7 @@ async def test_fetch_private_and_browser(monkeypatch: pytest.MonkeyPatch) -> Non
 
     class Resp:
         status_code = 403
-        headers = {"content-type": "text/html"}
+        headers: ClassVar[dict[str, str]] = {"content-type": "text/html"}
 
     class Client:
         async def get(self, url: str, **_: object) -> Resp:

@@ -149,8 +149,8 @@ Règle : chaque étape est livrée seule (tests verts, rien de cassé), puis pub
 Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cassé, saut de mise à jour vérifié.
 - [x] R0. Vérifier la base Supabase des statistiques (insertion OK, lecture refusée à la clé publique, contrôles actifs)
 - [x] R1. Bug utilisateur : continuer dans Tontolo une discussion venant d'un lien Claude (claude.ai/share/…) ; aussi ChatGPT, Gemini, texte collé
-- [ ] R2. À chaque message, réévaluer le meilleur modèle selon le contexte de la discussion (pas de modèle « collé » à la conversation)
-- [ ] R3. Création d'image : ne plus rester bloqué sur Pollinations, choisir la meilleure source d'image disponible
+- [x] R2. À chaque message, réévaluer le meilleur modèle selon le contexte de la discussion (pas de modèle « collé » à la conversation)
+- [x] R3. Création d'image : ne plus rester bloqué sur Pollinations, choisir la meilleure source d'image disponible
 - [ ] F1. Aide par fournisseur d'API : étapes simples et lien direct pour obtenir la clé (fr/en/mg)
 - [ ] F2. Réglages simplifiés : proposer les serveurs d'API payants avec plafond de dépense (simple)
 - [ ] F3. Mode Apprendre (élèves / étudiants), inspiré de Khanmigo, MagicSchool, MIA Seconde, Dinobot : bascule Général / Apprendre bien visible, niveau scolaire, guidage pas à pas sans donner la réponse, indices, quiz interactifs, fiches, correction d'exercice en photo, plan de révision

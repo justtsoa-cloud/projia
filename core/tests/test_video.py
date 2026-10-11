@@ -161,3 +161,39 @@ async def test_video_download_size_limit(monkeypatch: pytest.MonkeyPatch) -> Non
     monkeypatch.setattr(http, "client", lambda: client)
     with pytest.raises(ProviderError):
         await mp._download_limited(f"{BASE}/gradio_api/file=/tmp/x.mp4", {})
+
+
+async def test_image_from_hf_space(monkeypatch: pytest.MonkeyPatch) -> None:
+    space = hfspaces.IMAGE_SPACES[0]
+    model = next(m for m in hfspaces.models() if m.model_id == space.space)
+    assert model.media == ["image_gen"] and model.quality["image_gen"] > 0.5
+    seen: dict[str, object] = {}
+
+    async def fake_queue(base: str, api: str, data: list[object], headers: object,
+                         timeout: float = 0) -> object:  # noqa: ASYNC109
+        seen.update(base=base, api=api, data=data)
+        return [{"url": f"{base}/gradio_api/file=/tmp/x.webp"}, 42]
+
+    async def fake_dl(url: str, headers: object, limit: int = 0) -> bytes:
+        assert url.startswith(space.base_url + "/")
+        return b"RIFF\x00\x00\x00\x00WEBPVP8 "
+
+    monkeypatch.setattr(mp, "_gradio_queue", fake_queue)
+    monkeypatch.setattr(mp, "_download_limited", fake_dl)
+    out = await mp.generate_image(model, {}, "un tram rouge", {"width": 1000, "height": 700})
+    assert out.mime == "image/webp"
+    assert seen["api"] == "infer" and seen["data"][3:5] == [992, 672]
+
+    async def evil_queue(*_: object, **__: object) -> object:
+        return [{"url": "https://evil.example/x.png"}]
+
+    monkeypatch.setattr(mp, "_gradio_queue", evil_queue)
+    with pytest.raises(ProviderError):
+        await mp.generate_image(model, {}, "x", {})
+
+
+def test_gpu_quota_pauses_every_space() -> None:
+    from tontolo.providers.base import Scope
+
+    err = mp._gradio_error("You have exceeded your GPU quota (60s requested vs. 0s left)")
+    assert err.kind == ErrorKind.QUOTA and err.scope == Scope.PROVIDER

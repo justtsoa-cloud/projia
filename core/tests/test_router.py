@@ -144,3 +144,21 @@ async def test_first_launch_quick_catalog(settings, monkeypatch) -> None:
     assert s.catalog.models
     assert s._task is not None
     s._task.cancel()
+
+
+
+
+def test_short_followup_keeps_discussion_topic() -> None:
+    msgs = [{"role": "user", "content": "Écris une fonction Python qui trie une liste"},
+            {"role": "assistant", "content": "```python\ndef tri(l):\n    return sorted(l)\n```"},
+            {"role": "user", "content": "et en plus rapide ?"}]
+    assert classify(msgs).category == Category.CODE
+    maths = [{"role": "user", "content": "Résous l'équation $x^2 - 4 = 0$"},
+             {"role": "assistant", "content": "$x = \\pm 2$"},
+             {"role": "user", "content": "pourquoi ?"}]
+    assert classify(maths).category == Category.MATH
+    # Un nouveau sujet explicite l'emporte sur le contexte.
+    new = [*msgs, {"role": "assistant", "content": "..."},
+           {"role": "user", "content": "Traduis en anglais : bonjour tout le monde"}]
+    assert classify(new).category == Category.TRANSLATION
+    assert classify([{"role": "user", "content": "salut"}]).category == Category.CHAT

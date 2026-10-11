@@ -213,6 +213,26 @@ def _previous_media_category(messages: list[dict[str, Any]]) -> Category | None:
     return None
 
 
+_CONTEXT_CATEGORIES = (Category.CODE, Category.MATH, Category.REASONING, Category.WRITING,
+                       Category.TRANSLATION)
+
+
+def _context_scores(messages: list[dict[str, Any]]) -> dict[Category, float]:
+    """Sujet de la discussion d'après les messages précédents (les plus récents comptent
+    davantage) : une relance courte (« et pourquoi ? », « optimise-le ») garde le modèle adapté
+    au sujet (code, maths…) au lieu de retomber sur un modèle de conversation générale."""
+    scores: dict[Category, float] = {}
+    previous = [m for m in messages if m.get("role") in ("user", "assistant")][:-1][-6:]
+    for age, m in enumerate(reversed(previous)):
+        weight = 0.7 ** age * (1.0 if m.get("role") == "user" else 0.5)
+        text, _ = _text_and_parts(m)
+        for cat in _CONTEXT_CATEGORIES:
+            s = sum(w for rx, w in _COMPILED.get(cat, []) if rx.search(text[:4000]))
+            if s:
+                scores[cat] = scores.get(cat, 0.0) + s * weight
+    return scores
+
+
 def classify(
     messages: list[dict[str, Any]], *, tools_available: bool = False,
     forced: Category | str | None = None,
@@ -249,6 +269,16 @@ def classify(
         if prev is not None:
             scores[prev] = 4.0
 
+    from_context = False
+    if not forced and not parts and max(scores.values(), default=0.0) < 2.5:
+        # Message peu explicite : le sujet de la discussion décide.
+        ctx = {c: s for c, s in _context_scores(messages).items() if s >= 2.0}
+        if ctx:
+            best = max(ctx, key=lambda c: ctx[c])
+            if ctx[best] > scores.get(best, 0.0):
+                scores[best] = min(ctx[best], 4.0)
+                from_context = True
+
     tokens = estimate_tokens(messages)
     ranked = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
     if forced:
@@ -269,7 +299,8 @@ def classify(
         modality_out=_MEDIA_OUT.get(category, "text"),
         needs_vision="image" in parts and category not in (Category.IMAGE_EDIT,),
         min_context=int(tokens * 1.2) + 1024,
-        latency_pref="fast" if len(text) < 80 and category == Category.CHAT else "normal",
+        latency_pref=("fast" if len(text) < 80 and category == Category.CHAT and not from_context
+                      else "normal"),
         force_search=category == Category.SEARCH,
         confidence=confidence,
         scores={c.value: s for c, s in ranked},

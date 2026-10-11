@@ -32,7 +32,7 @@ import httpx
 from tontolo import http, secrets, security
 from tontolo.catalog.models import ModelInfo
 from tontolo.catalog.sources import hfspaces, pollinations
-from tontolo.providers.base import ErrorKind, ProviderError
+from tontolo.providers.base import ErrorKind, ProviderError, Scope
 from tontolo.providers.openai_compat import classify_error
 
 
@@ -77,6 +77,8 @@ async def generate_image(
 ) -> MediaOutput:
     if model.provider == "pollinations":
         return await _pollinations_image(model, prompt, params)
+    if model.provider == "hf_spaces":
+        return await _space_image(model, prompt, params)
     body: dict[str, Any] = {"model": model.model_id, "prompt": prompt, "n": 1}
     if params.get("aspect_ratio"):
         body["aspect_ratio"] = params["aspect_ratio"]
@@ -96,6 +98,39 @@ async def generate_image(
         r = await http.client().get(item["url"], timeout=120.0)
         return MediaOutput(r.content, r.headers.get("content-type", "image/png"))
     raise ProviderError("Aucune image renvoyée", ErrorKind.SERVER)
+
+
+IMAGE_MAX_BYTES = 20 * 1024 * 1024
+
+
+async def _space_image(model: ModelInfo, prompt: str, params: dict[str, Any]) -> MediaOutput:
+    """Image par un Space Hugging Face public (FLUX, Stable Diffusion), sans clé."""
+    space = hfspaces.image_by_id(model.model_id)
+    if space is None:
+        raise ProviderError("Space inconnu", ErrorKind.UNAVAILABLE)
+    headers = {}
+    if hf := secrets.get_key("huggingface"):
+        headers["Authorization"] = f"Bearer {hf}"
+    w = max(256, min(int(params.get("width", 1024)), 1440)) // 32 * 32
+    h = max(256, min(int(params.get("height", 1024)), 1440)) // 32 * 32
+    seed = int(params.get("seed") or 0)
+    rand = params.get("seed") is None
+    if "stable-diffusion" in space.space:
+        data: list[Any] = [prompt, "", seed, rand, w, h, 0.0, space.steps]
+    elif space.steps > 4:  # FLUX.1-dev : échelle de guidage
+        data = [prompt, seed, rand, w, h, 3.5, space.steps]
+    else:
+        data = [prompt, seed, rand, w, h, space.steps]
+    # File GPU saturée : mieux vaut passer vite à la source suivante (Pollinations).
+    result = await _gradio_queue(space.base_url, "infer", data, headers, timeout=90.0)
+    item = result[0] if isinstance(result, list) and result else result
+    url = item.get("url") if isinstance(item, dict) else None
+    if not isinstance(url, str) or not url.startswith(space.base_url + "/"):
+        raise ProviderError("Réponse image inattendue", ErrorKind.SERVER)
+    body = await _download_limited(url, headers, IMAGE_MAX_BYTES)
+    mime = ("image/webp" if body[8:12] == b"WEBP" else "image/jpeg" if body[:2] == b"\xff\xd8"
+            else "image/png")
+    return MediaOutput(body, mime)
 
 
 VIDEO_MAX_BYTES = 60 * 1024 * 1024
@@ -135,7 +170,8 @@ async def generate_video(model: ModelInfo, prompt: str, params: dict[str, Any]) 
     return MediaOutput(await _download_limited(url, headers), "video/mp4")
 
 
-async def _download_limited(url: str, headers: dict[str, str]) -> bytes:
+async def _download_limited(url: str, headers: dict[str, str],
+                            limit: int | None = None) -> bytes:
     """Téléchargement borné : sans redirection (la clé Hugging Face ne quitte jamais le
     domaine du Space) et arrêté dès que la taille maximale est dépassée."""
     buf = bytearray()
@@ -146,7 +182,7 @@ async def _download_limited(url: str, headers: dict[str, str]) -> bytes:
                 raise ProviderError("Vidéo introuvable", ErrorKind.SERVER, status=r.status_code)
             async for chunk in r.aiter_bytes():
                 buf.extend(chunk)
-                if len(buf) > VIDEO_MAX_BYTES:
+                if len(buf) > (limit or VIDEO_MAX_BYTES):
                     raise ProviderError("Vidéo trop volumineuse", ErrorKind.SERVER)
     except httpx.HTTPError as exc:
         raise ProviderError(type(exc).__name__, ErrorKind.NETWORK) from exc
@@ -216,7 +252,7 @@ async def _fn_index(base_url: str, api_name: str, headers: dict[str, str]) -> in
 
 
 async def _gradio_queue(base_url: str, api_name: str, data: list[Any],
-                        headers: dict[str, str]) -> Any:
+                        headers: dict[str, str], timeout: float = VIDEO_TIMEOUT) -> Any:  # noqa: ASYNC109
     """File d'attente Gradio (`queue/join` puis flux `queue/data`). Contrairement à l'API
     `call/`, elle renvoie la vraie raison d'un échec (quota GPU épuisé, etc.)."""
     session = uuid.uuid4().hex[:11]
@@ -226,7 +262,7 @@ async def _gradio_queue(base_url: str, api_name: str, data: list[Any],
     try:
         async with http.client().stream(
                 "GET", f"{base_url}/gradio_api/queue/data", params={"session_hash": session},
-                headers=headers, timeout=httpx.Timeout(VIDEO_TIMEOUT, connect=15.0)) as resp:
+                headers=headers, timeout=httpx.Timeout(timeout, connect=15.0)) as resp:
             if resp.status_code >= 400:
                 body_text = (await resp.aread()).decode("utf-8", "replace")
                 raise classify_error(resp.status_code, body_text, {})
@@ -257,7 +293,9 @@ def _gradio_error(payload: str) -> ProviderError:
         if m := _QUOTA_RE.search(text):
             h, mi, s = (int(x) for x in m.groups())
             retry = max(retry, float(h * 3600 + mi * 60 + s))
-        return ProviderError("Quota GPU gratuit épuisé", ErrorKind.QUOTA, retry_after=retry)
+        # Quota ZeroGPU commun à tous les Spaces : on les met tous en pause d'un coup.
+        return ProviderError("Quota GPU gratuit épuisé", ErrorKind.QUOTA, retry_after=retry,
+                             scope=Scope.PROVIDER)
     return ProviderError(text[:200], ErrorKind.SERVER)
 
 

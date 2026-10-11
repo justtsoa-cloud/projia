@@ -26,6 +26,7 @@ from tontolo import http
 MAX_MESSAGES = 500
 MAX_TEXT = 100_000
 MAX_DATA = 4_000_000
+NOT_FOUND = "Discussion introuvable ou supprimée."
 BROWSER_UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
               "Chrome/130.0 Safari/537.36")
 
@@ -74,7 +75,7 @@ def _clean(text: Any) -> str:
     return _PRIVATE_USE.sub("", str(text or "")).strip()[:MAX_TEXT]
 
 
-def _finish(source: str, title: str, messages: list[dict[str, str]]) -> Imported:
+def _finish(source: str, title: str, messages: list[dict[str, Any]]) -> Imported:
     out: list[dict[str, str]] = []
     for m in messages:
         text = _clean(m.get("text"))
@@ -174,7 +175,7 @@ def parse_chatgpt_export(conv: dict[str, Any]) -> Imported:
     """Une conversation de l'export de données ChatGPT (conversations.json)."""
     mapping = conv.get("mapping") or {}
     node_id = conv.get("current_node")
-    chain = []
+    chain: list[dict[str, Any]] = []
     while node_id and node_id in mapping and len(chain) < 5000:
         chain.append(mapping[node_id])
         node_id = mapping[node_id].get("parent")
@@ -261,8 +262,8 @@ def _parse_json(obj: Any) -> list[Imported]:
 
 
 async def fetch(url: str) -> Imported:
-    """Télécharge et décode un lien de partage. Lève ConversationImportError (code `import_browser` quand
-    l'application doit passer par une vue web)."""
+    """Télécharge et décode un lien de partage. Lève ConversationImportError (code
+    `import_browser` quand l'application doit passer par une vue web)."""
     found = find_link(url)
     if found is None:
         raise ConversationImportError("import_unsupported", "Lien non reconnu.")
@@ -279,7 +280,7 @@ async def fetch(url: str) -> Imported:
                     "application/json"):
                 return parse_claude(r.json())
             if r.status_code == 404:
-                raise ConversationImportError("import_not_found", "Discussion introuvable ou supprimée.")
+                raise ConversationImportError("import_not_found", NOT_FOUND)
         except httpx.HTTPError:
             pass
         raise ConversationImportError("import_browser", "Ouverture dans un navigateur nécessaire.",
@@ -292,7 +293,7 @@ async def fetch(url: str) -> Imported:
         except httpx.HTTPError as exc:
             raise ConversationImportError("import_network", "Lien injoignable.") from exc
         if r.status_code == 404:
-            raise ConversationImportError("import_not_found", "Discussion introuvable ou supprimée.")
+            raise ConversationImportError("import_not_found", NOT_FOUND)
         if r.status_code == 200:
             try:
                 return parse_chatgpt_html(r.text[:MAX_DATA * 3])
