@@ -22,6 +22,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
   bool speedFirst = false;
   bool teamReview = true;
   bool autoCompact = true;
+  bool taskPlanning = true;
   Map<String, dynamic>? workspace; // bureau Linux : dossier de travail de l'agent
   bool loaded = false;
 
@@ -57,6 +58,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
       speedFirst = s['speed_first'] == true;
       teamReview = s['team_review'] != false; // absent (ancien cœur) : affiché actif
       autoCompact = s['auto_compact'] != false;
+      taskPlanning = s['task_planning'] != false;
       memories = (m['items'] as List).cast<Map<String, dynamic>>();
       workspace = ws;
     });
@@ -127,6 +129,16 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
         onChanged: (v) {
           setState(() => autoCompact = v);
           _call('PUT', '/tontolo/settings', {'auto_compact': v});
+        },
+      ),
+      SwitchListTile(
+        secondary: const Icon(Icons.account_tree_outlined),
+        title: Text(context.t('task_planning')),
+        subtitle: Text(context.t('task_planning_help'), style: small),
+        value: taskPlanning,
+        onChanged: (v) {
+          setState(() => taskPlanning = v);
+          _call('PUT', '/tontolo/settings', {'task_planning': v});
         },
       ),
       if (workspace != null) ...[

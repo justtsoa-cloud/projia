@@ -187,6 +187,9 @@ class Database:
         if "mode" not in cols:  # 0.3.0 : « » (général) ou « learn:<niveau> » (mode Apprendre)
             await self.conn.execute(
                 "ALTER TABLE conversations ADD COLUMN mode TEXT NOT NULL DEFAULT ''")
+        if "plan" not in cols:  # 0.5.1 : plan d'une tâche complexe (JSON), « » sinon
+            await self.conn.execute(
+                "ALTER TABLE conversations ADD COLUMN plan TEXT NOT NULL DEFAULT ''")
 
     async def close(self) -> None:
         if self._conn is not None:
@@ -341,6 +344,21 @@ class Database:
             sql += " AND updated_at = ?"
             args.append(expected_revision)
         await self.conn.execute(sql, args)
+        await self.conn.commit()
+
+    async def get_plan(self, cid: str) -> dict[str, Any] | None:
+        row = await self._fetchone("SELECT plan FROM conversations WHERE id = ?", (cid,))
+        try:
+            plan = json.loads(row["plan"]) if row and row["plan"] else None
+        except ValueError:
+            return None
+        return plan if isinstance(plan, dict) else None
+
+    async def set_plan(self, cid: str, plan: dict[str, Any] | None) -> None:
+        """Le plan est un état de travail : il ne change pas la date de la discussion."""
+        await self.conn.execute(
+            "UPDATE conversations SET plan = ? WHERE id = ?",
+            (json.dumps(plan, ensure_ascii=False)[:60000] if plan else "", cid))
         await self.conn.commit()
 
     async def get_summary(self, cid: str) -> tuple[str | None, int]:

@@ -22,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from tontolo import documents
+from tontolo.agent import planner
 from tontolo.agent.mcp_client import McpManager
 from tontolo.agent.tools import ToolBox, native_tools, search_raw, untrusted
 from tontolo.agent.workspace import Workspace, check_workdir, is_desktop
@@ -213,9 +214,123 @@ class ChatService:
         if fact and self.memory.enabled and await self.memory.remember(
                 fact, kind="explicit", source=conversation_id):
             yield {"type": "memory_saved", "text": fact}
+        if isinstance(content, str) and self.settings.task_planning:
+            async for ev in self._prepare_plan(conversation_id, content):
+                yield ev
         async for ev in self._loop(conversation_id, model=model, forced=forced, strict=strict,
                                    use_tools=use_tools, auto_approve=auto_approve):
             yield ev
+
+    # --- Tâches complexes : plan ---------------------------------------------------
+
+    async def _ask(self, messages: list[dict[str, Any]], *, model: str | None = None,
+                   forced: Category | None = None, max_tokens: int = 1500
+                   ) -> tuple[str, str]:
+        """Appel non diffusé ; (texte, clé du modèle) ou ("", "") en cas d'échec."""
+        async for ev in self.router.run(messages, stream=False, model=model, forced=forced,
+                                        summary=None, params={"max_tokens": max_tokens,
+                                                              "temperature": 0.3}):
+            if ev["type"] == "done":
+                return str(ev["message"].get("content") or ""), str(ev.get("model") or "")
+            if ev["type"] in ("error", "paid_confirmation"):
+                break
+        return "", ""
+
+    def _model_name(self, key: str) -> str:
+        m = self.router.catalog.catalog.get(key) if key else None
+        return m.name if m else key
+
+    async def _prepare_plan(self, cid: str, content: str) -> AsyncIterator[dict[str, Any]]:
+        """Avance un plan pas à pas (« continuer ») ou en crée un pour une tâche complexe."""
+        if (await self.db.get_mode(cid)).startswith("learn"):
+            return  # le tuteur avance déjà pas à pas, à sa façon
+        plan = await self.db.get_plan(cid)
+        if (plan is not None and plan.get("status") == "active" and plan["mode"] == "steps"
+                and planner.wants_continue(content)):
+            if plan["current"] + 1 < len(plan["steps"]):
+                plan["current"] += 1
+                await self.db.set_plan(cid, plan)
+            yield {"type": "plan", "plan": planner.public(plan)}
+            return
+        if not planner.looks_complex(content):
+            return
+        yield {"type": "step", "step": "planning"}
+        try:
+            async with asyncio.timeout(60):
+                text, _ = await self._ask([{"role": "system", "content": planner.PLAN_PROMPT},
+                                           {"role": "user", "content": content[:8000]}],
+                                          forced=Category.REASONING, max_tokens=1200)
+        except TimeoutError:
+            text = ""
+        new = planner.parse_plan(text)
+        if new is None:
+            yield {"type": "step", "step": "doc_done"}
+            return
+        await self.db.set_plan(cid, new)
+        yield {"type": "plan", "plan": planner.public(new)}
+        if new["mode"] == "parallel":
+            async for ev in self._run_parallel(cid, new):
+                yield ev
+
+    async def _run_parallel(self, cid: str, plan: dict[str, Any]
+                            ) -> AsyncIterator[dict[str, Any]]:
+        """Sous-tâches indépendantes confiées en même temps à plusieurs modèles (familles
+        différentes si possible)."""
+        steps = plan["steps"]
+        decision = await self.router.decide(
+            [{"role": "user", "content": plan["goal"] or steps[0]["task"]}])
+        picks: list[str] = []
+        families: set[str] = set()
+        for c in decision.chain:
+            fam = c.model.family or c.model.key
+            if fam not in families:
+                families.add(fam)
+                picks.append(c.model.key)
+            if len(picks) >= 3:
+                break
+        results: list[dict[str, Any]] = [{} for _ in steps]
+        queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+
+        async def one(i: int, step: dict[str, str]) -> None:
+            model = picks[i % len(picks)] if picks else None
+            await queue.put({"type": "plan_step", "i": i, "status": "running",
+                             "model": self._model_name(model or "")})
+            try:
+                async with asyncio.timeout(planner.SUBTASK_TIMEOUT):
+                    text, key = await self._ask(
+                        [{"role": "system", "content": planner.SUBTASK_PROMPT},
+                         {"role": "user", "content": (
+                             f"Objectif global : {plan['goal']}\nSous-tâche {i + 1}/"
+                             f"{len(steps)} — {step['title']} :\n{step['task']}")}],
+                        model=model, max_tokens=planner.SUBTASK_MAX_TOKENS)
+            except TimeoutError:
+                text, key = "", ""
+            results[i] = {"text": text.strip()[:6000], "model": self._model_name(key)}
+            await queue.put({"type": "plan_step", "i": i,
+                             "status": "done" if text.strip() else "failed",
+                             "model": self._model_name(key)})
+
+        tasks = [asyncio.create_task(one(i, s)) for i, s in enumerate(steps)]
+        try:
+            for _ in range(2 * len(tasks)):
+                yield await queue.get()
+        finally:
+            for t in tasks:
+                t.cancel()
+        plan["results"] = results
+        await self.db.set_plan(cid, plan)
+
+    async def _finish_plan_turn(self, cid: str) -> dict[str, Any] | None:
+        """Après une réponse : plan parallèle assemblé, ou dernière étape livrée → terminé."""
+        plan = await self.db.get_plan(cid)
+        if not plan or plan.get("status") != "active":
+            return None
+        if plan["mode"] == "parallel" or plan["current"] + 1 >= len(plan["steps"]):
+            plan["status"] = "done"
+            plan["results"] = []  # les parties sont maintenant dans la réponse assemblée
+            await self.db.set_plan(cid, plan)
+            return {"type": "plan", "plan": planner.public(plan)}
+        return None
 
     async def _explain_media(self, history: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Les réponses « image » sont stockées sous la forme `[média:id]` : un modèle de texte
@@ -458,6 +573,9 @@ class ChatService:
             doc_block = await self._documents_block(cid, question)
             if doc_block is not None:
                 messages.append(doc_block)
+            plan = await self.db.get_plan(cid)
+            if plan is not None and plan.get("status") == "active":
+                messages.append(planner.plan_block(plan))
             messages += compact_images(await self._explain_media(
                 await self._thread(cid, history)))
             # Recherche web forcée pour l'actualité : résultats injectés comme données,
@@ -504,6 +622,9 @@ class ChatService:
             yield {**final, "uid": saved["uid"], "conversation_id": cid}
             calls = msg.get("tool_calls") or []
             if not calls:
+                plan_ev = await self._finish_plan_turn(cid)
+                if plan_ev is not None:
+                    yield plan_ev
                 for job in (self.memory.after_turn(cid, [*history, msg]),
                             self._summarize_thread(cid)):
                     task = asyncio.create_task(job)

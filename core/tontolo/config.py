@@ -91,6 +91,8 @@ class Settings(BaseModel):
     shared_folders: list[str] = Field(default_factory=list)
     # Compactage automatique des longues discussions (fiche structurée du début du fil).
     auto_compact: bool = True
+    # Tâches complexes : plan en étapes (en parallèle sur plusieurs modèles ou pas à pas).
+    task_planning: bool = True
 
     @property
     def data_dir(self) -> Path:

@@ -94,6 +94,23 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Plan d'une tâche complexe (mode « parallel » ou « steps ») et état de ses étapes.
+  Map<String, dynamic>? plan;
+  final Map<int, Map<String, dynamic>> planSteps = {};
+
+  bool get planActive => plan != null && plan!['status'] == 'active';
+
+  /// Pas à pas : étape suivante du plan.
+  Future<void> continuePlan(String label) => send(label);
+
+  Future<void> dropPlan() async {
+    final id = conversationId;
+    plan = null;
+    planSteps.clear();
+    notifyListeners();
+    if (id != null) await backend.sendJson('DELETE', '/tontolo/conversations/$id/plan');
+  }
+
   /// Fiche compactée du début de la discussion (null si elle n'a pas encore été compactée).
   String? summary;
 
@@ -242,6 +259,8 @@ class ChatController extends ChangeNotifier {
     learn = backend.prefs.learnMode;
     agent = null;
     summary = null;
+    plan = null;
+    planSteps.clear();
     _modeChanged = false;
     messages.clear();
     busy = false;
@@ -263,6 +282,7 @@ class ChatController extends ChangeNotifier {
         final mode = '${data['mode']}';
         learn = mode.startsWith('learn');
         summary = data['summary'] as String?;
+        plan = (data['plan'] as Map?)?.cast<String, dynamic>();
         agent = mode.startsWith('agent') ? (mode.contains(':') ? mode.split(':')[1] : 'auto') : null;
       }
       await _loadMessages((data['messages'] as List).cast<Map<String, dynamic>>());
@@ -556,6 +576,13 @@ class ChatController extends ChangeNotifier {
           status = 'tool|${ev['name']}';
         case 'tool_result':
           status = null;
+        case 'plan':
+          plan = (ev['plan'] as Map?)?.cast<String, dynamic>();
+          if (plan?['status'] != 'active') planSteps.clear();
+          if (status == 'planning') status = null;
+        case 'plan_step':
+          planSteps[(ev['i'] as num).toInt()] = Map<String, dynamic>.from(ev);
+          status = 'plan_running';
         case 'continuing':
           // Réponse coupée par la limite de longueur : suite demandée automatiquement.
           status = 'continuing';

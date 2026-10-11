@@ -25,6 +25,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response, StreamingRes
 from pydantic import BaseModel, Field
 
 from tontolo import __version__, documents, importer, secrets
+from tontolo.agent import planner
 from tontolo.agent.loop import dumps
 from tontolo.agent.mcp_client import load_config, save_config
 from tontolo.agent.workspace import is_desktop
@@ -835,7 +836,14 @@ def create_app(
         summary, covered = await db.get_summary(cid)
         return {"id": cid, "messages": await db.get_messages(cid, after, limit),
                 "mode": await db.get_mode(cid), "summary": summary, "summary_covered": covered,
+                "plan": planner.public(await db.get_plan(cid)),
                 "active": core_of(request).turns.active(cid) is not None}
+
+    @app.delete("/tontolo/conversations/{cid}/plan")
+    async def drop_plan(request: Request, cid: str) -> dict[str, bool]:
+        """Abandonner le plan en cours (la discussion continue normalement)."""
+        await core_of(request).db.set_plan(cid, None)
+        return {"ok": True}
 
     @app.post("/tontolo/conversations/{cid}/compact")
     async def compact_conversation(request: Request, cid: str) -> dict[str, Any]:

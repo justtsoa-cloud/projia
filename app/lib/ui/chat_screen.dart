@@ -432,6 +432,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                 ),
+              if (chat.plan != null && (chat.planActive || chat.busy)) _PlanBar(chat),
               if (chat.status != null) _StatusLine(chat.status!),
               if (chat.pending != null) _PendingBar(chat),
               _InputBar(this, chat, backend),
@@ -820,6 +821,73 @@ class _StatusLine extends StatelessWidget {
         const SizedBox(width: 8),
         Text(text, style: Theme.of(context).textTheme.bodySmall),
       ]),
+    );
+  }
+}
+
+/// Plan d'une tâche complexe : étapes (et modèles en parallèle), « Continuer » pas à pas.
+class _PlanBar extends StatelessWidget {
+  const _PlanBar(this.chat);
+  final ChatController chat;
+
+  @override
+  Widget build(BuildContext context) {
+    final plan = chat.plan!;
+    final steps = (plan['steps'] as List? ?? const []).cast<Map>();
+    final parallel = plan['mode'] == 'parallel';
+    final current = (plan['current'] as num? ?? 0).toInt();
+    final active = plan['status'] == 'active';
+    final scheme = Theme.of(context).colorScheme;
+    final small = Theme.of(context).textTheme.bodySmall;
+    Widget icon(int i) {
+      final st = chat.planSteps[i]?['status'];
+      if (parallel) {
+        return switch (st) {
+          'running' => const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
+          'done' => const Icon(Icons.check_circle, size: 16, color: Color(0xFF2E9E6B)),
+          'failed' => Icon(Icons.error_outline, size: 16, color: scheme.error),
+          _ => Icon(Icons.circle_outlined, size: 16, color: scheme.outline),
+        };
+      }
+      if (!active || i < current) return const Icon(Icons.check_circle, size: 16, color: Color(0xFF2E9E6B));
+      if (i == current) return Icon(Icons.play_circle, size: 16, color: scheme.primary);
+      return Icon(Icons.circle_outlined, size: 16, color: scheme.outline);
+    }
+
+    return Card(
+      margin: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+      child: ExpansionTile(
+        dense: true,
+        initiallyExpanded: parallel && chat.busy,
+        leading: Icon(parallel ? Icons.call_split : Icons.format_list_numbered, size: 20),
+        title: Text(parallel
+            ? context.t('plan_parallel', {'n': '${steps.length}'})
+            : context.t('plan_steps', {'k': '${(current + 1).clamp(1, steps.length)}', 'n': '${steps.length}'})),
+        subtitle: Text('${plan['goal'] ?? ''}', maxLines: 1, overflow: TextOverflow.ellipsis, style: small),
+        trailing: active && !parallel && !chat.busy && current + 1 < steps.length
+            ? FilledButton.tonal(
+                onPressed: () => chat.continuePlan(context.t('plan_continue')),
+                child: Text(context.t('plan_continue')),
+              )
+            : null,
+        children: [
+          for (final (i, step) in steps.indexed)
+            ListTile(
+              dense: true,
+              leading: icon(i),
+              minLeadingWidth: 16,
+              title: Text('${i + 1}. ${step['title']}'),
+              subtitle: parallel && chat.planSteps[i]?['model'] != null && '${chat.planSteps[i]!['model']}'.isNotEmpty
+                  ? Text('${chat.planSteps[i]!['model']}', style: small)
+                  : null,
+            ),
+          if (active && !chat.busy)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(onPressed: chat.dropPlan, child: Text(context.t('plan_drop'))),
+            ),
+        ],
+      ),
     );
   }
 }
