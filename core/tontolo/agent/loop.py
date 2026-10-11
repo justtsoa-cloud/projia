@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import contextvars
 import json
 import re
 import time
@@ -32,12 +33,17 @@ from tontolo.agent.workspace import (
     Workspace,
     check_workdir,
     is_desktop,
+    redact,
 )
 from tontolo.catalog.models import Category
 from tontolo.config import Settings
 from tontolo.memory import MemoryService, explicit_memory
 from tontolo.router.engine import Router
 from tontolo.storage.db import Database
+
+# Discussion du tour en cours (onglet du navigateur, terminal) : une valeur par tâche.
+CURRENT: contextvars.ContextVar[str] = contextvars.ContextVar("tontolo_conversation",
+                                                              default="")
 
 _MEDIA_NOTE = re.compile(r"^\[média:([0-9a-f]+)\]$")
 
@@ -168,7 +174,6 @@ class ChatService:
         self.browser_bridge = browser.AppBridge()
         # Terminal du bureau : une session par discussion, visible dans l'application.
         self.terminals = TerminalManager() if is_desktop() else None
-        self._conversation = ""  # discussion dont l'agent utilise l'onglet
         # Confirmations en attente : appels du modèle et l'appel unique à confirmer.
         self._pending: dict[str, tuple[list[dict[str, Any]], str]] = {}
 
@@ -198,7 +203,7 @@ class ChatService:
         # Outils du navigateur seulement s'il y en a un (sinon ils encombreraient la liste).
         names = [t.name for t in browser.browser_tools(None, None)]
         if self.browser_backend() is not None:
-            for t in browser.browser_tools(self.browser_backend, lambda: self._conversation,
+            for t in browser.browser_tools(self.browser_backend, CURRENT.get,
                                            self.router.describe_image):
                 self.toolbox.add(t)
         else:
@@ -217,19 +222,19 @@ class ChatService:
         terms = self.terminals
 
         async def read(args: dict[str, Any]) -> str:
-            s = terms.existing(self._conversation)
+            s = terms.existing(CURRENT.get())
             if s is None:
                 return "Aucun terminal ouvert pour cette discussion."
-            return untrusted(s.text(int(args.get("lines") or 80)) or "(terminal vide)")
+            return untrusted(redact(s.text(int(args.get("lines") or 80))) or "(terminal vide)")
 
         async def send(args: dict[str, Any]) -> str:
             text = str(args.get("text", ""))
             if DANGEROUS.search(text) or any(d in text for d in SENSITIVE_DIRS):
                 return "Refusé par les garde-fous de Tontolo (commande destructrice ou sensible)."
-            s = terms.get(self._conversation, self.terminal_cwd())
+            s = terms.get(CURRENT.get(), self.terminal_cwd())
             s.write((text + ("\n" if args.get("enter", True) else "")).encode())
             await asyncio.sleep(min(float(args.get("wait") or 2), 15))
-            return untrusted(s.text(40))
+            return untrusted(redact(s.text(40)))
 
         return [
             Tool("terminal_read", "Lit les dernières lignes du terminal de cette discussion "
@@ -589,7 +594,7 @@ class ChatService:
     ) -> AsyncIterator[dict[str, Any]]:
         """Reprend après une demande de confirmation d'outil."""
         calls, confirm_id = self._pending.pop(conversation_id, ([], ""))
-        self._conversation = conversation_id
+        CURRENT.set(conversation_id)
         for call in calls:
             fn = call["function"]
             tool = self.toolbox.tools.get(fn["name"])
@@ -613,7 +618,7 @@ class ChatService:
         strict: bool = False, use_tools: bool = True, auto_approve: bool = False,
     ) -> AsyncIterator[dict[str, Any]]:
         started = time.monotonic()
-        self._conversation = cid
+        CURRENT.set(cid)  # propre à ce tour : deux discussions en parallèle ne se mêlent pas
         box = await self.toolbox_with_mcp() if use_tools else ToolBox()
         tools = box.schemas() or None
         searched = False

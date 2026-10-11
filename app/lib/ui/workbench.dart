@@ -260,9 +260,11 @@ class BrowserBridge extends ChangeNotifier {
           await c.goBack();
           await _waitLoaded(t);
         }
-      case 'click':
-        final out = await _js(c, '(${cmd['click_js']})(${jsonEncode(args['id'])}, ${jsonEncode(args['text'] ?? '')})');
+      case 'click' || 'press':
+        final press = cmd['action'] == 'press';
+        final out = await _js(c, '(${cmd['click_js']})(${jsonEncode(args['id'])}, ${jsonEncode(args['text'] ?? '')}, $press)');
         if (out == 'introuvable') return {'error': 'élément introuvable : relis la page (browser_read)'};
+        if (out == 'bouton') return {'error': '${cmd['button_msg']}'};
         await _waitLoaded(t);
       case 'type':
         final out = await _js(c, '(${cmd['type_js']})(${jsonEncode(args['id'])}, ${jsonEncode('${args['text'] ?? ''}')}, ${jsonEncode(args['submit'] == true)})');

@@ -59,8 +59,16 @@ async def test_real_browser_one_tab_per_conversation(site: str, tmp_path: Path,
         assert page["title"] == "Suite" and "Tritriva" in page["text"]
         page = await b.command("c1", "back", {})
         assert page["title"] == "Accueil"
+        btn = await b.command("c1", "click", {"text": "chercher"})
+        assert "introuvable" in btn["error"]  # un lien ne désigne pas un bouton
+        btn_id = next(int(i[1:i.index("]")]) for i in page["items"] if "Chercher" in i)
+        btn = await b.command("c1", "click", {"id": btn_id})
+        assert "browser_press" in btn["error"]  # bouton : jamais sans confirmation
         page = await b.command("c1", "type", {"id": field, "text": "lac", "submit": True})
         assert "Tritriva" in page["text"]
+        await b.command("c1", "back", {})
+        page = await b.command("c1", "press", {"id": btn_id})
+        assert page["title"] == "Suite"
         await b.command("c2", "open", {"url": site + "/page2.html"})
         await b.command("c1", "read", {})
         assert len(b.tabs) == 2  # un onglet par discussion, réutilisé à chaque commande

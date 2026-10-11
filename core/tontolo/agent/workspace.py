@@ -46,6 +46,22 @@ DANGEROUS = re.compile(
     r"(curl|wget)[^|]*\|\s*(ba|z)?sh\b|>\s*/dev/sd|\bchown\s+-R\b.*\s/(\s|$))")
 
 
+_SECRET = re.compile(
+    r"(sk-[A-Za-z0-9_-]{16,}|sk-ant-[A-Za-z0-9_-]{16,}|gh[pousr]_[A-Za-z0-9]{20,}|"
+    r"github_pat_[A-Za-z0-9_]{20,}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{30,}|"
+    r"xox[abpr]-[A-Za-z0-9-]{10,}|eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]+|"
+    r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----)")
+_ASSIGN = re.compile(r"(?i)\b([A-Z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD|PASSWD|PWD)[A-Z0-9_]*"
+                     r"\s*[=:]\s*)(['\"]?)[^\s'\"]{4,}\2")
+
+
+def redact(text: str) -> str:
+    """Masque les secrets (clés d'API, jetons, mots de passe, clés privées) avant que le
+    texte parte vers un modèle en ligne."""
+    text = _SECRET.sub("[secret masqué]", text)
+    return _ASSIGN.sub(lambda m: f"{m.group(1)}[secret masqué]", text)
+
+
 def is_desktop() -> bool:
     """Bureau Linux (pas Android, qui se présente aussi comme « linux »)."""
     return (sys.platform == "linux" and "ANDROID_ROOT" not in os.environ
@@ -63,8 +79,9 @@ def check_workdir(path: str) -> Path:
     if p == home or (system and not p.is_relative_to(home)):
         raise ValueError("choisissez un sous-dossier précis (pas le dossier personnel entier "
                          "ni un dossier système)")
-    if _sensitive(p):
-        raise ValueError("dossier sensible refusé")
+    if _sensitive(p) or (p.is_relative_to(home) and any(
+            part.startswith(".") for part in p.relative_to(home).parts)):
+        raise ValueError("dossier sensible ou caché refusé (ex. .config, .local)")
     return p
 
 
@@ -188,8 +205,8 @@ class Workspace:
         lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
         start = max(1, int(args.get("start_line") or 1))
         end = int(args.get("end_line") or len(lines))
-        out = "\n".join(f"{i}\t{line}" for i, line in
-                        enumerate(lines[start - 1:end], start))
+        out = redact("\n".join(f"{i}\t{line}" for i, line in
+                               enumerate(lines[start - 1:end], start)))
         return out[:MAX_READ] + ("\n… (tronqué : lis la suite avec start_line)"
                                  if len(out) > MAX_READ else "")
 
@@ -199,11 +216,17 @@ class Workspace:
             return "Indique un texte à chercher."
         glob = str(args.get("glob") or "**/*")
         hits: list[str] = []
+        if ".." in glob or glob.startswith("/"):
+            return "Motif refusé : reste dans le dossier de travail."
         for f in self.root.glob(glob):
             if len(hits) >= 80:
                 break
-            rel = f.relative_to(self.root)
-            if not f.is_file() or _sensitive(rel) or any(
+            try:
+                rel = f.relative_to(self.root)
+                inside = f.resolve().is_relative_to(self.root)
+            except (ValueError, OSError):
+                continue
+            if f.is_symlink() or not inside or not f.is_file() or _sensitive(rel) or any(
                     part.startswith(".") or part in ("node_modules", "build", "dist")
                     for part in rel.parts[:-1]) or f.stat().st_size > 2_000_000:
                 continue
@@ -212,7 +235,7 @@ class Workspace:
             try:
                 for n, line in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
                     if query.lower() in line.lower():
-                        hits.append(f"{rel}:{n}: {line.strip()[:200]}")
+                        hits.append(f"{rel}:{n}: {redact(line.strip()[:200])}")
                         if len(hits) >= 80:
                             break
             except (UnicodeDecodeError, OSError):
@@ -266,7 +289,7 @@ class Workspace:
         text = out.decode("utf-8", errors="replace")
         if len(text) > MAX_OUTPUT:
             text = text[:MAX_OUTPUT // 2] + "\n… (sortie tronquée) …\n" + text[-MAX_OUTPUT // 2:]
-        return f"Code de sortie : {proc.returncode}\n{text}"
+        return f"Code de sortie : {proc.returncode}\n{redact(text)}"
 
     def tools(self, commands: bool) -> list[Tool]:
         path = {"type": "string", "description": "chemin relatif au dossier de travail"}

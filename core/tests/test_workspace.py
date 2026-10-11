@@ -138,3 +138,52 @@ def test_workspace_not_configurable_remotely(settings: Settings, tmp_path: Path)
     with TestClient(app, base_url="http://127.0.0.1", client=("10.0.0.5", 1)) as c:
         assert c.put("/tontolo/workspace", json={"path": str(tmp_path)}).status_code == 403
         assert c.post("/tontolo/workspace/undo").status_code == 403
+
+
+def test_secrets_are_masked() -> None:
+    from tontolo.agent.workspace import redact
+
+    text = ("export OPENAI_API_KEY=sk-abcdefghijklmnopqrstuvwx\nghp_0123456789abcdefghijABCD\n"
+            "password: hunter22\n-----BEGIN OPENSSH PRIVATE KEY-----\nabc\n"
+            "-----END OPENSSH PRIVATE KEY-----\nbonjour")
+    out = redact(text)
+    for secret in ("sk-abcdef", "ghp_0123", "hunter22", "abc\n-----END"):
+        assert secret not in out
+    assert "bonjour" in out and out.count("[secret masqué]") >= 4
+
+
+def test_hidden_home_folders_refused(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    (tmp_path / ".config" / "autostart").mkdir(parents=True)
+    (tmp_path / "projets").mkdir()
+    with pytest.raises(ValueError):
+        check_workdir(str(tmp_path / ".config"))
+    with pytest.raises(ValueError):
+        check_workdir(str(tmp_path / ".config" / "autostart"))
+    assert check_workdir(str(tmp_path / "projets")) == (tmp_path / "projets").resolve()
+
+
+async def test_search_never_follows_links_outside(ws: Workspace, tmp_path: Path) -> None:
+    secret = tmp_path / "dehors.txt"
+    secret.write_text("MOT-DE-PASSE-DEHORS")
+    (ws.root / "lien.txt").symlink_to(secret)
+    assert "DEHORS" not in await ws.search_files({"query": "DEHORS"})
+    assert "refusé" in await ws.search_files({"query": "x", "glob": "../*"})
+    with pytest.raises(PermissionError):
+        await ws.read_file({"path": "lien.txt"})
+
+
+async def test_tool_conversation_is_per_task() -> None:
+    import asyncio
+
+    from tontolo.agent.loop import CURRENT
+
+    seen: dict[str, str] = {}
+
+    async def turn(cid: str) -> None:
+        CURRENT.set(cid)
+        await asyncio.sleep(0.01)  # l'autre tour s'exécute entre-temps
+        seen[cid] = CURRENT.get()
+
+    await asyncio.gather(asyncio.create_task(turn("A")), asyncio.create_task(turn("B")))
+    assert seen == {"A": "A", "B": "B"}

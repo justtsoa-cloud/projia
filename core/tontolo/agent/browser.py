@@ -66,14 +66,23 @@ READ_JS = r"""
 """
 
 CLICK_JS = r"""
-((id, text) => {
+((id, text, press) => {
+  const isButton = x => {
+    const tag = x.tagName, type = (x.getAttribute('type') || '').toLowerCase();
+    return tag === 'BUTTON' || (tag === 'INPUT' && /submit|button|image|reset/.test(type)) ||
+           x.getAttribute('role') === 'button' || (x.hasAttribute('onclick') && tag !== 'A');
+  };
   let e = id ? document.querySelector('[data-tontolo-id="' + id + '"]') : null;
   if (!e && text) {
     const t = text.toLowerCase();
-    e = [...document.querySelectorAll('a,button,[role=button],input[type=submit],summary')]
+    e = [...document.querySelectorAll(press ? 'button,[role=button],input,[onclick]'
+                                            : 'a[href],summary,[role=link],[role=tab]')]
       .find(x => (x.innerText || x.value || '').toLowerCase().includes(t));
   }
   if (!e) return 'introuvable';
+  // Lien : libre. Bouton (envoi, achat, suppression…) : seulement par browser_press, après
+  // confirmation de l'utilisateur.
+  if (!press && isButton(e)) return 'bouton';
   e.scrollIntoView({block: 'center'}); e.click();
   return 'ok : ' + (e.innerText || e.value || e.tagName).trim().slice(0, 80);
 })
@@ -100,6 +109,10 @@ TYPE_JS = r"""
   return 'ok';
 })
 """
+
+
+BUTTON_MSG = ("c'est un bouton (envoi, achat, suppression…) : utilise browser_press, qui "
+              "demande l'accord de l'utilisateur")
 
 
 class BrowserError(Exception):
@@ -297,11 +310,14 @@ class CdpBrowser:
             elif action == "back":
                 await self._eval(session, "history.back()")
                 await self._wait_loaded(session)
-            elif action == "click":
+            elif action in ("click", "press"):
                 out = await self._eval(session, f"({CLICK_JS})({json.dumps(args.get('id'))}, "
-                                                f"{json.dumps(args.get('text') or '')})")
+                                                f"{json.dumps(args.get('text') or '')}, "
+                                                f"{json.dumps(action == 'press')})")
                 if out == "introuvable":
                     return {"error": "élément introuvable : relis la page (browser_read)"}
+                if out == "bouton":
+                    return {"error": BUTTON_MSG}
                 await self._wait_loaded(session)
             elif action == "type":
                 out = await self._eval(session, f"({TYPE_JS})({json.dumps(args.get('id'))}, "
@@ -349,7 +365,8 @@ class AppBridge:
         fut: asyncio.Future[dict[str, Any]] = asyncio.get_running_loop().create_future()
         self.waiting[rid] = fut
         await self.queue.put({"id": rid, "conversation_id": cid, "action": action, "args": args,
-                              "read_js": READ_JS, "click_js": CLICK_JS, "type_js": TYPE_JS})
+                              "read_js": READ_JS, "click_js": CLICK_JS, "type_js": TYPE_JS,
+                              "button_msg": BUTTON_MSG})
         try:
             return await asyncio.wait_for(fut, 60)
         except TimeoutError as exc:
@@ -429,16 +446,25 @@ def browser_tools(get_backend: Any, conversation: Any, describe_image: Any = Non
              "cliquables numérotés.", url, runner("open")),
         Tool("browser_read", "Relit la page actuelle de l'onglet (texte et éléments).", empty,
              runner("read")),
-        Tool("browser_click", "Clique sur un élément (id de browser_read, ou texte visible).",
+        Tool("browser_click", "Suit un lien ou un onglet de la page (id de browser_read, ou "
+             "texte visible). Pour un bouton, utilise browser_press.",
              {"type": "object", "properties": {"id": {"type": "integer"},
                                                "text": {"type": "string"}}},
              runner("click")),
+        Tool("browser_press", "Appuie sur un bouton (envoyer, valider, acheter, supprimer…) : "
+             "demande l'accord de l'utilisateur.",
+             {"type": "object", "properties": {"id": {"type": "integer"},
+                                               "text": {"type": "string"}}},
+             runner("press"), side_effect=True,
+             preview=lambda a: f"Bouton : {a.get('text') or '#' + str(a.get('id'))}"),
         Tool("browser_type", "Saisit du texte dans un champ (id) et l'envoie si submit = true. "
              "Demande confirmation ; jamais de mot de passe ni de carte bancaire.",
              {"type": "object", "properties": {"id": {"type": "integer"},
                                                "text": {"type": "string"},
                                                "submit": {"type": "boolean"}},
-              "required": ["id", "text"]}, runner("type"), side_effect=True),
+              "required": ["id", "text"]}, runner("type"), side_effect=True,
+             preview=lambda a: f"Champ #{a.get('id')} : « {a.get('text', '')} »"
+             + (" puis envoi" if a.get("submit") else "")),
         Tool("browser_scroll", "Fait défiler la page vers le bas.", empty, runner("scroll")),
         Tool("browser_back", "Revient à la page précédente.", empty, runner("back")),
         Tool("browser_look", "Regarde la page affichée (capture décrite par un modèle qui "
