@@ -149,7 +149,7 @@ class _WhatsNew extends StatelessWidget {
                 if (groups.length > 1)
                   Padding(
                     padding: const EdgeInsets.only(top: 12, bottom: 2),
-                    child: Text('Version $v', style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Theme.of(context).colorScheme.primary)),
+                    child: Text('${context.t('version')} $v', style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Theme.of(context).colorScheme.primary)),
                   ),
                 for (final n in group)
                 ListTile(

@@ -74,7 +74,7 @@ class _GalleryState extends State<_Gallery> {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.all(8),
         child: Row(children: [
-          for (final (k, label) in [(null, 'Tout'), ('image_gen', 'Images'), ('tts', 'Voix'), ('stt', 'Transcriptions'), ('video_gen', 'Vidéos')])
+          for (final (k, label) in [(null, context.t('f_all')), ('image_gen', context.t('f_images')), ('tts', context.t('f_voices')), ('stt', context.t('f_transcripts')), ('video_gen', context.t('f_videos'))])
             Padding(
               padding: const EdgeInsets.only(right: 6),
               child: ChoiceChip(label: Text(label), selected: kind == k, onSelected: (_) { kind = k; _load(); }),
@@ -134,14 +134,14 @@ class _NewsFeedState extends State<NewsFeed> {
   List<Map<String, dynamic>> items = [];
 
   static const labels = {
-    'new_free': ('Nouveau modèle gratuit', Icons.celebration_outlined),
-    'became_free': ('Devenu gratuit', Icons.savings_outlined),
-    'new_top': ('Nouveau n°1', Icons.emoji_events_outlined),
-    'removed': ('Retiré', Icons.remove_circle_outline),
-    'no_longer_free': ('N\'est plus gratuit', Icons.money_off),
-    'new': ('Nouveau modèle', Icons.fiber_new_outlined),
-    'price_changed': ('Prix modifié', Icons.price_change_outlined),
-    'capabilities_changed': ('Capacités modifiées', Icons.tune),
+    'new_free': ('ch_new_free', Icons.celebration_outlined),
+    'became_free': ('ch_became_free', Icons.savings_outlined),
+    'new_top': ('ch_new_top', Icons.emoji_events_outlined),
+    'removed': ('ch_removed', Icons.remove_circle_outline),
+    'no_longer_free': ('ch_no_longer_free', Icons.money_off),
+    'new': ('ch_new', Icons.fiber_new_outlined),
+    'price_changed': ('ch_price', Icons.price_change_outlined),
+    'capabilities_changed': ('ch_caps', Icons.tune),
   };
 
   @override
@@ -174,7 +174,8 @@ class _NewsFeedState extends State<NewsFeed> {
         itemCount: items.length,
         itemBuilder: (context, i) {
           final c = items[i];
-          final (label, icon) = labels[c['kind']] ?? ('${c['kind']}', Icons.info_outline);
+          final (key, icon) = labels[c['kind']] ?? ('${c['kind']}', Icons.info_outline);
+          final label = context.t(key);
           final detail = (c['detail'] as Map?) ?? {};
           final date = DateTime.fromMillisecondsSinceEpoch(((c['ts'] as num) * 1000).round());
           return ListTile(

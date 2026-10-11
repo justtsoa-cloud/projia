@@ -120,3 +120,23 @@ def test_animate_attached_photo() -> None:
         {"type": "text", "text": "anime cette photo"},
         {"type": "image_url", "image_url": {"url": "data:image/png;base64,AAAA"}}]}
     assert classify([msg]).category == Category.VIDEO_GEN
+
+
+@pytest.mark.parametrize(("text", "cat"), [
+    ("Manaova sary tilikambo jiro", Category.IMAGE_GEN),
+    ("Mamorona horonan-tsary momba ny ranomasina", Category.VIDEO_GEN),
+    ("Karohy amin'ny tranonkala: vidin'ny vary", Category.SEARCH),
+    ("Adikao amin'ny teny anglisy: manao ahoana", Category.TRANSLATION),
+])
+def test_malagasy_requests(text: str, cat: Category) -> None:
+    assert classify([{"role": "user", "content": text}]).category == cat
+
+
+def test_malagasy_photo_requests() -> None:
+    def with_photo(text: str) -> dict[str, Any]:
+        return {"role": "user", "content": [
+            {"type": "text", "text": text},
+            {"type": "image_url", "image_url": {"url": "data:image/png;base64,AAAA"}}]}
+
+    assert classify([with_photo("Ampihetsiho ity sary ity")]).category == Category.VIDEO_GEN
+    assert classify([with_photo("Hatsarao ity sary ity")]).category == Category.IMAGE_EDIT

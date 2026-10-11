@@ -100,7 +100,8 @@ class ChatController extends ChangeNotifier {
 
   void _schedule(double at, String topic, String key) {
     final locale = backend.prefs.locale;
-    Notifier.availableAt(at, topic, tr(locale, 'notif_title'), tr(locale, key));
+    Notifier.availableAt(at, topic, tr(locale, 'notif_title'), tr(locale, key),
+        channel: tr(locale, 'notif_channel'), channelDescription: tr(locale, 'notif_channel_desc'));
   }
 
   void newChat() {
@@ -188,15 +189,16 @@ class ChatController extends ChangeNotifier {
     status = 'retouching';
     final user = ChatMessage(role: 'user', text: text)..images = [previewDataUrl];
     final answer = ChatMessage(role: 'assistant', streaming: true)
-      ..modelName = 'Retouche locale (sur l\'appareil)'
+      ..modelName = tr(backend.prefs.locale, 'local_retouch_name')
       ..model = 'local:retouche'
       ..job = {'status': 'running', 'kind': 'image_edit', 'params': <String, dynamic>{}};
     messages..add(user)..add(answer);
     notifyListeners();
     try {
       final jpg = await retouchPhoto(original, intent.plan);
-      final note = 'Retouche faite sur votre appareil, rien n\'a été envoyé. '
-          '${intent.plan.steps.join(' · ')}. La personne et la composition sont inchangées.';
+      final loc = backend.prefs.locale;
+      final note = tr(loc, 'local_retouch_note',
+          {'steps': intent.plan.steps.map((k) => tr(loc, k)).join(' · ')});
       final res = await backend.sendJson('POST', '/tontolo/chat/local-media', {
         'conversation_id': conversationId,
         'content': [

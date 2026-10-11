@@ -11,6 +11,7 @@ import asyncio
 import base64
 import hmac
 import json
+import re
 import time
 import uuid
 from collections.abc import AsyncIterator
@@ -69,6 +70,41 @@ async def _media_prompt(core: Core, cid: str, text: str) -> str:
         if len(t.split()) >= 3 and (mentions_image(t) or not _is_followup(t)):
             return f"{t} — {text}" if len(words) < 6 else f"{t}. {text}"
     return text
+
+
+_NON_ENGLISH = re.compile(
+    r"[àâçéèêëîïôûùüÿœ]|\b(une?|des|les|du|de la|dans|avec|sur|qui|et|est|"
+    r"manaova|mamorona|sary|ny|amin|izay|sy|ary|horonan)\b", re.I)
+
+ENGLISH_PROMPT = (
+    "Rewrite the user's request as one concise English prompt for an image or video "
+    "generator: describe only the subject, scene, style and mood. Translate from any "
+    "language (French, Malagasy…), keeping compound nouns whole (Malagasy « tilikambo jiro » "
+    "is a lighthouse, « sambo » a boat, « vorona » a bird). Output only the prompt, nothing "
+    "else.")
+
+
+async def _english_prompt(core: Core, text: str) -> str:
+    """Les générateurs d'images et de vidéos suivent mal le français et le malgache :
+    reformulation en anglais par un petit modèle gratuit (texte d'origine en cas d'échec)."""
+    if not _NON_ENGLISH.search(text):
+        return text
+    messages = [{"role": "system", "content": ENGLISH_PROMPT},
+                {"role": "user", "content": text[:1500]}]
+    out: str | None = None
+    try:
+        # Meilleur modèle de traduction (le malgache demande un bon modèle), délai borné.
+        async with asyncio.timeout(25):
+            async for ev in core.router.run(messages, stream=False, forced=Category.TRANSLATION,
+                                            params={"max_tokens": 300, "temperature": 0.2}):
+                if ev["type"] == "done":
+                    out = str(ev["message"].get("content") or "")
+    except Exception:  # délai dépassé ou erreur : la traduction ne bloque jamais la création
+        out = None
+    if not out:
+        out = await core.router.quick(messages)
+    out = (out or "").strip().strip('"').strip()
+    return out[:900] if 3 <= len(out.split()) <= 160 else text
 
 
 def _first_image(content: Any) -> bytes | None:
@@ -432,6 +468,8 @@ def create_app(
             await core.db.add_message(cid, {"role": "user", "content": body.content})
         image = _first_image(body.content)
         prompt = await _media_prompt(core, cid, text)
+        if category in (Category.IMAGE_GEN, Category.VIDEO_GEN):
+            prompt = await _english_prompt(core, prompt)
         job = await core.media.submit(category.value, prompt, conversation_id=cid,
                                       model=body.model, input_bytes=image,
                                       input_name="image.png")

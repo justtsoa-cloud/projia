@@ -12,13 +12,13 @@ void main() {
       expect(i.preservesSubject, isTrue);
       expect(i.contentChange, isFalse);
       expect(i.plan.autoLevels, isTrue);
-      expect(i.plan.steps.first, contains('professionnel'));
+      expect(i.plan.steps.first, 'rt_pro');
     });
 
     test('simple « édite cette photo » → amélioration automatique fidèle', () {
       final i = analyzeEdit('Edite cette photo');
       expect(i.mode, EditMode.local);
-      expect(i.plan.steps.single, contains('automatique'));
+      expect(i.plan.steps.single, 'rt_auto');
     });
 
     test('filtres usuels', () {

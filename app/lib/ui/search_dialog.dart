@@ -54,7 +54,7 @@ class _SearchDialogState extends State<_SearchDialog> {
             const SizedBox(height: 8),
             SegmentedButton<String>(
               segments: [
-                const ButtonSegment(value: 'all', label: Text('Tout')),
+                ButtonSegment(value: 'all', label: Text(context.t('f_all'))),
                 ButtonSegment(value: 'chat', label: Text(context.t('chat'))),
                 ButtonSegment(value: 'media', label: Text(context.t('creations'))),
               ],

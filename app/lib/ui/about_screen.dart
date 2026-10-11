@@ -11,11 +11,12 @@ class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
   static const attributions = [
-    ('Artificial Analysis', 'https://artificialanalysis.ai/', 'Indices d\'intelligence, de code, de maths et de vitesse.'),
-    ('LMArena', 'https://lmarena.ai/', 'Classements par catégorie — jeu de données sous licence CC BY 4.0.'),
-    ('OpenRouter', 'https://openrouter.ai/', 'Catalogue des modèles, prix et capacités.'),
-    ('awesome-free-llm-apis', 'https://github.com/mnfst/awesome-free-llm-apis', 'Fournisseurs gratuits (CC0 1.0).'),
-    ('Pollinations', 'https://pollinations.ai/', 'Texte et images sans clé.'),
+    ('Artificial Analysis', 'https://artificialanalysis.ai/', 'attr_aa'),
+    ('LMArena', 'https://lmarena.ai/', 'attr_lma'),
+    ('OpenRouter', 'https://openrouter.ai/', 'attr_or'),
+    ('awesome-free-llm-apis', 'https://github.com/mnfst/awesome-free-llm-apis', 'attr_free'),
+    ('Pollinations', 'https://pollinations.ai/', 'attr_poll'),
+    ('Hugging Face — LTX-Video', 'https://huggingface.co/spaces/Lightricks/ltx-video-distilled', 'attr_ltx'),
   ];
 
   @override
@@ -26,7 +27,7 @@ class AboutScreen extends StatelessWidget {
           const SizedBox(height: 8),
           Center(child: Text('Tontolo $appVersion', style: Theme.of(context).textTheme.titleLarge)),
           const SizedBox(height: 4),
-          const Center(child: Text('Hub d\'IA libre et gratuit — licence Apache-2.0')),
+          Center(child: Text(context.t('about_tagline'), textAlign: TextAlign.center)),
           TextButton(
             onPressed: () => launchUrl(Uri.parse('https://github.com/$repo')),
             child: const Text('github.com/raantss18/tontolo'),
@@ -36,14 +37,14 @@ class AboutScreen extends StatelessWidget {
           for (final (name, url, use) in attributions)
             ListTile(
               title: Text(name),
-              subtitle: Text(use),
+              subtitle: Text(context.t(use)),
               trailing: const Icon(Icons.open_in_new, size: 18),
               onTap: () => launchUrl(Uri.parse(url)),
             ),
           const Divider(),
           ListTile(
             title: Text(context.t('license')),
-            subtitle: const Text('Licences des composants open source'),
+            subtitle: Text(context.t('oss_licenses')),
             onTap: () => showLicensePage(context: context, applicationName: 'Tontolo', applicationVersion: appVersion),
           ),
         ]),

@@ -113,6 +113,7 @@ class MediaService:
         }
         if kind in ("image_gen", "image_edit") and (w := image_text_warning(prompt)):
             job["params"]["warning"] = w
+            job["params"]["warning_code"] = "text_in_image"
         if input_bytes is not None:
             inp = self.dir / "inputs" / f"{job['id']}-{Path(input_name).name}"
             inp.parent.mkdir(parents=True, exist_ok=True)
@@ -259,6 +260,7 @@ class MediaService:
                 job[key] = gen_job.get(key)
             job["params"].update(gen_job["params"])
             job["params"]["warning"] = REINTERPRETATION_NOTE if description else NO_VISION_NOTE
+            job["params"]["warning_code"] = "reinterpretation" if description else "no_vision"
         return done, errors
 
     async def _call(self, kind: str, m: Any, provider: dict[str, Any],

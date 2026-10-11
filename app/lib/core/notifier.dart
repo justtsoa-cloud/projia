@@ -17,17 +17,17 @@ class Notifier {
   static Future<bool>? _init;
   static final Map<int, Timer> _timers = {};
 
-  static const _details = NotificationDetails(
-    android: AndroidNotificationDetails(
-      'availability',
-      'Disponibilité des modèles',
-      channelDescription: 'Prévient quand un modèle gratuit redevient disponible',
-      icon: 'ic_stat_tontolo',
-      importance: Importance.defaultImportance,
-      priority: Priority.defaultPriority,
-    ),
-    linux: LinuxNotificationDetails(),
-  );
+  static NotificationDetails _details(String channel, String description) => NotificationDetails(
+        android: AndroidNotificationDetails(
+          'availability',
+          channel,
+          channelDescription: description,
+          icon: 'ic_stat_tontolo',
+          importance: Importance.defaultImportance,
+          priority: Priority.defaultPriority,
+        ),
+        linux: const LinuxNotificationDetails(),
+      );
 
   static Future<bool> _ensure() => _init ??= () async {
         if (!(Platform.isAndroid || Platform.isLinux)) return false;
@@ -48,7 +48,9 @@ class Notifier {
 
   /// Programme « de nouveau disponible » à l'instant `epochSeconds` (heure de retour estimée
   /// par le cœur). Une seule notification par sujet (`topic`) : la dernière remplace l'autre.
-  static Future<void> availableAt(double epochSeconds, String topic, String title, String body) async {
+  static Future<void> availableAt(double epochSeconds, String topic, String title, String body,
+      {String channel = 'Disponibilité des modèles', String channelDescription = ''}) async {
+    final details = _details(channel, channelDescription);
     if (!await _ensure()) return;
     final id = topic.hashCode & 0x7fffffff;
     final when = DateTime.fromMillisecondsSinceEpoch((epochSeconds * 1000).round()).add(const Duration(seconds: 20));
@@ -65,13 +67,13 @@ class Notifier {
           title: title,
           body: body,
           scheduledDate: tz.TZDateTime.from(when.toUtc(), tz.UTC),
-          notificationDetails: _details,
+          notificationDetails: details,
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         );
       } else {
         _timers[id] = Timer(delay, () {
           _timers.remove(id);
-          _plugin.show(id: id, title: title, body: body, notificationDetails: _details);
+          _plugin.show(id: id, title: title, body: body, notificationDetails: details);
         });
       }
     } catch (e) {

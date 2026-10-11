@@ -79,7 +79,11 @@ class _Simple extends StatelessWidget {
               DropdownMenuItem(value: 'en', child: Text('English')),
               DropdownMenuItem(value: 'mg', child: Text('Malagasy')),
             ],
-            onChanged: (v) => prefs.locale = v ?? 'fr',
+            onChanged: (v) {
+              prefs.locale = v ?? 'fr';
+              // Le moteur répond par défaut dans la langue de l'interface.
+              scope.backend.sendJson('PUT', '/tontolo/settings', {'language': prefs.locale}).catchError((_) => null);
+            },
           ),
         ),
         ListTile(
@@ -143,11 +147,11 @@ class _Simple extends StatelessWidget {
   }
 
   String _updateText(BuildContext context, Updater up) => switch (up.status) {
-        UpdateStatus.downloading => 'Téléchargement… ${(up.progress * 100).round()} %',
+        UpdateStatus.downloading => '${context.t('update_downloading')} ${(up.progress * 100).round()} %',
         UpdateStatus.ready => up.message ?? '',
         UpdateStatus.failed => up.message ?? '',
-        UpdateStatus.upToDate => 'Version $appVersion : à jour',
-        _ => 'Version $appVersion',
+        UpdateStatus.upToDate => context.t('up_to_date_v', {'v': appVersion}),
+        _ => '${context.t('version')} $appVersion',
       };
 }
 
@@ -233,7 +237,7 @@ class _ProviderKeysState extends State<ProviderKeys> {
             title: Text('${p['name']}'),
             subtitle: Text(p['keyless'] == true
                 ? context.t('no_key_needed')
-                : '${p['free_models']} modèles gratuits'),
+                : context.t('n_free_models', {'n': '${p['free_models']}'})),
             onTap: p['keyless'] == true ? null : () => _edit(p),
           ),
       ]);
@@ -391,7 +395,7 @@ class _AdvancedState extends State<_Advanced> {
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: Row(children: [
-          Expanded(child: TextField(controller: mcpName, decoration: const InputDecoration(hintText: 'nom'))),
+          Expanded(child: TextField(controller: mcpName, decoration: InputDecoration(hintText: context.t('name_hint')))),
           const SizedBox(width: 8),
           Expanded(flex: 2, child: TextField(controller: mcpUrl, decoration: const InputDecoration(hintText: 'https://…/mcp'))),
           IconButton(
@@ -407,10 +411,10 @@ class _AdvancedState extends State<_Advanced> {
           ),
         ]),
       ),
-      _Section('Catalogue'),
+      _Section(context.t('catalog')),
       ListTile(
-        title: const Text('Mettre à jour le catalogue'),
-        subtitle: Text(status == null ? '' : 'Sources : ${(status!['sources'] as Map).entries.map((e) => '${e.key} ${e.value}').join(', ')}'),
+        title: Text(context.t('catalog_refresh')),
+        subtitle: Text(status == null ? '' : '${context.t('catalog_sources')} : ${(status!['sources'] as Map).entries.map((e) => '${e.key} ${e.value}').join(', ')}'),
         trailing: const Icon(Icons.refresh),
         onTap: () async {
           await scope.backend.sendJson('POST', '/tontolo/catalog/refresh');
@@ -419,19 +423,21 @@ class _AdvancedState extends State<_Advanced> {
       ),
       if (status != null && (status!['quotas'] as Map).isNotEmpty)
         ExpansionTile(
-          title: Text('Modèles en attente (${(status!['quotas'] as Map).length})'),
+          title: Text(context.t('models_waiting_n', {'n': '${(status!['quotas'] as Map).length}'})),
           children: [
             for (final e in (status!['quotas'] as Map).entries)
               ListTile(
                 dense: true,
                 title: Text('${e.key}'),
-                subtitle: Text('${(e.value as Map)['reason']} jusqu\'à '
-                    '${DateTime.fromMillisecondsSinceEpoch((((e.value as Map)['until'] as num) * 1000).round()).toLocal().toString().substring(0, 16)}'),
+                subtitle: Text(context.t('until_reason', {
+                  'reason': '${(e.value as Map)['reason']}',
+                  't': DateTime.fromMillisecondsSinceEpoch((((e.value as Map)['until'] as num) * 1000).round()).toLocal().toString().substring(0, 16),
+                })),
               ),
           ],
         ),
       if (scope.backend.startupTime != null)
-        ListTile(dense: true, title: Text('Démarrage du moteur : ${scope.backend.startupTime!.inMilliseconds} ms')),
+        ListTile(dense: true, title: Text(context.t('engine_startup', {'ms': '${scope.backend.startupTime!.inMilliseconds}'}))),
     ]);
   }
 }

@@ -27,7 +27,7 @@ class RetouchPlan {
   double fade = 0; // 0 … 1 (noirs relevés, rendu « film »)
   bool grayscale = false;
   bool sepia = false;
-  final List<String> steps = []; // phrases lisibles, dans la langue de l'interface (fr)
+  final List<String> steps = []; // clés de traduction (rt_…), affichées dans la langue de l'interface
 
   Map<String, Object> toMap() => {
         'autoLevels': autoLevels, 'brightness': brightness, 'contrast': contrast,
@@ -87,7 +87,7 @@ final _preserve = RegExp(
     r"sans (rien )?(changer|modifier|alterer|toucher|deformer)|ne (change|modifie|touche|deforme) pas|"
     r"\b(garde|gardez|conserve|conservez|respecte|preserve)\b|identique|inchange|"
     r"meme (personne|visage|photo|composition|cadrage)|fidele|without changing|keep the (same|person)|"
-    r"don't change|do not change");
+    r"don't change|do not change|tsy (ovaina|ovana|ovay)");
 
 /// Changements de contenu : impossibles à faire fidèlement avec de simples retouches.
 final _contentChange = RegExp(
@@ -108,14 +108,15 @@ EditIntent analyzeEdit(String text) {
   final t = original
       .replaceAll(RegExp(r"(sans|without)( rien)? (changer|modifier|alterer|toucher|deformer|changing|altering)[^,.;]*"), ' ')
       .replaceAll(RegExp(r"\b(ne|n') ?(change|modifie|touche|deforme)\w* pas[^,.;]*"), ' ')
-      .replaceAll(RegExp(r"(don't|do not) change[^,.;]*"), ' ');
+      .replaceAll(RegExp(r"(don't|do not) change[^,.;]*"), ' ')
+      .replaceAll(RegExp(r"tsy (ovaina|ovana|ovay)[^,.;]*"), ' ');
   final plan = RetouchPlan();
   var matched = false;
   bool has(String re) => RegExp(re).hasMatch(t);
 
   void step(String s) => plan.steps.add(s);
 
-  if (has(r'professionnel|\bpro\b|corporate|linkedin|cv\b|portrait soigne|propre|soigne|elegant')) {
+  if (has(r'professionnel|\bpro\b|corporate|linkedin|cv\b|portrait soigne|propre|soigne|elegant|matihanina')) {
     plan
       ..autoLevels = true
       ..contrast *= 1.08
@@ -123,42 +124,42 @@ EditIntent analyzeEdit(String text) {
       ..warmth += 0.05
       ..sharpen = math.max(plan.sharpen, 0.5)
       ..vignette = math.max(plan.vignette, 0.12);
-    step('Style professionnel : lumière équilibrée, contraste, couleurs naturelles, netteté');
+    step('rt_pro');
     matched = true;
   }
-  if (has(r'eclaircis|eclaircir|plus clair|lumineu|luminosite|trop sombre|illumine|brighten')) {
+  if (has(r'eclaircis|eclaircir|plus clair|lumineu|luminosite|trop sombre|illumine|brighten|mazava kokoa|hazavao')) {
     plan..brightness += 0.10..gamma *= 0.88;
-    step('Photo éclaircie');
+    step('rt_bright');
     matched = true;
   }
   if (has(r'assombris|assombrir|plus sombre|trop clair|surexpos')) {
     plan..brightness -= 0.10..gamma *= 1.12;
-    step('Photo assombrie');
+    step('rt_dark');
     matched = true;
   }
   if (has(r'contraste|contrast|punch|percutant')) {
     plan.contrast *= 1.2;
-    step('Contraste renforcé');
+    step('rt_contrast');
     matched = true;
   }
   if (has(r'\bvif|vives|vivid|vibrant|eclatant|sature|colore|couleurs? (plus )?(intense|riche)')) {
     plan.saturation *= 1.3;
-    step('Couleurs plus vives');
+    step('rt_vivid');
     matched = true;
   }
   if (has(r'terne|desature|pale|pastel|moins de couleur')) {
     plan.saturation *= 0.7;
-    step('Couleurs adoucies');
+    step('rt_muted');
     matched = true;
   }
-  if (has(r'noir et blanc|noir & blanc|\bn&b\b|\bn/b\b|monochrome|niveaux de gris|black and white|grayscale')) {
+  if (has(r'noir et blanc|noir & blanc|\bn&b\b|\bn/b\b|monochrome|niveaux de gris|black and white|grayscale|mainty sy fotsy')) {
     plan..grayscale = true..contrast *= 1.1;
-    step('Noir et blanc');
+    step('rt_bw');
     matched = true;
   }
   if (has(r'sepia')) {
     plan.sepia = true;
-    step('Teinte sépia');
+    step('rt_sepia');
     matched = true;
   }
   if (has(r'vintage|retro|ancien|argentique|film\b|nostalg|polaroid')) {
@@ -168,7 +169,7 @@ EditIntent analyzeEdit(String text) {
       ..warmth += 0.15
       ..grain = 0.45
       ..vignette = math.max(plan.vignette, 0.3);
-    step('Rendu vintage : tons délavés, grain, vignettage');
+    step('rt_vintage');
     matched = true;
   }
   if (has(r'dramatique|cinema|cinematograph|moody|sombre et|intense')) {
@@ -177,27 +178,27 @@ EditIntent analyzeEdit(String text) {
       ..saturation *= 0.9
       ..gamma *= 1.1
       ..vignette = math.max(plan.vignette, 0.4);
-    step('Ambiance dramatique : fort contraste et vignettage');
+    step('rt_drama');
     matched = true;
   }
   if (has(r'chaud|warm|dore|golden|coucher de soleil')) {
     plan.warmth += 0.25;
-    step('Tons chauds');
+    step('rt_warm');
     matched = true;
   }
   if (has(r'froid|cool|bleute|glacial')) {
     plan.warmth -= 0.25;
-    step('Tons froids');
+    step('rt_cool');
     matched = true;
   }
   if (has(r'\bdoux|douce|soft|glamour|adouci|lisse|eclat de peau|lueur')) {
     plan.soften = 0.3;
-    step('Rendu doux (légère lueur)');
+    step('rt_soft');
     matched = true;
   }
   if (has(r'\bnet\b|nette|nettete|sharp|precis|detail')) {
     plan.sharpen = math.max(plan.sharpen, 0.8);
-    step('Netteté renforcée');
+    step('rt_sharp');
     matched = true;
   }
   if (has(r'\bhdr\b')) {
@@ -206,7 +207,7 @@ EditIntent analyzeEdit(String text) {
       ..contrast *= 1.2
       ..saturation *= 1.2
       ..sharpen = math.max(plan.sharpen, 0.8);
-    step('Effet HDR');
+    step('rt_hdr');
     matched = true;
   }
 
@@ -222,7 +223,7 @@ EditIntent analyzeEdit(String text) {
       ..saturation = 1.08
       ..sharpen = 0.4
       ..vignette = 0.08;
-    step('Amélioration automatique : lumière, contraste, couleurs, netteté');
+    step('rt_auto');
   }
 
   final mode = (change || (fuzzy && !matched && !preserves)) ? EditMode.creative : EditMode.local;

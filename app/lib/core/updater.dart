@@ -17,9 +17,10 @@ import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 
+import '../l10n/strings.dart';
 import 'prefs.dart';
 
-const appVersion = '0.2.8';
+const appVersion = '0.2.9';
 const repo = 'raantss18/tontolo';
 
 enum UpdateStatus { idle, checking, downloading, ready, failed, upToDate }
@@ -113,7 +114,7 @@ class Updater extends ChangeNotifier {
     try {
       final rel = await _latestRelease();
       prefs.lastUpdateCheck = DateTime.now().millisecondsSinceEpoch;
-      if (rel == null) throw Exception('GitHub injoignable : vérifiez la connexion puis réessayez');
+      if (rel == null) throw _UpdateError('upd_unreachable');
       latest = '${rel['tag_name']}'.replaceFirst('v', '');
       releaseUrl = rel['html_url'] as String?;
       if (!isNewer(latest!, appVersion)) return _set(UpdateStatus.upToDate);
@@ -121,29 +122,32 @@ class Updater extends ChangeNotifier {
       notesRaw = await _notesSince(latest!) ?? '${rel['body'] ?? ''}';
       if (t.$1 == 'linux' && Platform.environment['APPIMAGE'] == null) {
         // Installation hors AppImage (paquet, sources) : on signale seulement.
-        message = 'Version $latest disponible';
+        message = tr(prefs.locale, 'upd_available', {'v': latest!});
         return _set(UpdateStatus.ready);
       }
       final assets = (rel['assets'] as List).cast<Map<String, dynamic>>();
       final asset = _pick(assets, t.$1, t.$2);
       final sums = assets.where((a) => a['name'] == 'SHA256SUMS').firstOrNull;
-      if (asset == null || sums == null) throw Exception('Fichier de mise à jour absent');
+      if (asset == null || sums == null) throw _UpdateError('upd_missing');
       for (final a in [asset, sums]) {
         final host = Uri.parse('${a['browser_download_url']}').host;
         if (host != 'github.com' && !host.endsWith('.githubusercontent.com')) {
-          throw Exception('Origine du téléchargement non reconnue');
+          throw _UpdateError('upd_origin');
         }
       }
       final sumsResp = await http.get(Uri.parse(sums['browser_download_url'])).timeout(const Duration(seconds: 30));
-      if (sumsResp.statusCode != 200) throw Exception('Fichier de mise à jour absent');
+      if (sumsResp.statusCode != 200) throw _UpdateError('upd_missing');
       final sumsText = sumsResp.body;
       final expected = _parseSums(sumsText)[asset['name']];
-      if (expected == null) throw Exception('Empreinte SHA-256 absente');
+      if (expected == null) throw _UpdateError('upd_no_hash');
       file = await _download(asset, expected);
-      message = 'Version $latest prête à installer';
+      message = tr(prefs.locale, 'upd_ready_install', {'v': latest!});
       _set(UpdateStatus.ready); // l'installation est proposée par l'interface, jamais lancée d'office
+    } on _UpdateError catch (e) {
+      message = tr(prefs.locale, e.key);
+      _set(UpdateStatus.failed);
     } catch (e) {
-      message = '$e';
+      message = tr(prefs.locale, 'upd_unreachable');
       _set(UpdateStatus.failed);
     }
   }
@@ -257,7 +261,7 @@ class Updater extends ChangeNotifier {
     final client = http.Client();
     try {
       final resp = await client.send(http.Request('GET', Uri.parse(asset['browser_download_url'])));
-      if (resp.statusCode != 200) throw Exception('Fichier de mise à jour absent (${resp.statusCode})');
+      if (resp.statusCode != 200) throw _UpdateError('upd_missing');
       final total = resp.contentLength ?? (asset['size'] as int? ?? 0);
       final sink = part.openWrite();
       final hashOut = AccumulatorSink<Digest>();
@@ -276,7 +280,7 @@ class Updater extends ChangeNotifier {
       hasher.close();
       if (hashOut.events.single.toString() != expected) {
         await part.delete();
-        throw Exception('Empreinte SHA-256 invalide : mise à jour rejetée');
+        throw _UpdateError('upd_bad_hash');
       }
       return await part.rename(dest.path);
     } finally {
@@ -304,6 +308,12 @@ class Updater extends ChangeNotifier {
     status = s;
     notifyListeners();
   }
+}
+
+/// Échec de mise à jour, traduit dans la langue de l'interface.
+class _UpdateError implements Exception {
+  const _UpdateError(this.key);
+  final String key;
 }
 
 class AccumulatorSink<T> implements Sink<T> {

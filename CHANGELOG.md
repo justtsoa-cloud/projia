@@ -5,6 +5,39 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.2.9] - 2026-10-11
+
+### Corrigé
+- « Manaova sary tilikambo jiro » (et toute création d'image dont les sources étaient en pause
+  après une panne) répondait « Aucune source gratuite disponible pour ce type de média ». Les
+  sources en pause sont maintenant retentées pour un média demandé explicitement.
+- Les demandes d'image et de vidéo en français ou en malagasy sont reformulées en anglais par le
+  meilleur modèle de traduction avant la création (« tilikambo jiro » → un phare, et non une
+  ampoule).
+
+### Ajouté
+- **Bouton « Régénérer »** sous toute création en échec, et « Réessayer » sur les erreurs du chat.
+- **Notification « de nouveau disponible »** : après un quota épuisé ou une pause, l'heure de
+  retour est affichée et une notification est programmée (Android : par le système, même
+  application fermée ; Linux : tant que l'application est ouverte). Annulée si une nouvelle
+  tentative réussit avant.
+- **File d'attente hors ligne** : sans réseau, le message attend et part tout seul au retour de
+  la connexion (vérification toutes les 8 s et au retour au premier plan), annulable.
+- **Page « État des modèles »** : prêts, en pause (avec raison et heure de retour), épuisés pour
+  la journée ; accessible depuis le sélecteur de modèle et les réglages.
+- **Option « Réponse rapide d'abord »** : le modèle le plus rapide pour les demandes simples, le
+  meilleur pour le raisonnement, le code et les maths.
+- API : `GET /tontolo/online`, codes d'erreur stables (`code`, `params.error_code`,
+  `params.retry_at`, `params.warning_code`) pour traduire les messages dans l'application.
+
+### Langues
+- **Malagasy complet** (180 textes ajoutés) et anglais complet : plus aucune chaîne française
+  dans l'interface en anglais ou en malagasy (filtres, galerie, réglages avancés, « Pourquoi ce
+  modèle ? », À propos, étapes de retouche, mises à jour, notifications, erreurs du moteur).
+  Un test vérifie qu'aucune traduction ne manque et que les variables sont conservées.
+- Le moteur répond par défaut dans la langue de l'interface ; le classifieur comprend les
+  demandes malagasy (image, vidéo, « ampihetsiho ity sary ity », retouche, recherche, traduction).
+
 ## [0.2.8] - 2026-10-11
 
 ### Ajouté

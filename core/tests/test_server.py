@@ -483,3 +483,18 @@ def test_paused_image_source_is_retried(client: TestClient, catalog_service: Cat
     j = _wait_job(client, job["id"])
     assert j["status"] == "failed" and j["params"]["error_code"] == "sources_failed"
     assert j["params"]["retry_at"]
+
+
+async def test_media_prompt_translated_to_english() -> None:
+    from tontolo.server.app import _english_prompt
+
+    class R:
+        async def quick(self, messages: list[dict[str, Any]]) -> str:
+            return "A tall lighthouse on a rocky coast at sunset"
+
+    class C:
+        router = R()
+
+    out = await _english_prompt(C(), "Manaova sary tilikambo jiro")  # type: ignore[arg-type]
+    assert out.startswith("A tall lighthouse")
+    assert await _english_prompt(C(), "a cat on a sofa") == "a cat on a sofa"  # type: ignore[arg-type]

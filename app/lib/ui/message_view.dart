@@ -441,10 +441,12 @@ class _CodeBuilder extends MarkdownElementBuilder {
           Positioned(
             right: 0,
             top: 0,
-            child: IconButton(
-              icon: const Icon(Icons.copy, size: 18),
-              tooltip: 'Copier',
-              onPressed: () => Clipboard.setData(ClipboardData(text: code)),
+            child: Builder(
+              builder: (context) => IconButton(
+                icon: const Icon(Icons.copy, size: 18),
+                tooltip: context.t('copy'),
+                onPressed: () => Clipboard.setData(ClipboardData(text: code)),
+              ),
             ),
           ),
         ],
@@ -539,7 +541,8 @@ class _MediaResultState extends State<MediaResult> {
       );
     }
     final mime = '${params['mime'] ?? ''}';
-    final warning = params['warning'];
+    final wcode = params['warning_code'] as String?;
+    final warning = wcode != null ? context.t('warn_$wcode') : params['warning'];
     if (params['local_tts'] == true) {
       return SpeakButton(
         id: 'job-${job['id']}',

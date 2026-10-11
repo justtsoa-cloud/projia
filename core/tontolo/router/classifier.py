@@ -48,6 +48,7 @@ _KEYWORDS: dict[Category, tuple[tuple[str, float], ...]] = {
          r"(videos?|clips?|animations?)\b", 5),
         (r"\b(animate|bring to life)\b.{0,30}\b(photo|image|picture|drawing)s?\b", 5),
         (r"\bhoronan-?tsary\b", 4),
+        (r"\b(ampihetsiho|ampihetseho|hampihetsika)\b.{0,30}\bsary\b", 5),
     ),
     Category.TTS: (
         (r"\b(lis|lire|dis|prononce)\b.*\b([àa] (voix|haute voix)|[àa] l'oral|audio)\b", 4),
@@ -103,6 +104,7 @@ _KEYWORDS: dict[Category, tuple[tuple[str, float], ...]] = {
         (r"\b(news|today|latest|this week|right now|weather|current price|recently|"
          r"who won)\b", 3),
         (r"\b(vaovao|androany|toetr'andro)\b", 3),
+        (r"\b(karohy|tadiavo)\b.*\b(tranonkala|internet|aterineto)\b", 4),
         (r"\b(cherche|recherche|trouve)\b.*\b(sur (le )?web|en ligne|internet|sources?)\b", 3),
         (r"\b(search|look up|google)\b", 2),
     ),
@@ -186,7 +188,8 @@ _EDIT_VERBS = re.compile(
     r"enl[èe]v\w*|efface\w*|retire\w*|am[ée]lior\w*|corrig\w*|filtre\w*|rends|mets|rend|"
     r"[ée]claircis\w*|assombris\w*|recadr\w*|rogn\w*|nettoy\w*|lisse\w*|maquill\w*|colori\w*|"
     r"restaur\w*|r[ée]par\w*|embelli\w*|optimis\w*|enhance|fix|replace|remove|add|edit|retouch|"
-    r"make (it|this)|turn (it|this)|noir et blanc|s[ée]pia|vintage|professionnel\w*)\b", re.I)
+    r"make (it|this)|turn (it|this)|noir et blanc|s[ée]pia|vintage|professionnel\w*|"
+    r"hatsarao|amboary|ahitsio|ovay|mainty sy fotsy|matihanina)\b", re.I)
 
 _FOLLOWUP = re.compile(
     r"^\s*(oui|ok|okay|d'accord|vas-?y|go|allez|essaie|essaye|r[ée]essaie|r[ée]essaye|refais|"

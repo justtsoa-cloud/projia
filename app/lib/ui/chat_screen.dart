@@ -56,7 +56,8 @@ class _ChatScreenState extends State<ChatScreen> {
   static final _editRequest = RegExp(
       r'edit|retouch|modifi|chang|remplac|transform|ajout|supprim|enlev|efface|retir|amelior|'
       r'corrig|filtre|optimis|embell|eclairc|assombri|contraste|recadr|noir et blanc|sepia|'
-      r'vintage|professionnel|\bstyle\b|rends|\bmets\b',
+      r'vintage|professionnel|\bstyle\b|rends|\bmets\b|'
+      r'hatsarao|amboary|ahitsio|ovay|mainty sy fotsy|matihanina|mazava kokoa',
       caseSensitive: false);
 
   void _send(ChatController chat) {
@@ -215,15 +216,15 @@ class _ChatScreenState extends State<ChatScreen> {
           Text(m.modelName ?? m.model ?? ''),
           if (r != null) ...[
             const SizedBox(height: 8),
-            Text('Catégorie : ${r['category']}'),
+            Text('${context.t('why_category')} : ${context.t('cat_${r['category']}')}'),
             Text('${context.t('quality')} : ${r['quality']} · ${context.t('speed')} : ${r['speed']} · '
                 '${context.t('reliability')} : ${r['reliability']}'),
-            Text('Score : ${r['score']}${r['free'] == true ? ' · gratuit' : ''}'
-                '${r['preferred'] == true ? ' · modèle préféré' : ''}'
-                '${r['provisional'] == true ? ' · score provisoire' : ''}'),
+            Text('${context.t('why_score')} : ${r['score']}${r['free'] == true ? ' · ${context.t('tag_free')}' : ''}'
+                '${r['preferred'] == true ? ' · ${context.t('why_preferred')}' : ''}'
+                '${r['provisional'] == true ? ' · ${context.t('why_provisional')}' : ''}'),
           ],
           const SizedBox(height: 12),
-          Text('Classements : Artificial Analysis, LMArena (CC BY 4.0).', style: Theme.of(context).textTheme.bodySmall),
+          Text(context.t('why_rankings'), style: Theme.of(context).textTheme.bodySmall),
         ]),
       ),
     );
@@ -411,7 +412,7 @@ class _InputBar extends StatelessWidget {
               ? IconButton.filledTonal(icon: const Icon(Icons.stop_circle_outlined), tooltip: context.t('stop'), onPressed: chat.stop)
               : IconButton.filled(
                   icon: const Icon(Icons.arrow_upward),
-                  tooltip: '${context.t('send')} (Ctrl+Entrée)',
+                  tooltip: '${context.t('send')} (Ctrl+Enter)',
                   onPressed: ready ? () => state._send(chat) : null,
                 ),
         ]),
@@ -587,6 +588,8 @@ String _errorText(BuildContext context, List<String> parts) {
     'all_failed' => context.t('err_all_failed'),
     'no_model' => context.t('err_no_model'),
     'strict_waiting' => context.t('err_strict'),
+    'agent_timeout' => context.t('err_agent_timeout'),
+    'agent_steps' => context.t('err_agent_steps'),
     _ => parts.length > 3 ? parts.sublist(3).join('|') : context.t('error_generic'),
   };
   if (at != null) {

@@ -111,7 +111,7 @@ Légende : `[x]` fait · `[~]` en cours · `[ ]` à faire
 ## Priorités immédiates (retours utilisateur du 2026-10-11) — avant la suite de la feuille de route
 - [x] P1. Bug : « Manaova sary tilikambo jiro » → « Aucune source gratuite disponible pour ce type de média » (création d'image en malgache / source d'images indisponible)
 - [x] P2. Bouton « Régénérer / Réessayer » sur toute réponse en échec (média ou texte), comme sur la capture
-- [ ] P3. Langues : anglais et malgache complets dans l'application (aucune chaîne française restante, messages du cœur traduits), questions à l'utilisateur pour les termes malgaches difficiles
+- [x] P3. Langues : anglais et malgache complets dans l'application (aucune chaîne française restante, messages du cœur traduits), questions à l'utilisateur pour les termes malgaches difficiles
 - [x] P4. Notification quand un modèle (ou la création d'image/vidéo) redevient disponible après une pause ou un quota épuisé
 
 ## Feuille de route 2026-10 (validée par l'utilisateur, dans l'ordre, étape par étape)

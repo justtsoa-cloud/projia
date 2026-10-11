@@ -25,7 +25,13 @@ Future<void> main() async {
   final updater = Updater(prefs);
   final chat = ChatController(backend);
   runApp(AppScope(prefs: prefs, backend: backend, updater: updater, chat: chat, child: const TontoloApp()));
-  backend.start().then((_) => updater.startAuto());
+  backend.start().then((_) {
+    updater.startAuto();
+    // Langue de réponse par défaut du moteur = langue de l'interface.
+    if (backend.state == BackendState.ready) {
+      backend.sendJson('PUT', '/tontolo/settings', {'language': prefs.locale}).catchError((_) => null);
+    }
+  });
 }
 
 class AppScope extends InheritedWidget {
@@ -50,7 +56,8 @@ class AppScope extends InheritedWidget {
 }
 
 extension TrX on BuildContext {
-  String t(String key, [Map<String, String> args = const {}]) => tr(AppScope.of(this).prefs.locale, key, args);
+  String t(String key, [Map<String, String> args = const {}]) =>
+      tr(dependOnInheritedWidgetOfExactType<AppScope>()?.prefs.locale ?? 'fr', key, args);
 }
 
 extension on BuildContext {

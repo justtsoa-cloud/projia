@@ -4,15 +4,42 @@
 import 'package:flutter/material.dart';
 
 class NewsItem {
-  const NewsItem(this.icon, this.fr, this.frText, this.en, this.enText);
+  const NewsItem(this.icon, this.fr, this.frText, this.en, this.enText, {this.mg, this.mgText});
   final IconData icon;
   final String fr, frText, en, enText;
+  final String? mg, mgText; // malgache (sinon français, langue seconde à Madagascar)
 
-  String title(String locale) => locale == 'en' ? en : fr;
-  String text(String locale) => locale == 'en' ? enText : frText;
+  String title(String locale) => locale == 'en' ? en : (locale == 'mg' ? mg ?? fr : fr);
+  String text(String locale) => locale == 'en' ? enText : (locale == 'mg' ? mgText ?? frText : frText);
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.2.9': [
+    NewsItem(Icons.notifications_active_outlined, 'Prévenu quand c\'est de nouveau disponible',
+        'Si un modèle ou la création d\'images/vidéos est en pause, Tontolo affiche l\'heure de retour et vous envoie une notification quand c\'est reparti. Un bouton « Régénérer » relance d\'un geste.',
+        'Notified when it is back',
+        'If a model or image/video creation is paused, Tontolo shows when it will be back and sends you a notification when it is. A “Regenerate” button retries in one tap.',
+        mg: 'Ampandrenesina rehefa misy indray',
+        mgText: 'Raha mijanona ny modely iray na ny famoronana sary/horonan-tsary, asehon\'i Tontolo ny ora hiverenany ary andefasany fampandrenesana rehefa mandeha indray. Bokotra « Avereno » no mamerina azy.'),
+    NewsItem(Icons.translate, 'Malagasy et anglais complets',
+        'Toute l\'application est traduite en malagasy et en anglais, et Tontolo répond dans la langue choisie. Les demandes d\'images en malagasy (« Manaova sary… ») sont bien comprises.',
+        'Full Malagasy and English',
+        'The whole app is translated into Malagasy and English, and Tontolo answers in the chosen language. Image requests in Malagasy are understood.',
+        mg: 'Malagasy sy anglisy feno',
+        mgText: 'Voadika amin\'ny teny malagasy sy anglisy ny fampiharana manontolo, ary mamaly amin\'ny fiteny nofidinao i Tontolo. Azo tsara ny fangatahana sary amin\'ny teny malagasy (« Manaova sary… »).'),
+    NewsItem(Icons.cloud_upload_outlined, 'Message envoyé au retour du réseau',
+        'Sans connexion, votre message attend et part tout seul dès que le réseau revient.',
+        'Sent when the network is back',
+        'Without a connection, your message waits and is sent automatically when the network returns.',
+        mg: 'Alefa rehefa miverina ny tambajotra',
+        mgText: 'Raha tsy misy fifandraisana, miandry ny hafatrao ary lasa ho azy raha vao miverina ny tambajotra.'),
+    NewsItem(Icons.monitor_heart_outlined, 'État des modèles et réponse rapide',
+        'Nouvelle page « État des modèles » (prêts, en pause, épuisés, heure de retour) et option « Réponse rapide d\'abord » dans Personnalisation.',
+        'Model status and fast answers',
+        'New “Model status” page (ready, paused, exhausted, return time) and a “Fast answers first” option in Personalisation.',
+        mg: 'Toetran\'ny modely sy valiny haingana',
+        mgText: 'Pejy vaovao « Toetran\'ireo modely » (vonona, mijanona, lany, ora hiverenany) sy safidy « Valiny haingana aloha » ao amin\'ny Fanamboarana manokana.'),
+  ],
   '0.2.8': [
     NewsItem(Icons.dashboard_customize_outlined, 'Accueil en raccourcis',
         'Huit raccourcis colorés pour démarrer d\'un geste : image, vidéo, retouche, recherche, traduction, explication, résumé, animation de photo. Plus trois idées qui changent chaque jour.',
