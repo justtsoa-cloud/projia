@@ -5,6 +5,18 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.4.4] - 2026-10-11
+
+### Corrigé (retours d'utilisateurs)
+- Photo d'un exercice + « traite l'exercice 8… rends la réponse en pdf » : la demande était prise
+  pour une retouche (« rends ») et une image sans rapport était créée. Une tâche sur le contenu
+  d'une photo (exercice, question, « résous », « explique »…) n'est plus jamais une retouche ;
+  photo + demande de fichier : la photo est d'abord lue (transcription par un modèle qui voit,
+  même si elle est tournée), puis le fichier est rédigé, vérifié et corrigé.
+- « Nombre maximal d'étapes atteint » sur une question simple : quand un modèle enchaîne les
+  recherches, Tontolo répond au dernier tour avec ce qui a été trouvé au lieu d'échouer, et un
+  appel d'outil identique n'est plus répété.
+
 ## [0.4.3] - 2026-10-11
 
 ### Corrigé (retours d'utilisateur)

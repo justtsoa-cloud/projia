@@ -752,3 +752,62 @@ def test_revision_of_last_file_keeps_format_and_previous_version(
     # Une question après le fichier reste une discussion normale.
     third = chat({"conversation_id": cid, "content": "c'est quoi une fonction contrainte ?"})
     assert not any(e["type"] == "step" for e in third)
+
+
+def test_tool_loop_ends_with_an_answer_not_an_error(client: TestClient,
+                                                    monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[str] = []
+
+    def answer(self: FakeProvider, model: Any, messages: list[dict[str, Any]]) -> dict[str, Any]:
+        last = messages[-1]
+        if last["role"] == "system" and "Assez d'outils" in str(last["content"]):
+            return {"role": "assistant", "content": "Voici les sites : A, B et C."}
+        calls.append("tool")
+        return {"role": "assistant", "content": "", "tool_calls": [{
+            "id": f"c{len(calls)}", "type": "function",
+            "function": {"name": "calculator", "arguments": '{"expression": "1+1"}'}}]}
+
+    monkeypatch.setattr(FakeProvider, "_answer", answer)
+    with client.stream("POST", "/tontolo/chat", json={
+            "content": "Existe-t-il des sites pour créer des portfolios ?"}) as s:
+        events = [json.loads(x[5:]) for x in s.iter_lines() if x.startswith("data:")]
+    assert not any(e["type"] == "error" for e in events)
+    done = [e for e in events if e["type"] == "done"]
+    assert done[-1]["message"]["content"] == "Voici les sites : A, B et C."
+    results = [e for e in events if e["type"] == "tool_result"]
+    assert len(results) >= 2 and "déjà effectué" in results[-1]["preview"]  # pas de répétition
+
+
+def test_photo_plus_pdf_request_reads_the_photo_first(client: TestClient,
+                                                      monkeypatch: pytest.MonkeyPatch) -> None:
+    from tontolo.creator import latex
+    from tontolo.creator.service import CreatorService
+
+    prompts: list[Any] = []
+
+    async def ask(self: Any, messages: Any, *, category: Any = None,
+                  model: Any = None) -> tuple[str, str, str]:
+        prompts.append(messages[-1]["content"])
+        if isinstance(messages[-1]["content"], list):  # transcription de la photo
+            return "Exercice 8. Calculer la transformée de Laplace de t e^{-2t}.", "v:x", "V"
+        return ("\\documentclass{article}\\title{Exercice 8}\\begin{document}F(p)=1/(p+2)^2"
+                "\\end{document}"), "w:x", "W"
+
+    async def pick(self: Any, *, exclude: str, vision: bool = False) -> None:
+        return None
+
+    async def compile_pdf(source: str) -> tuple[bytes, str, str]:
+        return b"%PDF-1.7 test", "", "test"
+
+    monkeypatch.setattr(CreatorService, "ask", ask)
+    monkeypatch.setattr(CreatorService, "pick_reviewer", pick)
+    monkeypatch.setattr(latex, "compile_pdf", compile_pdf)
+    content = [{"type": "text", "text": "traite l'exercice 8, rends la réponse en pdf"},
+               {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,/9j/AA=="}}]
+    with client.stream("POST", "/tontolo/chat", json={"content": content}) as s:
+        events = [json.loads(x[5:]) for x in s.iter_lines() if x.startswith("data:")]
+    steps = [e["step"] for e in events if e["type"] == "step"]
+    assert steps[0] == "doc_reading"
+    job = next(e for e in events if e["type"] == "done")["job"]
+    assert job["kind"] == "file_gen" and job["params"]["mime"] == "application/pdf"
+    assert "Laplace" in str(prompts[1])  # le rédacteur travaille sur la transcription

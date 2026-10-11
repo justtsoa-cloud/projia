@@ -176,3 +176,5 @@ Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cass�
 - [x] B2. La photo jointe clignote dans la bulle (décodage à chaque reconstruction)
 - [x] B3. « Anime-la » après une image générée : la vidéo doit partir de cette image (pas du texte seul)
 - [x] B4. « Rajoute des détails et des exemples » après une carte mentale : modifier le fichier existant (même format, source précédent repris), pas une réponse texte
+- [x] B5. Photo d'exercice + « traite l'exercice 8… rends la réponse en pdf » → retouche d'image absurde : une tâche sur le CONTENU de la photo (exercice, question, résous…) n'est jamais une retouche ; photo + demande de fichier → transcription de la photo puis création du fichier
+- [x] B6. Question simple (« sites pour créer des portfolios ? ») → « Nombre maximal d'étapes atteint » : le modèle enchaîne les recherches ; au dernier tour, répondre sans outil avec ce qui a été trouvé, et ne pas répéter un même appel d'outil

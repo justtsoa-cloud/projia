@@ -500,9 +500,10 @@ def create_app(
             raise HTTPException(400, "format de fichier inconnu")
         category = Category(body.category) if body.category and file_kind is None else None
         base_source: str | None = None
-        if file_kind is None and body.category is None and not _first_image(body.content):
+        if file_kind is None and body.category is None:
+            # Avec ou sans photo : « traite l'exercice de la photo, rends la réponse en pdf ».
             file_kind = file_intent.detect(_text_of(body.content))
-            if file_kind is None and body.conversation_id:
+            if file_kind is None and body.conversation_id and not _first_image(body.content):
                 # « Rajoute des détails », « traduis-la »… juste après un fichier créé :
                 # on modifie CE fichier (même format, version précédente reprise).
                 prev = await _last_file(core, body.conversation_id)
@@ -590,8 +591,11 @@ def create_app(
         )[-9000:]
         await core.db.add_message(cid, {"role": "user", "content": body.content})
         done: dict[str, Any] = {}
+        images = [str((p.get("image_url") or {}).get("url"))
+                  for p in (body.content if isinstance(body.content, list) else [])
+                  if isinstance(p, dict) and p.get("type") == "image_url"][:3]
         async for ev in core.creator.create(kind, text, conversation_id=cid, context=context,
-                                            base=base_source):
+                                            base=base_source, images=images):
             if ev["type"] == "job":
                 done = ev
             yield ev

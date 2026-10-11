@@ -174,3 +174,16 @@ def test_photo_placement_is_an_edit_and_animate_follows_image() -> None:
              {"role": "user", "content": "anime-la"}]
     assert classify(after).category == Category.VIDEO_GEN
     assert classify([{"role": "user", "content": "anime la réunion"}]).category == Category.CHAT
+
+
+def test_photo_of_exercise_is_never_an_edit() -> None:
+    img = {"type": "image_url", "image_url": {"url": "data:image/png;base64,AAA"}}
+
+    def cat(text: str) -> Category:
+        msg = {"role": "user", "content": [{"type": "text", "text": text}, img]}
+        return classify([msg]).category
+
+    assert cat("traite l'exercice 8 de façon détaillé et que ce soit bien clair et juste, "
+               "rends la réponse en pdf") == Category.VISION
+    assert cat("résous ce problème") == Category.VISION
+    assert cat("rends la photo plus lumineuse") == Category.IMAGE_EDIT

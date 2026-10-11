@@ -235,11 +235,18 @@ class ChatService:
         tools = box.schemas() or None
         summary, _ = await self.db.get_summary(cid)
         searched = False
-        for _ in range(self.settings.agent.max_iterations):
-            if time.monotonic() - started > self.settings.agent.max_seconds:
+        done_calls: dict[str, str] = {}  # appel d'outil identique déjà fait → même résultat
+        last = self.settings.agent.max_iterations - 1
+        for step in range(self.settings.agent.max_iterations):
+            elapsed = time.monotonic() - started
+            if elapsed > self.settings.agent.max_seconds:
                 yield {"type": "error", "code": "agent_timeout",
                        "message": "Temps maximal de l'agent atteint."}
                 return
+            # Dernier tour (ou temps presque écoulé) : on répond avec ce qu'on a, sans outil,
+            # au lieu d'échouer après une suite de recherches.
+            final_turn = step >= last or (
+                step > 0 and elapsed > 0.7 * self.settings.agent.max_seconds)
             history = await self.db.get_messages(cid)
             messages = [self._system(await self.db.get_mode(cid)),
                         *await self._explain_media(history)]
@@ -268,8 +275,13 @@ class ChatService:
                         messages.insert(1, {"role": "system", "content":
                                             "Résultats de recherche web récents (cite les URL) :\n"
                                             + untrusted(block)})
+            if final_turn:
+                messages.append({"role": "system", "content": (
+                    "Assez d'outils : réponds maintenant directement à l'utilisateur avec les "
+                    "informations déjà obtenues (et ce que tu sais), sans appeler d'outil.")})
             final: dict[str, Any] | None = None
-            async for ev in self.router.run(messages, conversation_id=cid, tools=tools,
+            async for ev in self.router.run(messages, conversation_id=cid,
+                                            tools=None if final_turn else tools,
                                             model=model, forced=forced, strict=strict,
                                             summary=summary):
                 if ev["type"] == "done":
@@ -302,7 +314,13 @@ class ChatService:
                 fn = call["function"]
                 yield {"type": "tool_call", "name": fn["name"],
                        "arguments": fn.get("arguments", "")}
-                result = await box.call(fn["name"], fn.get("arguments") or "{}")
+                sig = f"{fn['name']}|{fn.get('arguments') or ''}"
+                if sig in done_calls:
+                    result = ("Appel identique déjà effectué ; résultat précédent :\n"
+                              + done_calls[sig][:2000])
+                else:
+                    result = await box.call(fn["name"], fn.get("arguments") or "{}")
+                    done_calls[sig] = result
                 await self.db.add_message(cid, {"role": "tool", "tool_call_id": call["id"],
                                                 "name": fn["name"], "content": result})
                 yield {"type": "tool_result", "name": fn["name"], "preview": result[:300]}

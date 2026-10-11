@@ -63,6 +63,19 @@ class CreatorService:
             return m.key
         return None
 
+    async def transcribe(self, images: list[str]) -> str:
+        """Transcription fidèle des photos (énoncés, formules en LaTeX) par un modèle à vision."""
+        content: list[dict[str, Any]] = [{"type": "text", "text": (
+            "Transcris fidèlement TOUT le texte de cette image : énoncés, numéros d'exercices, "
+            "formules en LaTeX ($…$), tableaux. L'image peut être tournée ou inclinée : lis-la "
+            "quand même. Ne résous rien, ne commente rien.")}]
+        content += [{"type": "image_url", "image_url": {"url": u}} for u in images]
+        text, _, _ = await self.ask([{"role": "user", "content": content}],
+                                    category=Category.VISION)
+        if len(text.strip()) < 20:
+            raise CreationError("la photo n'a pas pu être lue")
+        return text.strip()[:15000]
+
     async def review_answer(self, question: str, answer: str, writer: str
                             ) -> dict[str, Any] | None:
         """Vérification croisée d'une réponse par un modèle d'une autre famille.
@@ -103,8 +116,8 @@ class CreatorService:
                 "name": name}
 
     async def create(self, kind: str, request: str, *, conversation_id: str | None,
-                     context: str = "", base: str | None = None
-                     ) -> AsyncIterator[dict[str, Any]]:
+                     context: str = "", base: str | None = None,
+                     images: list[str] | None = None) -> AsyncIterator[dict[str, Any]]:
         """Événements `step` puis `job` (terminé ou en échec), comme un média."""
         job: dict[str, Any] = {
             "id": uuid.uuid4().hex, "kind": "file_gen", "status": "running", "prompt": request,
@@ -117,6 +130,13 @@ class CreatorService:
         out = Output(b"", "", "", "", "", "")
         creator = Creator(self.ask, self.pick_reviewer if self.review else None)
         try:
+            if images:
+                # Photo jointe (exercice, document…) : lue d'abord par un modèle qui voit,
+                # puis le meilleur rédacteur travaille sur cette transcription.
+                yield {"type": "step", "step": "doc_reading"}
+                transcript = await self.transcribe(images)
+                request = (f"{request}\n\nContenu de la photo jointe (transcription fidèle) :\n"
+                           f"{transcript}")
             async for ev in creator.run(kind, request, context=context, language=self.language,
                                         out=out, base=base):
                 yield ev

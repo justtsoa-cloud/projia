@@ -192,6 +192,15 @@ _EDIT_VERBS = re.compile(
     r"put|place|insert|move|integrate|composite|pose|poser|int[èe]gre\w*|incruste\w*|"
     r"d[ée]place\w*|positionne\w*|apetraho|ampidiro|"
     r"hatsarao|amboary|ahitsio|ovay|mainty sy fotsy|matihanina)\b", re.I)
+# Tâche sur le CONTENU d'une photo (exercice, question, texte à lire) : jamais une retouche.
+_CONTENT_TASK = re.compile(
+    r"\b(exercices?|exercise|probl[èe]mes?|problem|questions?|r[ée]sou[ds]\w*|solve|calcul\w*|"
+    r"d[ée]montr\w*|explique\w*|explain|traite\w*|r[ée]pond\w*|answer|devoirs?|homework|"
+    r"[ée]quations?|int[ée]grales?|d[ée]riv[ée]es?|lis|lire|read|transcri\w*|r[ée]sume\w*|"
+    r"summari[sz]e|traduis|translate|que dit|what does|qu'est-ce que|c'est quoi|corrig[ée] "
+    r"(de |l'|cet |mon )?(exercice|devoir|copie)|fanazaran-tena|olana|vahao|hazavao)\b", re.I)
+
+
 # « Anime-la », « animate it » juste après une image : on anime cette image.
 _ANIMATE = re.compile(
     r"\b(anime[rz]?(-(la|le|les))?|animate|make it move|bring it to life|"
@@ -251,7 +260,8 @@ def classify(
         s = sum(w for rx, w in pats if rx.search(text))
         if s:
             scores[cat] = s
-    if "image" in parts and _EDIT_VERBS.search(text):
+    content_task = "image" in parts and bool(_CONTENT_TASK.search(text))
+    if "image" in parts and _EDIT_VERBS.search(text) and not content_task:
         # Une photo jointe + un verbe de retouche = édition (et non une simple question).
         scores[Category.IMAGE_EDIT] = scores.get(Category.IMAGE_EDIT, 0) + 4
     if "image" in parts and scores.get(Category.VIDEO_GEN):
@@ -259,6 +269,11 @@ def classify(
         scores[Category.VIDEO_GEN] += 6
         scores.pop(Category.IMAGE_EDIT, None)
         scores.pop(Category.IMAGE_GEN, None)
+    elif "image" in parts and content_task:
+        # « Traite l'exercice de la photo », « explique ce document » : on lit la photo.
+        scores.pop(Category.IMAGE_EDIT, None)
+        scores.pop(Category.IMAGE_GEN, None)
+        scores[Category.VISION] = scores.get(Category.VISION, 0) + 6
     elif "image" in parts:
         if scores.get(Category.IMAGE_EDIT) or scores.get(Category.IMAGE_GEN):
             scores[Category.IMAGE_EDIT] = scores.get(Category.IMAGE_EDIT, 0) + 4

@@ -14,6 +14,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.4.4': [
+    NewsItem(Icons.photo_camera_outlined, 'Votre exercice en photo, corrigé en PDF',
+        'Photographiez un exercice et demandez « traite l\'exercice 8, rends la réponse en pdf » : Tontolo lit la photo, rédige la correction et la vérifie.',
+        'Your exercise photo, solved as a PDF', 'Photograph an exercise and ask “solve exercise 8, give me a PDF”: Tontolo reads the photo, writes the solution and checks it.',
+        mg: 'Sarin\'ny fanazaran-tenanao, voavaha ho PDF', mgText: 'Alaivo sary ny fanazaran-tena ary angataho hoe « vahao ny fanazaran-tena 8, omeo PDF »: vakian\'i Tontolo ny sary, soratany ny vahaolana ary hamarininy.'),
+    NewsItem(Icons.travel_explore, 'Des réponses, pas des erreurs',
+        'Après plusieurs recherches sur le web, Tontolo répond avec ce qu\'il a trouvé au lieu d\'afficher « nombre maximal d\'étapes ».',
+        'Answers, not errors', 'After several web searches, Tontolo answers with what it found instead of showing “maximum steps reached”.',
+        mg: 'Valiny fa tsy hadisoana', mgText: 'Aorian\'ny fikarohana maromaro, mamaly amin\'izay hitany i Tontolo fa tsy mampiseho hadisoana.'),
+  ],
   '0.4.3': [
     NewsItem(Icons.auto_fix_high_outlined, 'Vos photos, mises en scène',
         '« Mets cette statue sur une place d\'Antananarivo » : la photo est retouchée en gardant le sujet. « Anime-la » anime l\'image que vous venez de créer.',

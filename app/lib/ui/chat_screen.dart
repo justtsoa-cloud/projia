@@ -64,6 +64,14 @@ class _ChatScreenState extends State<ChatScreen> {
       r'hatsarao|amboary|ahitsio|ovay|mainty sy fotsy|matihanina|mazava kokoa',
       caseSensitive: false);
 
+  /// Tâche sur le contenu de la photo (exercice à résoudre, texte à lire…) : jamais une retouche,
+  /// même si la phrase contient « rends », « corrige » ou « clair ».
+  static final _contentTask = RegExp(
+      r'exercice|exercise|probl[eè]me|problem|question|r[ée]sou|solve|calcul|d[ée]montr|explique|'
+      r'explain|traite|r[ée]pond|answer|devoir|homework|[ée]quation|int[ée]grale|\bpdf\b|\bword\b|'
+      r'docx|fanazaran|vahao|hazavao',
+      caseSensitive: false);
+
   void _send(ChatController chat) {
     final text = input.text.trim();
     if (text.isEmpty && attachments.isEmpty) return;
@@ -79,7 +87,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
     // Photo jointe + consigne de retouche fidèle → traitée sur l'appareil, sans envoi à une IA.
     if (attachments.length == 1 && originals.length == 1 && forcedCategory == null &&
-        _editRequest.hasMatch(text.toLowerCase())) {
+        _editRequest.hasMatch(text.toLowerCase()) && !_contentTask.hasMatch(text.toLowerCase())) {
       final intent = analyzeEdit(text);
       if (intent.mode == EditMode.local) {
         chat.sendLocalRetouch(text, originals.first, attachments.first, intent);
