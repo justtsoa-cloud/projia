@@ -25,6 +25,8 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: uv venv && uv pip install -e ".[dev,linux]"
+      - name: Règle de version (chiffres de 0 à 9, fichiers cohérents)
+        run: python3 ../scripts/bump_version.py --check
       - name: Lint (ruff)
         run: .venv/bin/ruff check tontolo tests
       - name: Typage (mypy)

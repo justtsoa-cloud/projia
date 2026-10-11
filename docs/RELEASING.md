@@ -3,11 +3,20 @@
 Une release GitHub complète est produite automatiquement par
 `.github/workflows/release.yml` à chaque tag `vX.Y.Z`.
 
+## Règle de version
+
+Chaque chiffre va de 0 à 9 : après `x.y.9` vient `x.(y+1).0`, après `x.9.9` vient
+`(x+1).0.0` (ex. 0.2.9 → 0.3.0, 0.9.9 → 1.0.0). Un saut volontaire au palier supérieur
+reste permis (0.4.7 → 0.5.0), jamais un chiffre à 10 ni un retour en arrière. La CI vérifie
+la cohérence des fichiers, et la release refuse une étiquette qui ne suit pas la règle.
+
 ## Étapes
 
-1. Mettre à jour la version dans `core/pyproject.toml`, `core/tontolo/__init__.py`,
-   `app/pubspec.yaml` et `app/lib/core/updater.dart` (`appVersion`).
-2. Compléter `CHANGELOG.md` (section `## [X.Y.Z] - AAAA-MM-JJ`).
+1. `python3 scripts/bump_version.py` (version suivante) ou `… 0.6.0` (saut permis) : met à
+   jour `core/pyproject.toml`, `core/tontolo/__init__.py`, `app/lib/core/updater.dart` et
+   `app/pubspec.yaml` (numéro de build Android +1).
+2. Compléter `CHANGELOG.md` (section `## [X.Y.Z] - AAAA-MM-JJ`) et les nouveautés fr/en/mg
+   de `app/lib/core/whats_new.dart`, puis lancer les tests du cœur et de Flutter.
 3. `git commit -m "chore(release): vX.Y.Z"` puis `git tag vX.Y.Z && git push --tags`.
 4. La CI construit et publie : roue + sdist Python, AppImage (x86_64), APK par ABI
    (arm64-v8a, armeabi-v7a, x86_64) signés, `SHA256SUMS`, rapport de taille, notes tirées

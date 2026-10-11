@@ -226,7 +226,7 @@ l'emploi ; bureau Linux = fichiers + commandes confirmées dans un dossier chois
 - [x] A6. Réponse coupée (limite de longueur) : relance « continue » automatique, 3 fois maximum, arrêt si rien de nouveau
 - [x] A7. Bureau Linux : dossier de travail choisi, lecture/recherche/création/modification avec différences, sauvegarde et annulation, commandes du terminal confirmées une à une, dossiers sensibles bloqués
 - [x] A8. Synchronisation : créations ≤ 1 Mo chiffrées, tâche en cours visible sur les autres appareils, synchro toutes les ~20 s quand l'application est ouverte
-- [ ] A9. Règle de version : x.y.9 → x.(y+1).0 ; x.9.9 → (x+1).0.0 ; script de montée de version + vérification CI
+- [x] A9. Règle de version : x.y.9 → x.(y+1).0 ; x.9.9 → (x+1).0.0 ; script de montée de version + vérification CI
 - [ ] A11. Plusieurs fichiers demandés (ou nécessaires, ex. livre LaTeX en chapitres) : livrés ensemble dans une archive .zip (zipfile de Python, gratuit et local), avec la liste des fichiers
 - [ ] A12. Tâche complexe : découpage précis en étapes (plan visible) ; étapes indépendantes confiées à plusieurs modèles en simultané, ou livraison pas à pas avec un bouton « Continuer » ; le plan et l'avancement restent dans le fil
 - [ ] A13. Android en arrière-plan : la réponse continue quand on quitte l'application (service de premier plan) et, au retour, l'app se rattache au tour en cours au lieu d'annoncer « connexion coupée »

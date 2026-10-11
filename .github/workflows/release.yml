@@ -171,6 +171,8 @@ jobs:
             [ "$f" = SHA256SUMS ] || grep -q "  $f\$" dist/SHA256SUMS
           done
           grep -q "^## \[$v\]" CHANGELOG.md || { echo "::error::CHANGELOG sans section $v"; exit 1; }
+          # Règle de version : x.y.9 → x.(y+1).0, x.9.9 → (x+1).0.0 (docs/RELEASING.md).
+          python3 scripts/bump_version.py --check-tag "$GITHUB_REF_NAME"
           # Le numéro de build Android doit croître, sinon Android refuse la mise à jour.
           build=$(grep '^version:' app/pubspec.yaml | sed 's/.*+//')
           prev=$(git tag -l 'v*' --sort=-v:refname | grep -vx "$GITHUB_REF_NAME" | head -1)
