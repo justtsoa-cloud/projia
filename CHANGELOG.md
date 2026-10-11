@@ -5,6 +5,58 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.5.1] - 2026-10-11
+
+### Ajouté
+- Modèles : liste plus claire, fiche détaillée (fournisseur, coût, contexte, capacités,
+  scores, vitesse, état) et badge « Agent » ; liste simple des générateurs d’images, de
+  vidéos et de sons avec leur état.
+- Mode Agent (troisième onglet) et agents prêts : Chercheur, Développeur, Rédacteur,
+  Analyste. Gratuits par défaut ; modèles payants au choix (jamais / sur accord / auto).
+- Tâches complexes : plan en étapes, parties indépendantes confiées en même temps à
+  plusieurs modèles, ou livraison pas à pas avec « Continuer ». Le plan reste dans le fil.
+- Compactage des longues discussions en fiche structurée (sujets, faits, décisions,
+  créations, tâches), automatique et désactivable, ou à la demande ; messages conservés.
+- Réponse coupée par la limite de longueur : suite demandée automatiquement (3 fois au
+  plus, arrêt si rien de nouveau), aussi pour les longs fichiers.
+- Plusieurs fichiers demandés (ex. livre LaTeX en chapitres) : livrés dans une archive .zip ;
+  un livre LaTeX est compilé en entier et son PDF ajouté.
+- Bureau Linux : dossier de travail choisi pour l’agent (lecture, recherche, modification
+  avec différence affichée, sauvegarde et annulation), commandes confirmées une à une,
+  chemins sensibles bloqués ; terminal intégré (une session par discussion).
+- Navigateur intégré piloté par l’agent : vrai navigateur Chromium/Chrome/Brave/Vivaldi
+  sur le bureau (profil dédié), panneau WebView sur tablette ; un onglet par discussion.
+  L’agent lit la page, la voit (capture décrite par un modèle à vision), suit les liens ;
+  un bouton (envoi, achat, suppression) ou une saisie demande votre accord.
+- Terminal lisible par l’agent (une session par discussion, tenue par le cœur) ; il peut y
+  taper après confirmation, et ses commandes y apparaissent.
+- Résultats intermédiaires des tâches complexes (parties, étapes, sorties longues,
+  brouillons de fichiers) gardés sur l’appareil 7 jours après la fin de la tâche, visibles
+  (« Voir les étapes ») et synchronisés chiffrés : le fil tient même après compactage.
+- Dossiers : partage du contexte activable dossier par dossier (désactivé par défaut).
+- Synchronisation : créations de 1 Mo au plus (chiffrées), tâches en cours visibles sur les
+  autres appareils, cycle de 20 s quand l’application est ouverte.
+- Règle de version : chaque chiffre de 0 à 9 (0.2.9 → 0.3.0, 0.9.9 → 1.0.0), script et
+  contrôles automatiques.
+
+### Corrigé
+- Android : la réponse continue quand on quitte l’application ; au retour, Tontolo se
+  rattache au tour en cours au lieu d’annoncer une connexion coupée.
+- « Convertis ce HTML en PDF » (et toute conversion de fichier) utilise enfin le document
+  joint ou le dernier fichier créé.
+- Les souvenirs automatiques ne servaient plus jamais : ils sont rappelés dans leur propre
+  discussion.
+
+### Sécurité
+- Secrets (clés d’API, jetons, mots de passe, clés privées) masqués avant d’être envoyés à
+  un modèle ; terminal accessible uniquement à l’application locale ; liens symboliques et
+  dossiers cachés refusés dans le dossier de travail ; deux discussions en parallèle ne
+  partagent jamais un onglet ou un terminal.
+
+### Compatibilité
+- Même signature, paquet Android, noms de téléchargements et table de synchronisation ; les
+  nouveaux éléments synchronisés sont ignorés par les versions précédentes.
+
 ## [0.5.0] - 2026-10-11
 
 ### Corrigé

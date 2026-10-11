@@ -234,5 +234,5 @@ l'emploi ; bureau Linux = fichiers + commandes confirmées dans un dossier chois
 - [x] A15. Navigateur web intégré (bureau Linux et tablette) que l'agent peut piloter (ouvrir, lire, cliquer, remplir avec confirmation) ; onglets bien gérés : réutiliser l'onglet de la tâche, jamais un onglet par commande ; moteur Chromium/Firefox (WebView) existant plutôt qu'un navigateur embarqué lourd
 - [x] A16. Terminal intégré au bureau Linux : une session par discussion (pas un onglet par commande), commandes de l'agent visibles et confirmées, saisie libre de l'utilisateur
 - [x] A16b. Vérification demandée : l'agent lit le terminal (terminal_read), y tape (terminal_send), voit la page (browser_look, testé avec un vrai modèle à vision), manipule le navigateur (testé avec Vivaldi réel) ; audit : discussion propre à chaque tour, secrets masqués, liens symboliques, dossiers cachés, boutons confirmés
-- [ ] A17. Tâches complexes : résultats intermédiaires (parties, étapes, sorties d'outils) stockés dans un dossier de travail temporaire de l'appareil (Android et Linux) pour garder le fil — précisions demandées au propriétaire
+- [x] A17. Tâches complexes : résultats intermédiaires (parties, étapes, sorties longues, brouillons) dans le dossier privé de l app, 7 jours après la fin, visibles et synchronisés (choix du propriétaire)
 - [ ] A10. Tests, émulateur, publication 0.5.1

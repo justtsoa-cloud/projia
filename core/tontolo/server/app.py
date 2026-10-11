@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import binascii
+import contextlib
 import hmac
 import json
 import re
@@ -41,6 +42,7 @@ from tontolo.security import LOOPBACK_NAMES, host_of, key_allowed, origin_allowe
 from tontolo.update import check_update, download_update
 
 LOOPBACK = {"127.0.0.1", "::1", "localhost"}
+MAX_TASK_VIEW = 200_000
 SYNC_CREATION_MAX = 1_000_000  # créations synchronisées entre appareils (octets)
 MEDIA_TURN_KINDS = {"image_gen", "image_edit", "tts", "music_sfx", "video_gen"}
 REVIEWED_TOPICS = {"math", "code", "reasoning"}  # réponses vérifiées par un second modèle
@@ -184,6 +186,22 @@ async def _file_material(core: Core, cid: str, skip_last: bool = False) -> str:
     if prev and prev[1].strip():
         parts.append(f"Source du dernier fichier créé ({prev[0]}) :\n{prev[1][:15000]}")
     return "\n\n".join(parts)[-30000:]
+
+
+def _keep_draft(core: Core, cid: str, job: dict[str, Any]) -> None:
+    """Chaque version d'un fichier créé (source LaTeX, Markdown, code…) est gardée parmi les
+    résultats intermédiaires de la discussion."""
+    params = job.get("params") or {}
+    if job.get("status") != "done":
+        return
+    src = Path(str(params.get("source_path") or job.get("result_path") or ""))
+    if not params.get("source_path") and not str(params.get("mime", "")).startswith("text/"):
+        return
+    with contextlib.suppress(OSError, ValueError):
+        text = src.read_text(encoding="utf-8", errors="replace")
+        if text.strip():
+            core.chat.tasks.put(cid, "draft", f"{params.get('filename') or src.name} "
+                                f"({time.strftime('%H:%M')})", text)
 
 
 async def _image_source(core: Core, cid: str) -> tuple[bytes | None, str | None]:
@@ -694,6 +712,7 @@ def create_app(
                 done = ev
             yield ev
         job = {k: v for k, v in done.items() if k != "type"}
+        _keep_draft(core, cid, job)
         note = f"[média:{job['id']}]"
         msg = await core.db.add_message(cid, {"role": "assistant", "content": note},
                                         model=job.get("model"))
@@ -959,8 +978,63 @@ def create_app(
 
     @app.delete("/tontolo/conversations/{cid}")
     async def delete_conv(request: Request, cid: str) -> dict[str, bool]:
-        await core_of(request).db.delete_conversation(cid)
+        core = core_of(request)
+        await core.db.delete_conversation(cid)
+        with contextlib.suppress(OSError, ValueError):
+            core.chat.tasks.delete(cid)  # résultats intermédiaires effacés avec la discussion
         return {"ok": True}
+
+    @app.get("/tontolo/conversations/{cid}/tasks")
+    async def task_items(request: Request, cid: str) -> list[dict[str, Any]]:
+        """Résultats intermédiaires de la tâche (parties, étapes, sorties, brouillons)."""
+        try:
+            return core_of(request).chat.tasks.items(cid)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+
+    @app.get("/tontolo/conversations/{cid}/tasks/{item_id}")
+    async def task_item(request: Request, cid: str, item_id: str) -> dict[str, Any]:
+        store = core_of(request).chat.tasks
+        try:
+            item = store.get(cid, item_id)
+            text = store.read(cid, item_id, 0, MAX_TASK_VIEW)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        if item is None or text is None:
+            raise HTTPException(404, "Élément introuvable")
+        return {**item, "content": text}
+
+    @app.get("/tontolo/cloud/tasks")
+    async def cloud_tasks(request: Request, since: float = 0) -> dict[str, Any]:
+        """Résultats intermédiaires modifiés depuis `since`, avec leur contenu (chiffrés par
+        l'application avant envoi)."""
+        store = core_of(request).chat.tasks
+        out, until = [], since
+        for cid, item in store.changed_since(since):
+            until = max(until, float(item.get("updated") or 0))
+            out.append({**item, "conversation_id": cid,
+                        "content": store.read(cid, item["id"], 0, 1_000_000) or ""})
+        return {"items": out, "until": until}
+
+    @app.post("/tontolo/cloud/tasks")
+    async def cloud_tasks_import(request: Request) -> dict[str, int]:
+        store = core_of(request).chat.tasks
+        body = await request.json()
+        applied = 0
+        for it in (body.get("items") or [])[:50]:
+            try:
+                cid, iid = str(it["conversation_id"]), str(it["id"])
+                mine = store.get(cid, iid)
+                if mine is not None and float(mine.get("updated") or 0) >= float(it["updated"]):
+                    continue
+                store.put(cid, str(it["kind"]), str(it.get("title") or ""),
+                          str(it.get("content") or ""), item_id=iid,
+                          created=float(it.get("created") or 0) or None,
+                          updated=float(it["updated"]))
+                applied += 1
+            except (KeyError, TypeError, ValueError, OSError):
+                continue
+        return {"applied": applied}
 
     # --- Catalogue, nouveautés, préférences --------------------------------
 

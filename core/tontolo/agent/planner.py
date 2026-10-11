@@ -94,7 +94,14 @@ def plan_block(plan: dict[str, Any]) -> dict[str, Any]:
                 + parts)
     else:
         k = int(plan.get("current") or 0)
-        tail = (f"\nLivraison pas à pas : réponds maintenant UNIQUEMENT à l'étape {k + 1}/"
+        delivered = plan.get("delivered") or {}
+        recap = "".join(
+            f"\n- Étape {int(i) + 1} livrée (texte complet : task_read id={d['ref']}) : "
+            f"{d['head'][:300]}…" for i, d in sorted(delivered.items(), key=lambda x: int(x[0]))
+            if int(i) < k)
+        tail = ((f"\nÉtapes déjà livrées (résumé ; le fil peut avoir été compacté) :{recap}"
+                 if recap else "")
+                + f"\nLivraison pas à pas : réponds maintenant UNIQUEMENT à l'étape {k + 1}/"
                 f"{len(steps)} ({steps[k]['title']}), complètement. Appuie-toi sur les étapes "
                 "déjà livrées dans le fil. "
                 + (f"Termine par une ligne qui annonce l'étape suivante ({steps[k + 1]['title']})"
@@ -112,5 +119,7 @@ def public(plan: dict[str, Any] | None) -> dict[str, Any] | None:
     return {"mode": plan["mode"], "goal": plan["goal"], "current": plan.get("current", 0),
             "status": plan.get("status", "active"),
             "steps": [{"title": s["title"]} for s in plan["steps"]],
-            "results": [{"model": r.get("model"), "ok": bool(r.get("text"))}
-                        for r in plan.get("results") or []]}
+            "results": [{"model": r.get("model"), "ok": bool(r.get("text") or r.get("ref")),
+                         "ref": r.get("ref")} for r in plan.get("results") or []],
+            "delivered": {k: {"ref": v.get("ref")} for k, v in
+                          (plan.get("delivered") or {}).items()}}

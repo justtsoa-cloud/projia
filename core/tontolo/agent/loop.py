@@ -25,6 +25,7 @@ from typing import Any
 from tontolo import documents
 from tontolo.agent import browser, planner
 from tontolo.agent.mcp_client import McpManager
+from tontolo.agent.taskstore import TOOL_INLINE, TaskStore
 from tontolo.agent.terminal import TerminalManager
 from tontolo.agent.tools import Tool, ToolBox, native_tools, search_raw, untrusted
 from tontolo.agent.workspace import (
@@ -172,6 +173,10 @@ class ChatService:
         self.browser_cdp = (browser.CdpBrowser(settings.data_dir / "browser-profile")
                             if is_desktop() else None)
         self.browser_bridge = browser.AppBridge()
+        # Résultats intermédiaires des tâches complexes (dossier privé, 7 jours après la fin).
+        self.tasks = TaskStore(settings.data_dir / "tasks")
+        with contextlib.suppress(OSError):
+            self.tasks.purge()
         # Terminal du bureau : une session par discussion, visible dans l'application.
         self.terminals = TerminalManager() if is_desktop() else None
         # Confirmations en attente : appels du modèle et l'appel unique à confirmer.
@@ -212,7 +217,37 @@ class ChatService:
         if self.terminals is not None:
             for t in self._terminal_tools():
                 self.toolbox.add(t)
+        self.toolbox.add(self._task_tool())
         return self.toolbox
+
+    def _task_tool(self) -> Tool:
+        async def read(args: dict[str, Any]) -> str:
+            cid = CURRENT.get()
+            iid = str(args.get("id") or "")
+            if not iid:
+                items = self.tasks.items(cid)
+                return "\n".join(f"{i['id']} · {i['kind']} · {i['title']} ({i['size']} o)"
+                                 for i in items[-40:]) or "Aucun résultat intermédiaire."
+            text = self.tasks.read(cid, iid, int(args.get("offset") or 0))
+            return untrusted(text) if text is not None else "Élément introuvable."
+
+        return Tool("task_read", "Relit un résultat intermédiaire de la tâche de cette "
+                    "discussion (partie, étape, sortie d'outil longue, brouillon de fichier) ; "
+                    "sans id : liste des éléments. offset pour lire la suite.",
+                    {"type": "object", "properties": {"id": {"type": "string"},
+                                                      "offset": {"type": "integer"}}}, read)
+
+    def _store_tool_output(self, cid: str, name: str, result: str) -> str:
+        """Sortie d'outil longue : rangée en entier, le fil n'en garde qu'un extrait."""
+        if len(result) <= TOOL_INLINE or name == "task_read":
+            return result
+        try:
+            item = self.tasks.put(cid, "tool", f"{name} — {result[:60]}", result)
+        except (OSError, ValueError):
+            return result
+        return (result[:3000] + f"\n\n[Sortie complète ({len(result)} caractères) rangée dans "
+                f"les résultats de la tâche : task_read id={item['id']} offset=3000 pour la "
+                "suite.]")
 
     def terminal_cwd(self) -> Path:
         return self.workspace.root if self.workspace is not None else Path.home()
@@ -388,7 +423,13 @@ class ChatService:
                         model=model, max_tokens=planner.SUBTASK_MAX_TOKENS)
             except TimeoutError:
                 text, key = "", ""
-            results[i] = {"text": text.strip()[:6000], "model": self._model_name(key)}
+            ref = ""
+            if text.strip():
+                with contextlib.suppress(OSError, ValueError):
+                    ref = self.tasks.put(cid, "part", f"Partie {i + 1} — {step['title']}",
+                                         text.strip())["id"]
+            results[i] = {"text": text.strip()[:6000], "model": self._model_name(key),
+                          "ref": ref}
             await queue.put({"type": "plan_step", "i": i,
                              "status": "done" if text.strip() else "failed",
                              "model": self._model_name(key)})
@@ -403,15 +444,28 @@ class ChatService:
         plan["results"] = results
         await self.db.set_plan(cid, plan)
 
-    async def _finish_plan_turn(self, cid: str) -> dict[str, Any] | None:
-        """Après une réponse : plan parallèle assemblé, ou dernière étape livrée → terminé."""
+    async def _finish_plan_turn(self, cid: str, answer: str = "") -> dict[str, Any] | None:
+        """Après une réponse : étape rangée ; plan parallèle assemblé, ou dernière étape
+        livrée → terminé (résultats gardés 7 jours)."""
         plan = await self.db.get_plan(cid)
         if not plan or plan.get("status") != "active":
             return None
+        if plan["mode"] == "steps" and answer.strip():
+            k = int(plan.get("current") or 0)
+            with contextlib.suppress(OSError, ValueError):
+                item = self.tasks.put(cid, "step", f"Étape {k + 1} — {plan['steps'][k]['title']}",
+                                      answer)
+                done = dict(plan.get("delivered") or {})
+                done[str(k)] = {"ref": item["id"], "head": answer.strip()[:400]}
+                plan["delivered"] = done
+                await self.db.set_plan(cid, plan)
         if plan["mode"] == "parallel" or plan["current"] + 1 >= len(plan["steps"]):
             plan["status"] = "done"
-            plan["results"] = []  # les parties sont maintenant dans la réponse assemblée
+            plan["results"] = [{"model": r.get("model"), "ref": r.get("ref"), "text": ""}
+                               for r in plan.get("results") or []]
             await self.db.set_plan(cid, plan)
+            with contextlib.suppress(OSError, ValueError):
+                self.tasks.finish(cid)
             return {"type": "plan", "plan": planner.public(plan)}
         return None
 
@@ -602,7 +656,8 @@ class ChatService:
                 result = ("Non exécuté : les actions sont confirmées une à une. Redemande "
                           "celle-ci (seule) si elle est toujours nécessaire.")
             elif approved or tool is None or not tool.side_effect:
-                result = await self.toolbox.call(fn["name"], fn.get("arguments") or "{}")
+                output = await self.toolbox.call(fn["name"], fn.get("arguments") or "{}")
+                result = self._store_tool_output(conversation_id, fn["name"], output)
             else:
                 result = "L'utilisateur a refusé l'exécution de cet outil."
             await self.db.add_message(conversation_id, {
@@ -707,7 +762,7 @@ class ChatService:
             yield {**final, "uid": saved["uid"], "conversation_id": cid}
             calls = msg.get("tool_calls") or []
             if not calls:
-                plan_ev = await self._finish_plan_turn(cid)
+                plan_ev = await self._finish_plan_turn(cid, str(msg.get("content") or ""))
                 if plan_ev is not None:
                     yield plan_ev
                 for job in (self.memory.after_turn(cid, [*history, msg]),
@@ -738,7 +793,8 @@ class ChatService:
                     result = ("Appel identique déjà effectué ; résultat précédent :\n"
                               + done_calls[sig][:2000])
                 else:
-                    result = await box.call(fn["name"], fn.get("arguments") or "{}")
+                    result = self._store_tool_output(
+                        cid, fn["name"], await box.call(fn["name"], fn.get("arguments") or "{}"))
                     done_calls[sig] = result
                 await self.db.add_message(cid, {"role": "tool", "tool_call_id": call["id"],
                                                 "name": fn["name"], "content": result})

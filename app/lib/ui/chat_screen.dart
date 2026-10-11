@@ -24,6 +24,7 @@ import 'model_picker.dart';
 import 'import_flow.dart';
 import 'learn.dart';
 import 'search_dialog.dart';
+import 'task_results.dart';
 import 'workbench.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -403,6 +404,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     'export' => _export(chat),
                     'export_html' => _exportHtml(chat),
                     'compact' => _compact(chat),
+                    'tasks' => showTaskResults(context, chat.conversationId!),
                     _ => _pin(chat),
                   },
                   itemBuilder: (context) => [
@@ -410,6 +412,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     PopupMenuItem(value: 'export_html', child: ListTile(leading: const Icon(Icons.web_outlined), title: Text(context.t('export_html')))),
                     PopupMenuItem(value: 'export', child: ListTile(leading: const Icon(Icons.ios_share), title: Text(context.t('export')))),
                     PopupMenuItem(value: 'compact', child: ListTile(leading: const Icon(Icons.compress), title: Text(context.t('compact')))),
+                    PopupMenuItem(value: 'tasks', child: ListTile(leading: const Icon(Icons.inventory_2_outlined), title: Text(context.t('task_results')))),
                   ],
                 ),
             ],
@@ -938,11 +941,15 @@ class _PlanBar extends StatelessWidget {
                   ? Text('${chat.planSteps[i]!['model']}', style: small)
                   : null,
             ),
-          if (active && !chat.busy)
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(onPressed: chat.dropPlan, child: Text(context.t('plan_drop'))),
-            ),
+          OverflowBar(alignment: MainAxisAlignment.end, children: [
+            if (chat.conversationId != null)
+              TextButton.icon(
+                icon: const Icon(Icons.inventory_2_outlined, size: 18),
+                label: Text(context.t('plan_results')),
+                onPressed: () => showTaskResults(context, chat.conversationId!),
+              ),
+            if (active && !chat.busy) TextButton(onPressed: chat.dropPlan, child: Text(context.t('plan_drop'))),
+          ]),
         ],
       ),
     );

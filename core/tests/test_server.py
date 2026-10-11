@@ -871,3 +871,5 @@ def test_html_document_converted_to_pdf_uses_its_content(
     job = next(e for e in events if e["type"] == "done")["job"]
     assert job["status"] == "done" and job["params"]["mime"] == "application/pdf"
     assert "Avenue de Morondava" in seen[0] and "page.html" in seen[0]
+    drafts = client.get(f"/tontolo/conversations/{doc['conversation_id']}/tasks").json()
+    assert drafts[0]["kind"] == "draft" and drafts[0]["title"].startswith("baobabs.pdf")

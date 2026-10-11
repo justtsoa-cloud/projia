@@ -14,6 +14,24 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.5.1': [
+    NewsItem(Icons.smart_toy_outlined, 'Mode Agent et tâches complexes',
+        'Nouvel onglet Agent avec Chercheur, Développeur, Rédacteur et Analyste, gratuits par défaut. Une grande tâche est découpée en étapes : plusieurs modèles travaillent en même temps, ou Tontolo avance pas à pas avec « Continuer ».',
+        'Agent mode and complex tasks', 'New Agent tab with Researcher, Developer, Writer and Analyst, free by default. Big tasks are split into steps: several models work at once, or Tontolo goes step by step with “Continue”.',
+        mg: 'Fomba Agent sy asa sarotra', mgText: 'Tabilao Agent vaovao miaraka amin\'ny Mpikaroka, Mpamorona rindrankajy, Mpanoratra ary Mpandalina, maimaim-poana. Zarazaraina ho dingana ny asa lehibe: modely maromaro miara-miasa, na mandroso tsikelikely amin\'ny « Tohizo ».'),
+    NewsItem(Icons.info_outline, 'Modèles et générateurs expliqués',
+        'Touchez ⓘ pour voir la fiche d\'un modèle (coût, contexte, capacités, scores). Le badge Agent signale ceux qui utilisent des outils. « Générateurs » liste les créateurs d\'images, de vidéos et de sons.',
+        'Models and generators explained', 'Tap ⓘ to see a model\'s sheet (cost, context, capabilities, scores). The Agent badge marks tool-using models. “Generators” lists image, video and sound creators.',
+        mg: 'Modely sy mpamorona hazavaina', mgText: 'Tsindrio ny ⓘ hahitana ny antsipirian\'ny modely (sarany, contexte, fahaizana, isa). Ny marika Agent no manondro ireo mampiasa fitaovana. « Mpamorona » no mitanisa ireo mamorona sary, horonan-tsary ary feo.'),
+    NewsItem(Icons.devices, 'Continuez partout, même en arrière-plan',
+        'Sur Android, la réponse continue quand vous quittez l\'app. Vos créations et les tâches en cours apparaissent sur vos autres appareils. Plusieurs fichiers arrivent dans un .zip.',
+        'Continue anywhere, even in the background', 'On Android, answers keep going when you leave the app. Your creations and running tasks show up on your other devices. Several files arrive in a .zip.',
+        mg: 'Tohizo na aiza na aiza', mgText: 'Amin\'ny Android, mitohy ny valiny na dia mivoaka ny app aza ianao. Hita amin\'ny fitaovanao hafa ny famoronanao sy ny asa mandeha. Ao anaty .zip ny rakitra maromaro.'),
+    NewsItem(Icons.terminal, 'Bureau : navigateur et terminal',
+        'Sur Linux, choisissez un dossier de travail : l\'agent lit et modifie vos fichiers avec votre accord, lance des commandes confirmées et pilote un navigateur. Sur tablette, un panneau navigateur s\'ouvre à côté de la discussion.',
+        'Desktop: browser and terminal', 'On Linux, pick a work folder: the agent reads and edits your files with your approval, runs confirmed commands and drives a browser. On tablets, a browser panel opens next to the chat.',
+        mg: 'Solosaina: mpitety sy terminal', mgText: 'Amin\'ny Linux, misafidiana lahatahiry iasana: mamaky sy manova ny rakitrao ny agent raha ekenao, mandefa baiko voamarina ary mitarika mpitety. Amin\'ny tablette, misokatra eo akaikin\'ny resaka ny mpitety.'),
+  ],
   '0.5.0': [
     NewsItem(Icons.forum_outlined, 'Des discussions bien séparées',
         'Les dossiers rangent vos discussions sans mélanger leurs réponses. Les souvenirs explicites restent partagés et leur origine est conservée.',

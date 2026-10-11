@@ -90,6 +90,8 @@ class Prefs extends ChangeNotifier {
   set cloudLastPull(String v) => _sp.setString('cloudLastPull', v);
   double get cloudCreationsPush => _sp.getDouble('cloudCreationsPush') ?? 0;
   set cloudCreationsPush(double v) => _sp.setDouble('cloudCreationsPush', v);
+  double get cloudTasksPush => _sp.getDouble('cloudTasksPush') ?? 0;
+  set cloudTasksPush(double v) => _sp.setDouble('cloudTasksPush', v);
   /// Identifiant aléatoire de cet appareil (suivi en direct des tâches entre appareils).
   String get deviceId {
     var id = _sp.getString('deviceId');
