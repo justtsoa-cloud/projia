@@ -49,7 +49,11 @@ jobs:
         with: {channel: stable, cache: true}
       - uses: astral-sh/setup-uv@v6
       - name: Empaquetage du cœur Python (Android)
-        run: cd app && flutter pub get && cd .. && scripts/package_python.sh Android
+        # Téléchargements de Python parfois coupés par le réseau de GitHub : 3 essais.
+        run: |
+          cd app && flutter pub get && cd ..
+          for i in 1 2 3; do scripts/package_python.sh Android && exit 0; echo "Essai $i échoué"; sleep 30; done
+          exit 1
       - name: Clé de signature
         env:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -119,7 +123,11 @@ jobs:
         with: {channel: stable, cache: true}
       - uses: astral-sh/setup-uv@v6
       - name: Empaquetage du cœur Python (Linux)
-        run: cd app && flutter pub get && cd .. && scripts/package_python.sh Linux
+        # Téléchargements de Python parfois coupés par le réseau de GitHub : 3 essais.
+        run: |
+          cd app && flutter pub get && cd ..
+          for i in 1 2 3; do scripts/package_python.sh Linux && exit 0; echo "Essai $i échoué"; sleep 30; done
+          exit 1
       - name: Construction Linux
         run: |
           cd app
