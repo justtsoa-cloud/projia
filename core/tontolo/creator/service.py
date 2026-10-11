@@ -1,0 +1,92 @@
+"""Branche le pipeline de création sur le routeur (choix des modèles) et sur le stockage des
+créations (même table et même dossier que les médias : le fichier apparaît dans Créations)."""
+
+from __future__ import annotations
+
+import asyncio
+import time
+import uuid
+from collections.abc import AsyncIterator
+from typing import Any
+
+from tontolo.catalog.models import Category
+from tontolo.creator.pipeline import CALL_TIMEOUT, CreationError, Creator, Output
+from tontolo.router.engine import Router
+from tontolo.storage.db import Database
+
+MAX_TOKENS = 8000
+
+
+class CreatorService:
+    def __init__(self, db: Database, router: Router, media_dir: Any, language: str = "fr") -> None:
+        self.db = db
+        self.router = router
+        self.dir = media_dir / "files"
+        self.language = language
+
+    async def ask(self, messages: list[dict[str, Any]], *, category: Category | None = None,
+                  model: str | None = None) -> tuple[str, str, str]:
+        text, key = "", ""
+        async with asyncio.timeout(CALL_TIMEOUT):
+            async for ev in self.router.run(messages, stream=False, forced=category, model=model,
+                                            params={"max_tokens": MAX_TOKENS,
+                                                    "temperature": 0.3}):
+                if ev["type"] == "done":
+                    text = str(ev["message"].get("content") or "")
+                    key = str(ev.get("model") or model or "")
+                elif ev["type"] == "error":
+                    raise CreationError(str(ev.get("message") or "aucun modèle disponible"))
+        if not text.strip():
+            raise CreationError("réponse vide du modèle")
+        m = self.router.catalog.catalog.get(key)
+        return text, key, (m.name if m else key)
+
+    async def pick_reviewer(self, *, exclude: str, vision: bool = False) -> str | None:
+        """Meilleur modèle disponible d'une autre famille que le rédacteur (regard neuf)."""
+        writer = self.router.catalog.catalog.get(exclude)
+        probe: list[dict[str, Any]] = [{"role": "user", "content": "relecture"}]
+        decision = await self.router.decide(
+            probe, forced=Category.VISION if vision else Category.REASONING)
+        for c in decision.chain:
+            m = c.model
+            if m.key == exclude or (vision and not m.supports_vision):
+                continue
+            if writer is not None and (m.provider == writer.provider and m.family
+                                       and m.family == writer.family):
+                continue
+            return m.key
+        return None
+
+    async def create(self, kind: str, request: str, *, conversation_id: str | None,
+                     context: str = "") -> AsyncIterator[dict[str, Any]]:
+        """Événements `step` puis `job` (terminé ou en échec), comme un média."""
+        job: dict[str, Any] = {
+            "id": uuid.uuid4().hex, "kind": "file_gen", "status": "running", "prompt": request,
+            "params": {"format": kind}, "conversation_id": conversation_id,
+            "created_at": time.time(),
+        }
+        await self.db.upsert_job(job)
+        yield {"type": "job", **job}
+        out = Output(b"", "", "", "", "", "")
+        creator = Creator(self.ask, self.pick_reviewer)
+        try:
+            async for ev in creator.run(kind, request, context=context, language=self.language,
+                                        out=out):
+                yield ev
+            self.dir.mkdir(parents=True, exist_ok=True)
+            path = self.dir / f"{job['id']}-{out.filename}"
+            path.write_bytes(out.data)
+            src = self.dir / f"{job['id']}-source-{out.source_name}"
+            if out.source_name and out.source_name != out.filename:
+                src.write_text(out.source, encoding="utf-8")
+            job.update(status="done", result_path=str(path), model=out.models[0] if out.models
+                       else None)
+            job["params"].update(mime=out.mime, filename=out.filename, title=out.title,
+                                 size=len(out.data), steps=out.steps, models=out.models,
+                                 source_path=str(src) if src.exists() else None,
+                                 model_name=out.steps[0].get("model") if out.steps else None)
+        except (CreationError, TimeoutError) as exc:
+            job.update(status="failed", error=str(exc) or "délai dépassé")
+            job["params"]["error_code"] = "file_failed"
+        await self.db.upsert_job(job)
+        yield {"type": "job", **job}

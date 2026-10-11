@@ -624,3 +624,29 @@ def test_cloud_sync_whole_conversations(client: TestClient, tmp_path: Any) -> No
                        ).json() == {"applied": 0}
     assert client.get("/tontolo/cloud/export",
                       params={"since": exported["until"] + 20}).json()["conversations"] == []
+
+
+def test_file_request_creates_downloadable_docx(client: TestClient,
+                                                monkeypatch: pytest.MonkeyPatch) -> None:
+    from tontolo.creator.service import CreatorService
+
+    async def ask(self: Any, messages: Any, *, category: Any = None,
+                  model: Any = None) -> tuple[str, str, str]:
+        return "# Cours sur l'eau\n## Cycle\nTexte.", "fake:writer", "Rédacteur"
+
+    async def pick(self: Any, *, exclude: str, vision: bool = False) -> None:
+        return None
+
+    monkeypatch.setattr(CreatorService, "ask", ask)
+    monkeypatch.setattr(CreatorService, "pick_reviewer", pick)
+    with client.stream("POST", "/tontolo/chat", json={
+            "content": "Génère un fichier Word sur le cycle de l'eau"}) as s:
+        events = [json.loads(x[5:]) for x in s.iter_lines() if x.startswith("data:")]
+    steps = [e["step"] for e in events if e["type"] == "step"]
+    assert steps[0] == "doc_writing" and steps[-1] == "doc_done"
+    job = next(e for e in events if e["type"] == "done")["job"]
+    assert job["status"] == "done" and job["params"]["filename"] == "cours-sur-l-eau.docx"
+    r = client.get(f"/tontolo/media/{job['id']}/file")
+    assert r.status_code == 200 and r.content[:2] == b"PK"
+    assert client.post("/tontolo/chat", json={"content": "x", "category": "file:../x"}
+                       ).status_code == 400

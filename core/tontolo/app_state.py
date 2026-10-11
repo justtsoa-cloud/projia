@@ -11,6 +11,7 @@ from tontolo.agent.mcp_client import McpManager
 from tontolo.agent.turns import TurnManager
 from tontolo.catalog.service import CatalogService
 from tontolo.config import Settings, load_settings
+from tontolo.creator.service import CreatorService
 from tontolo.media.service import MediaService
 from tontolo.providers.registry import ProviderRegistry
 from tontolo.router.engine import Router
@@ -28,6 +29,11 @@ class Core:
     mcp: McpManager
     events: list[Any] = field(default_factory=list)
     turns: TurnManager = field(default_factory=TurnManager)
+
+    @property
+    def creator(self) -> CreatorService:
+        """Créations de fichiers (langue suivie en direct depuis les réglages)."""
+        return CreatorService(self.db, self.router, self.media.dir, self.settings.language)
 
     @classmethod
     async def start(

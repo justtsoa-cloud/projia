@@ -152,7 +152,8 @@ class ChatService:
                     ok = bool(job and job.get("status") == "done")
                     kind = (job or {}).get("kind", "image_gen")
                     what = {"image_gen": "une image", "image_edit": "une image retouchée",
-                            "tts": "un audio", "video_gen": "une vidéo"}.get(kind, "un média")
+                            "tts": "un audio", "video_gen": "une vidéo",
+                            "file_gen": "un fichier"}.get(kind, "un média")
                     m = {**m, "content": (
                         f"(Tontolo a généré {what} avec succès ; elle est affichée à "
                         "l'utilisateur dans la conversation.)" if ok else

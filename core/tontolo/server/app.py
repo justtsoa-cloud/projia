@@ -29,6 +29,7 @@ from tontolo.agent.mcp_client import load_config, save_config
 from tontolo.app_state import Core
 from tontolo.catalog.models import Category, ModelInfo
 from tontolo.config import Settings, load_settings, save_settings
+from tontolo.creator import intent as file_intent
 from tontolo.providers.registry import ProviderRegistry
 from tontolo.router.classifier import _is_followup, classify
 from tontolo.router.quota import QuotaManager
@@ -454,8 +455,16 @@ def create_app(
         core = core_of(request)
         if body.conversation_id is None:
             core.catalog.refresh_in_background()  # veille « à chaque utilisation »
-        category = Category(body.category) if body.category else None
-        if category is None:
+        file_kind = (body.category[5:] if body.category and body.category.startswith("file:")
+                     else None)
+        if file_kind is not None and not file_intent.valid(file_kind):
+            raise HTTPException(400, "format de fichier inconnu")
+        category = Category(body.category) if body.category and file_kind is None else None
+        if file_kind is None and body.category is None and not _first_image(body.content):
+            file_kind = file_intent.detect(_text_of(body.content))
+        if file_kind is not None:
+            category = None
+        elif category is None:
             # Modalité détectée automatiquement (« dessine… », « crée la photo », « vas-y »
             # après une demande d'image…) : aucun mode à choisir pour l'utilisateur.
             prior: list[dict[str, Any]] = []
@@ -478,6 +487,8 @@ def create_app(
         if body.mode is not None:
             await core.db.set_mode(cid, f"learn:{body.level or 'lycee'}" if body.mode == "learn"
                                    else "")
+        if file_kind is not None:
+            return _turn(core, cid, _file_turn(core, body, file_kind), first)
         if category is not None and category.value in MEDIA_TURN_KINDS:
             return _turn(core, cid, _media_turn(core, body, category), first)
         return _turn(core, cid, _text_turn(core, body, cid, category), first)
@@ -504,6 +515,30 @@ def create_app(
             kind = Category.IMAGE_EDIT if _first_image(body.content) else Category.IMAGE_GEN
             async for ev in _media_turn(core, body, kind, add_user=False):
                 yield ev
+
+    async def _file_turn(core: Core, body: ChatBody, kind: str) -> AsyncIterator[dict[str, Any]]:
+        """Création d'un fichier (DOCX, PDF, carte mentale…) par l'équipe de modèles :
+        rédaction, vérification, correction ; le résultat est une carte « fichier »."""
+        cid = str(body.conversation_id)
+        text = _text_of(body.content)
+        history = await core.db.get_messages(cid)
+        context = "\n\n".join(
+            f"[{m['role']}] {_text_of(m['content'])[:3000]}" for m in history[-6:]
+            if m["role"] in ("user", "assistant") and not str(m["content"]).startswith("[média:")
+        )[-9000:]
+        await core.db.add_message(cid, {"role": "user", "content": body.content})
+        done: dict[str, Any] = {}
+        async for ev in core.creator.create(kind, text, conversation_id=cid, context=context):
+            if ev["type"] == "job":
+                done = ev
+            yield ev
+        job = {k: v for k, v in done.items() if k != "type"}
+        note = f"[média:{job['id']}]"
+        msg = await core.db.add_message(cid, {"role": "assistant", "content": note},
+                                        model=job.get("model"))
+        yield {"type": "done", "message": {"role": "assistant", "content": note},
+               "model": job.get("model"), "uid": msg["uid"], "conversation_id": cid,
+               "name": (job.get("params") or {}).get("model_name"), "job": job}
 
     async def _media_turn(core: Core, body: ChatBody, category: Category,
                           add_user: bool = True) -> AsyncIterator[dict[str, Any]]:
