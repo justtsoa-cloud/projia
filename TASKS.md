@@ -200,6 +200,6 @@ Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cass�
 - [x] Valider le lien reçu, ignorer les retours sans demande, empêcher les doubles échanges.
 - [x] Ajouter le retour Android exact dans Supabase avec accord du propriétaire ; conserver le retour Linux et anciennes versions.
 - [x] Tests : 192 cœur, 45 Flutter, analyse Flutter sans erreur ; dernier ajustement revérifié (analyse et 9 tests ciblés).
-- [x] Trois APK signés construits ; installation par-dessus sur émulateur réussie (0.4.7, versionCode 4022), lien natif rouvre MainActivity.
-- [ ] Publication GitHub et vérification des fichiers de release.
+- [x] Trois APK signés construits ; installation par-dessus sur émulateur réussie (0.4.7, versionCode 4022), lien natif rouvre MainActivity à chaud et à froid.
+- [x] Publication GitHub v0.4.7 (workflow 38162162769 réussi), fichiers présents et téléchargements en tête des notes ; SHA-256 de l’APK officiel x86_64 vérifié et installation par-dessus réussie.
 - [ ] Essai Google réel par le propriétaire : configuration Google en mode Testing à vérifier si accès refusé.
