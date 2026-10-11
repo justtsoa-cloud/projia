@@ -18,12 +18,29 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         authChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "tontolo/auth")
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "tontolo/background")
+            .setMethodCallHandler { call, result ->
+                try {
+                    when (call.method) {
+                        "start" -> { TurnService.start(this); result.success(null) }
+                        "stop" -> { TurnService.stop(this); result.success(null) }
+                        else -> result.notImplemented()
+                    }
+                } catch (e: Exception) { // démarrage refusé (application déjà en arrière-plan)
+                    result.error("background", e.message, null)
+                }
+            }
         authChannel?.setMethodCallHandler { call, result ->
             if (call.method == "initialAuthLink") {
                 result.success(authLink(intent))
                 intent.data = null
             } else result.notImplemented()
         }
+    }
+
+    override fun onDestroy() {
+        TurnService.stop(this)
+        super.onDestroy()
     }
 
     override fun onNewIntent(intent: Intent) {

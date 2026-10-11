@@ -229,7 +229,7 @@ l'emploi ; bureau Linux = fichiers + commandes confirmées dans un dossier chois
 - [x] A9. Règle de version : x.y.9 → x.(y+1).0 ; x.9.9 → (x+1).0.0 ; script de montée de version + vérification CI
 - [x] A11. Plusieurs fichiers demandés (ou nécessaires, ex. livre LaTeX en chapitres) : livrés ensemble dans une archive .zip (zipfile de Python, gratuit et local), avec la liste des fichiers
 - [x] A12. Tâche complexe : découpage précis en étapes (plan visible) ; étapes indépendantes confiées à plusieurs modèles en simultané, ou livraison pas à pas avec un bouton « Continuer » ; le plan et l'avancement restent dans le fil
-- [ ] A13. Android en arrière-plan : la réponse continue quand on quitte l'application (service de premier plan) et, au retour, l'app se rattache au tour en cours au lieu d'annoncer « connexion coupée »
+- [x] A13. Android en arrière-plan : la réponse continue quand on quitte l'application (service de premier plan) et, au retour, l'app se rattache au tour en cours au lieu d'annoncer « connexion coupée »
 - [ ] A14. Bug mobile : « convertis ce HTML en PDF » échoue sur Android → conversion HTML → PDF fiable sur mobile (sans dépendance de bureau)
 - [ ] A15. Navigateur web intégré (bureau Linux et tablette) que l'agent peut piloter (ouvrir, lire, cliquer, remplir avec confirmation) ; onglets bien gérés : réutiliser l'onglet de la tâche, jamais un onglet par commande ; moteur Chromium/Firefox (WebView) existant plutôt qu'un navigateur embarqué lourd
 - [ ] A16. Terminal intégré au bureau Linux : une session par discussion (pas un onglet par commande), commandes de l'agent visibles et confirmées, saisie libre de l'utilisateur

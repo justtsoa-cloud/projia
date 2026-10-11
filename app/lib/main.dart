@@ -142,6 +142,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     final scope = AppScope.of(context);
     if (state == AppLifecycleState.resumed) {
       scope.chat.checkOfflineQueue();
+      scope.chat.resumeIfStale(); // réponse générée pendant l'absence : on s'y rattache
       syncSoon(scope.prefs, scope.account, scope.cloud);
       _startLive(scope);
     } else if (state == AppLifecycleState.paused) {

@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../l10n/strings.dart';
+import 'background.dart';
 import 'backend.dart';
 import 'notifier.dart';
 import 'stats.dart';
@@ -248,6 +249,7 @@ class ChatController extends ChangeNotifier {
   }
 
   void newChat() {
+    BackgroundWork.stop();
     _epoch++;
     _streamEpoch++;
     _lastText = null;
@@ -493,6 +495,8 @@ class ChatController extends ChangeNotifier {
     status = null;
     notifyListeners();
     ChatMessage? current;
+    var terminal = false; // fin normale du tour reçue (sinon : connexion coupée → rattachement)
+    BackgroundWork.start();
     // Rattachement : le rejeu recommence au début du tour, on repart d'une réponse vide.
     if (replay && messages.isNotEmpty && messages.last.role == 'assistant' && messages.last.uid == null) {
       messages.removeLast();
@@ -551,6 +555,7 @@ class ChatController extends ChangeNotifier {
           messages.insert(messages.length - 1, ChatMessage(role: 'notice', text: 'media|'));
           status = 'generating';
         case 'stopped':
+          terminal = true;
           status = null;
         case 'stream_reset':
           ensureCurrent().text = '';
@@ -611,15 +616,20 @@ class ChatController extends ChangeNotifier {
           c.uid = ev['uid'] as String?;
           c.streaming = false;
           current = null;
+          terminal = true;
         case 'tool_confirmation':
+          terminal = true;
           pending = PendingAction.tools((ev['calls'] as List).cast<Map<String, dynamic>>());
         case 'paid_confirmation':
+          terminal = true;
           pending = PendingAction.paid('${ev['name']}', (ev['estimated_cost_usd'] as num?)?.toDouble());
           if (current != null && current!.text.isEmpty) messages.remove(current);
         case 'error' when ev['offline'] == true:
+          terminal = true;
           if (current != null && current!.text.isEmpty) messages.remove(current);
           _queueOffline();
         case 'error':
+          terminal = true;
           if (current != null && current!.text.isEmpty) messages.remove(current);
           final code = ev['code'] as String?;
           final retryAt = (ev['retry_at'] as num?)?.toDouble();
@@ -633,14 +643,55 @@ class ChatController extends ChangeNotifier {
       notifyListeners();
     }, onError: (Object e) {
       if (!currentStream()) return;
+      // Connexion coupée (application en arrière-plan, mise en veille…) : le tour continue
+      // dans le cœur ; on s'y rattache au lieu d'afficher une erreur.
+      if (conversationId != null) {
+        _recover(fallback: 'error|$e');
+        return;
+      }
       messages.add(ChatMessage(role: 'notice', text: 'error|$e'));
       _finish();
     }, onDone: () {
-      if (currentStream()) _finish();
+      if (!currentStream()) return;
+      if (!terminal && conversationId != null) {
+        _recover();
+        return;
+      }
+      _finish();
     });
   }
 
+  /// Retour au premier plan : un flux resté muet pendant la veille est relancé.
+  void resumeIfStale() {
+    if (busy && conversationId != null && _sub != null) _recover();
+  }
+
+  /// Rattachement au tour en cours (ou rechargement de la réponse déjà enregistrée).
+  Future<void> _recover({String? fallback}) async {
+    final id = conversationId;
+    if (id == null) return;
+    _streamEpoch++;
+    await _sub?.cancel();
+    _sub = null;
+    for (var attempt = 0; attempt < 5; attempt++) {
+      await Future<void>.delayed(Duration(milliseconds: 600 * (attempt + 1)));
+      if (conversationId != id) return; // l'utilisateur a changé de discussion
+      try {
+        await backend.getJson('/health');
+        BackgroundWork.stop(); // relancé par le suivi si la réponse est encore en cours
+        await open(id); // recharge le fil et suit la réponse si elle est encore en cours
+        return;
+      } catch (_) {
+        continue; // cœur en cours de redémarrage
+      }
+    }
+    if (conversationId != id) return;
+    messages.add(ChatMessage(role: 'notice', text: fallback ?? 'error|connexion'));
+    _finish();
+  }
+
   void _finish() {
+    BackgroundWork.stop();
     busy = false;
     status = null;
     for (final m in messages) {

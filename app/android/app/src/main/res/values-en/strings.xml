@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="work_channel">Answers in progress</string>
+    <string name="work_text">Tontolo is finishing your answer…</string>
+</resources>
