@@ -152,6 +152,12 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     });
   }
 
+  /// Phrase d'invitation : quatre générales, plus une propre au soir (« Hariva indray… »).
+  String _subtitleKey() {
+    final evening = const {'greet_evening', 'greet_night'}.contains(greetingKey(DateTime.now()));
+    return evening && _subtitle == 3 ? 'greet_sub_evening' : 'greet_sub$_subtitle';
+  }
+
   Suggestion _take() {
     for (var k = 0; k < _pool.length; k++) {
       final s = _pool[_next++ % _pool.length];
@@ -255,7 +261,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
             const SizedBox(height: 6),
             AnimatedSwitcher(
               duration: context.motion * 3,
-              child: Text(context.t('greet_sub$_subtitle'),
+              child: Text(context.t(_subtitleKey()),
                   key: ValueKey(_subtitle),
                   textAlign: TextAlign.center,
                   style: text.titleMedium?.copyWith(color: scheme.onSurfaceVariant)),

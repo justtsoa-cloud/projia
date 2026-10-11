@@ -667,6 +667,7 @@ const Map<String, Map<String, String>> _t = {
     'user_name': 'Votre prénom',
     'user_name_help': 'Pour l\'accueil (« Bonsoir » suivi de votre prénom). Vide : prénom du compte, ou celui que vous avez donné dans une discussion (« je m\'appelle… »).',
     'greet_alone': '{g} !',
+    'greet_sub_evening': 'Déjà le soir, n\'est-ce pas ?',
   },
   'en': {
     'app': 'Tontolo', 'chat': 'Chat', 'creations': 'Creations', 'settings': 'Settings',
@@ -1207,6 +1208,7 @@ const Map<String, Map<String, String>> _t = {
     'user_name': 'Your first name',
     'user_name_help': 'For the welcome screen (“Good evening” followed by your first name). Empty: your account name, or the one you gave in a chat (“my name is…”).',
     'greet_alone': '{g}!',
+    'greet_sub_evening': 'Evening already, isn\'t it?',
   },
   'mg': {
     'app': 'Tontolo', 'chat': 'Resaka', 'creations': 'Famoronana', 'settings': 'Kirakira',
@@ -1749,12 +1751,12 @@ const Map<String, Map<String, String>> _t = {
     'storage_cache': 'Cache: {s}',
     'storage_cache_help': 'Lahatahiry iray: fanavaozana, rakitra vonjimaika, cache web. Diovina ho azy; tsy mamafa angona ny fanadiovana azy.',
     'storage_clear': 'Diovy',
-    'greet_morning': 'Manao ahoana',
+    'greet_morning': 'Salama',
     'greet_afternoon': 'Manao ahoana',
-    'greet_evening': 'Manao ahoana',
-    'greet_night': 'Manao ahoana',
+    'greet_evening': 'Salama',
+    'greet_night': 'Salama',
     'greet_name': '{g} {n}',
-    'greet_sub0': 'Inona no hataontsika anio?',
+    'greet_sub0': 'Inona no anampiako anao?',
     'greet_sub1': 'Inona no iasantsika?',
     'greet_sub2': 'Hevitra, fanontaniana, rakitra?',
     'greet_sub3': 'Mihaino anao aho.',
@@ -1787,6 +1789,7 @@ const Map<String, Map<String, String>> _t = {
     'user_name': 'Ny anaranao',
     'user_name_help': 'Ho an\'ny fandraisana (« Manao ahoana » arahin\'ny anaranao). Raha foana: anaran\'ny kaonty, na ilay nomenao tao anaty resaka (« anarako… »).',
     'greet_alone': '{g}!',
+    'greet_sub_evening': 'Hariva indray izy izany an!',
   },
 };
 

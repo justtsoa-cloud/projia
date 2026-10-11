@@ -10,7 +10,12 @@ void main() {
     expect(greetingKey(DateTime(2026, 10, 12, 14)), 'greet_afternoon');
     expect(greetingKey(DateTime(2026, 10, 12, 20)), 'greet_evening');
     expect(greetingKey(DateTime(2026, 10, 12, 2)), 'greet_night');
-    expect(tr('fr', 'greet_name', {'g': tr('fr', 'greet_evening'), 'n': 'Antsa'}), 'Bonsoir Antsa');
+    expect(tr('fr', 'greet_name', {'g': tr('fr', 'greet_evening'), 'n': 'Rivo'}), 'Bonsoir Rivo');
+    // Malgache validé par le propriétaire : Salama (matin, soir), Manao ahoana (après-midi).
+    expect(tr('mg', 'greet_morning'), 'Salama');
+    expect(tr('mg', 'greet_afternoon'), 'Manao ahoana');
+    expect(tr('mg', 'greet_evening'), 'Salama');
+    expect(tr('mg', 'greet_sub_evening'), 'Hariva indray izy izany an!');
   });
 
   test('suggestions selon le moment et le mode, toutes traduites', () {
