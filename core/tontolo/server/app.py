@@ -813,11 +813,13 @@ def create_app(
     async def providers(request: Request) -> list[dict[str, Any]]:
         core = core_of(request)
         counts: dict[str, int] = {}
+        paid_counts: dict[str, int] = {}
         for m in core.catalog.catalog.models.values():
-            if m.is_free:
-                counts[m.provider] = counts.get(m.provider, 0) + 1
-        return [{**{k: v for k, v in p.items() if k != "base_url"},
-                 "has_key": secrets.has_key(pid), "free_models": counts.get(pid, 0)}
+            target = counts if m.is_free else paid_counts
+            target[m.provider] = target.get(m.provider, 0) + 1
+        return [{**{k: v for k, v in p.items() if k not in ("base_url", "or_prefix")},
+                 "has_key": secrets.has_key(pid), "free_models": counts.get(pid, 0),
+                 "paid_models": paid_counts.get(pid, 0)}
                 for pid, p in sorted(core.catalog.catalog.providers.items())]
 
 
@@ -1062,6 +1064,8 @@ async def _validate_key(core: Core, provider: str, key: str) -> tuple[bool, str]
             return False, "Adresse du fournisseur non fiable (HTTPS requis, hôte épinglé)"
         url = f"{base}/key" if provider == "openrouter" else f"{base}/models"
         headers = {"Authorization": f"Bearer {key}"}
+        if provider == "anthropic":
+            headers |= {"x-api-key": key, "anthropic-version": "2023-06-01"}
     try:
         resp = await http.client().get(url, headers=headers, timeout=20)
     except Exception as exc:

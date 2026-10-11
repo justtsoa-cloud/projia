@@ -151,8 +151,8 @@ Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cass�
 - [x] R1. Bug utilisateur : continuer dans Tontolo une discussion venant d'un lien Claude (claude.ai/share/…) ; aussi ChatGPT, Gemini, texte collé
 - [x] R2. À chaque message, réévaluer le meilleur modèle selon le contexte de la discussion (pas de modèle « collé » à la conversation)
 - [x] R3. Création d'image : ne plus rester bloqué sur Pollinations, choisir la meilleure source d'image disponible
-- [ ] F1. Aide par fournisseur d'API : étapes simples et lien direct pour obtenir la clé (fr/en/mg)
-- [ ] F2. Réglages simplifiés : proposer les serveurs d'API payants avec plafond de dépense (simple)
+- [x] F1. Aide par fournisseur d'API : étapes simples et lien direct pour obtenir la clé (fr/en/mg)
+- [x] F2. Réglages simplifiés : proposer les serveurs d'API payants avec plafond de dépense (simple)
 - [ ] F3. Mode Apprendre (élèves / étudiants), inspiré de Khanmigo, MagicSchool, MIA Seconde, Dinobot : bascule Général / Apprendre bien visible, niveau scolaire, guidage pas à pas sans donner la réponse, indices, quiz interactifs, fiches, correction d'exercice en photo, plan de révision
 - [ ] F4. Comptes (Google / GitHub) et synchronisation entre appareils : discussions, mémoires, clés d'API (chiffrées de bout en bout)
 - [ ] F5. Guide de publication : Play Store, F-Droid, dépôts Linux (Flathub, AUR, Snap, .deb)

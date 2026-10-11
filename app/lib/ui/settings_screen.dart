@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 
 import '../core/backend.dart';
+import '../core/key_guides.dart';
 import '../core/keys.dart';
 import '../core/stats.dart';
 import '../core/sync.dart';
@@ -49,6 +50,8 @@ class _Simple extends StatelessWidget {
           child: Text(context.t('keys_help'), style: Theme.of(context).textTheme.bodySmall),
         ),
         const ProviderKeys(),
+        _Section(context.t('paid_simple')),
+        const PaidSimple(),
         _Section(context.t('personalization')),
         const PersonalizationSection(),
         _Section(context.t('theme')),
@@ -208,53 +211,13 @@ class _ProviderKeysState extends State<ProviderKeys> {
   }
 
   Future<void> _edit(Map<String, dynamic> p) async {
-    final b = AppScope.of(context).backend;
-    final ctrl = TextEditingController();
-    String? result;
-    await showDialog<void>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setLocal) => AlertDialog(
-          title: Text('${p['name']}'),
-          content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (p['description'] != null) Text('${p['description']}', style: Theme.of(context).textTheme.bodySmall),
-            if (p['key_url'] != null)
-              TextButton.icon(
-                icon: const Icon(Icons.open_in_new),
-                label: Text(context.t('get_key')),
-                onPressed: () => openSafeLink('${p['key_url']}'),
-              ),
-            TextField(controller: ctrl, obscureText: true, decoration: InputDecoration(hintText: context.t('paste_key'))),
-            if (result != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(result!)),
-          ]),
-          actions: [
-            if (p['has_key'] == true)
-              TextButton(
-                onPressed: () async {
-                  await Keys.remove(b, '${p['id']}');
-                  if (context.mounted) Navigator.pop(context);
-                },
-                child: Text(context.t('delete')),
-              ),
-            TextButton(onPressed: () => Navigator.pop(context), child: Text(context.t('cancel'))),
-            FilledButton(
-              onPressed: () async {
-                final (ok, detail) = await Keys.save(b, '${p['id']}', ctrl.text.trim());
-                setLocal(() => result = ok ? '✓ ${context.t('key_valid')}' : '✗ $detail');
-                if (ok && context.mounted) Navigator.pop(context);
-              },
-              child: Text(context.t('save')),
-            ),
-          ],
-        ),
-      ),
-    );
+    await editProviderKey(context, p);
     _load();
   }
 
   @override
   Widget build(BuildContext context) => Column(children: [
-        for (final p in providers)
+        for (final p in providers.where((p) => p['paid'] != true))
           ListTile(
             leading: Icon(p['keyless'] == true ? Icons.lock_open : p['has_key'] == true ? Icons.check_circle : Icons.key_outlined,
                 color: p['has_key'] == true || p['keyless'] == true ? Theme.of(context).colorScheme.secondary : null),
@@ -265,6 +228,246 @@ class _ProviderKeysState extends State<ProviderKeys> {
             onTap: p['keyless'] == true ? null : () => _edit(p),
           ),
       ]);
+}
+
+/// Étapes pour obtenir la clé d'un fournisseur (repliables), avec le lien direct.
+class KeyGuideView extends StatelessWidget {
+  const KeyGuideView({super.key, required this.providerId, this.fallbackUrl, this.initiallyExpanded = true});
+
+  final String providerId;
+  final String? fallbackUrl;
+  final bool initiallyExpanded;
+
+  @override
+  Widget build(BuildContext context) {
+    final g = keyGuides[providerId];
+    final url = g?.url ?? fallbackUrl;
+    final small = Theme.of(context).textTheme.bodySmall;
+    if (g == null) {
+      return url == null
+          ? const SizedBox.shrink()
+          : Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(icon: const Icon(Icons.open_in_new), label: Text(context.t('get_key')), onPressed: () => openSafeLink(url)),
+            );
+    }
+    final login = g.login.split(', ').map((w) => switch (w) {
+          'e-mail' => context.t('kg_email'),
+          'téléphone' => context.t('kg_phone'),
+          _ => w,
+        }).join(', ');
+    final steps = [
+      context.t('kg_step1', {'login': login}),
+      context.t('kg_step2', {'path': g.path}),
+      context.t(g.prefix.isEmpty ? 'kg_step3' : 'kg_step3p', {'button': g.button, 'prefix': g.prefix}),
+      context.t('kg_step4'),
+    ];
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: EdgeInsets.zero,
+      color: scheme.surfaceContainerHighest,
+      child: ExpansionTile(
+        initiallyExpanded: initiallyExpanded,
+        leading: const Icon(Icons.help_outline),
+        title: Text(context.t('kg_title')),
+        subtitle: Text(context.t('kg_cost_${g.cost}'), style: small),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        expandedCrossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final (i, step) in steps.indexed)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                CircleAvatar(radius: 10, backgroundColor: scheme.primary, child: Text('${i + 1}', style: TextStyle(fontSize: 11, color: scheme.onPrimary))),
+                const SizedBox(width: 8),
+                Expanded(child: Text(step, style: small)),
+              ]),
+            ),
+          if (g.note != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 2, bottom: 6),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Icon(Icons.lightbulb_outline, size: 16, color: scheme.tertiary),
+                const SizedBox(width: 8),
+                Expanded(child: Text(context.t(g.note!), style: small)),
+              ]),
+            ),
+          FilledButton.tonalIcon(
+            icon: const Icon(Icons.open_in_new),
+            label: Text(context.t('kg_open')),
+            onPressed: () => openSafeLink(g.url),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Modèles payants en version simple : quand les utiliser, un plafond mensuel en un geste,
+/// la dépense du mois, et les serveurs (une clé chacun, avec l'aide pour l'obtenir).
+class PaidSimple extends StatefulWidget {
+  const PaidSimple({super.key});
+
+  @override
+  State<PaidSimple> createState() => _PaidSimpleState();
+}
+
+class _PaidSimpleState extends State<PaidSimple> {
+  Map<String, dynamic>? paid;
+  double month = 0;
+  List<Map<String, dynamic>> servers = [];
+
+  static const _caps = [1.0, 5.0, 10.0, 20.0];
+  static const _order = ['openrouter', 'openai', 'anthropic', 'deepseek', 'xai'];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final b = AppScope.of(context).backend;
+    if (b.state != BackendState.ready) return;
+    try {
+      final s = await b.getJson('/tontolo/settings') as Map<String, dynamic>;
+      final sp = await b.getJson('/tontolo/spend') as Map<String, dynamic>;
+      final prov = (await b.getJson('/tontolo/providers') as List).cast<Map<String, dynamic>>();
+      if (!mounted) return;
+      setState(() {
+        paid = (s['paid'] as Map?)?.cast<String, dynamic>() ?? {};
+        month = (sp['month'] as num? ?? 0).toDouble();
+        servers = [for (final id in _order) ...prov.where((p) => p['id'] == id)];
+      });
+    } catch (_) {} // ancien cœur distant : section masquée
+  }
+
+  Future<void> _patch(Map<String, dynamic> patch) async {
+    final s = await AppScope.of(context).backend.sendJson('PUT', '/tontolo/settings', {'paid': patch});
+    if (mounted) setState(() => paid = ((s as Map)['paid'] as Map).cast<String, dynamic>());
+  }
+
+  Future<void> _key(Map<String, dynamic> p) async {
+    await editProviderKey(context, p);
+    _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final p = paid;
+    if (p == null) return const SizedBox.shrink();
+    final mode = '${p['fallback'] ?? 'off'}';
+    final cap = (p['monthly_cap_usd'] as num? ?? 0).toDouble();
+    final small = Theme.of(context).textTheme.bodySmall;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Text(context.t('paid_simple_help'), style: small),
+      ),
+      const SizedBox(height: 10),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: SegmentedButton<String>(
+          segments: [
+            ButtonSegment(value: 'off', label: Text(context.t('paid_off'))),
+            ButtonSegment(value: 'ask', label: Text(context.t('paid_ask'))),
+            ButtonSegment(value: 'auto', label: Text(context.t('paid_auto'))),
+          ],
+          selected: {mode},
+          onSelectionChanged: (v) {
+            final patch = <String, dynamic>{'fallback': v.first};
+            // Premier passage en payant : plafond prudent par défaut (5 $ / mois, 1 $ / jour).
+            if (v.first != 'off' && cap <= 0) patch.addAll({'monthly_cap_usd': 5.0, 'daily_cap_usd': 1.0});
+            _patch(patch);
+          },
+        ),
+      ),
+      if (mode != 'off') ...[
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+          child: Text(context.t('paid_cap_month'), style: Theme.of(context).textTheme.labelLarge),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Wrap(spacing: 8, children: [
+            for (final c in _caps)
+              ChoiceChip(
+                label: Text('${c.toStringAsFixed(0)} \$'),
+                selected: cap == c,
+                onSelected: (_) => _patch({'monthly_cap_usd': c, 'daily_cap_usd': (c / 5).clamp(0.5, 5.0)}),
+              ),
+          ]),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Text(context.t('paid_spent', {'spent': month.toStringAsFixed(2), 'cap': cap.toStringAsFixed(0)}), style: small),
+        ),
+        if (cap > 0)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+            child: LinearProgressIndicator(value: (month / cap).clamp(0.0, 1.0)),
+          ),
+      ],
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        child: Text(context.t('paid_servers'), style: Theme.of(context).textTheme.labelLarge),
+      ),
+      for (final s in servers)
+        ListTile(
+          leading: Icon(s['has_key'] == true ? Icons.check_circle : Icons.key_outlined,
+              color: s['has_key'] == true ? Theme.of(context).colorScheme.secondary : null),
+          title: Text('${s['name']}'),
+          subtitle: Text(s['id'] == 'openrouter' ? context.t('paid_openrouter') : '${s['description'] ?? ''}', maxLines: 2, overflow: TextOverflow.ellipsis),
+          trailing: s['has_key'] == true && (s['paid_models'] as int? ?? 0) > 0
+              ? Text(context.t('n_paid_models', {'n': '${s['paid_models']}'}), style: small)
+              : null,
+          onTap: () => _key(s),
+        ),
+    ]);
+  }
+}
+
+/// Boîte de dialogue de clé : aide pas à pas, collage, vérification immédiate.
+Future<void> editProviderKey(BuildContext context, Map<String, dynamic> p) async {
+  final b = AppScope.of(context).backend;
+  final ctrl = TextEditingController();
+  String? result;
+  await showDialog<void>(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setLocal) => AlertDialog(
+        title: Text('${p['name']}'),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          if (p['description'] != null) Text('${p['description']}', style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 8),
+          KeyGuideView(providerId: '${p['id']}', fallbackUrl: p['key_url'] as String?),
+          const SizedBox(height: 8),
+          TextField(controller: ctrl, obscureText: true, decoration: InputDecoration(hintText: context.t('paste_key'))),
+          if (result != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(result!)),
+        ]),
+        scrollable: true,
+        actions: [
+          if (p['has_key'] == true)
+            TextButton(
+              onPressed: () async {
+                await Keys.remove(b, '${p['id']}');
+                if (context.mounted) Navigator.pop(context);
+              },
+              child: Text(context.t('delete')),
+            ),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(context.t('cancel'))),
+          FilledButton(
+            onPressed: () async {
+              final (ok, detail) = await Keys.save(b, '${p['id']}', ctrl.text.trim());
+              setLocal(() => result = ok ? '✓ ${context.t('key_valid')}' : '✗ $detail');
+              if (ok && context.mounted) Navigator.pop(context);
+            },
+            child: Text(context.t('save')),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _Advanced extends StatefulWidget {

@@ -20,6 +20,7 @@ from tontolo.catalog.sources import (
     hfspaces,
     local_llm,
     openrouter,
+    paid,
     pollinations,
     rankings,
 )
@@ -127,6 +128,14 @@ class CatalogService:
             free_models, free_providers = free_res
             models += free_models
             providers.update(free_providers)
+        # Fournisseurs intégrés en dernier : une liste distante ne peut jamais remplacer leur
+        # adresse (leur clé n'est envoyée qu'à l'adresse codée en dur).
+        providers.update(BUILTIN_PROVIDERS)
+        providers.update({pid: paid.public(p) for pid, p in paid.PROVIDERS.items()})
+        try:  # serveurs payants directs : seulement si l'utilisateur a mis sa clé
+            models += await paid.discover(cache, ttl, or_models or [])
+        except Exception as exc:  # une source en panne ne doit pas bloquer le catalogue
+            log.warning("Serveurs payants : %r", exc)
         if not cache.offline:
             models += await self._discover_media(providers, cache)
         if not any(m.provider not in ("local", "hf_spaces", *local_llm.PROVIDERS)
@@ -166,7 +175,7 @@ class CatalogService:
         leurs modèles (`GET /models`) pour détecter la transcription et la synthèse vocale."""
         found: list[ModelInfo] = []
         for pid, p in providers.items():
-            if pid in BUILTIN_PROVIDERS or "{" in p.get("base_url", ""):
+            if pid in BUILTIN_PROVIDERS or p.get("paid") or "{" in p.get("base_url", ""):
                 continue
             key = secrets.get_key(pid)
             if not key or not security.key_allowed(pid, p.get("base_url", "")):
