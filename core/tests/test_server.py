@@ -837,3 +837,37 @@ def test_invalid_attached_image_rejected_before_detached_turn(client: TestClient
         {"type": "text", "text": "anime-la"},
         {"type": "image_url", "image_url": {"url": "data:image/png;base64,???"}}]})
     assert r.status_code == 400
+
+
+def test_html_document_converted_to_pdf_uses_its_content(
+        client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Bug mobile 0.5.0 : « convertis ce HTML en PDF » ne transmettait pas le HTML joint."""
+    from tontolo.creator import latex
+    from tontolo.creator.service import CreatorService
+
+    seen: list[str] = []
+
+    async def ask(self: Any, messages: Any, *, category: Any = None,
+                  model: Any = None) -> tuple[str, str, str]:
+        seen.append(str(messages[-1]["content"]))
+        return ("\\documentclass{article}\\title{Baobabs}\\begin{document}Baobabs de "
+                "Morondava\\end{document}", "fake:writer", "Rédacteur")
+
+    async def pick(self: Any, *, exclude: str, vision: bool = False) -> None:
+        return None
+
+    async def compile_pdf(source: str) -> tuple[bytes, str, str]:
+        return b"%PDF-1.7", "", "local"
+
+    monkeypatch.setattr(CreatorService, "ask", ask)
+    monkeypatch.setattr(CreatorService, "pick_reviewer", pick)
+    monkeypatch.setattr(latex, "compile_pdf", compile_pdf)
+    page = (b"<!doctype html><html><body><h1>Les baobabs</h1>"
+            b"<p>Avenue de Morondava</p></body></html>")
+    doc = client.post("/tontolo/documents",
+                      files={"file": ("page.html", page, "text/html")}).json()
+    events = _events(client, "/tontolo/chat", {"conversation_id": doc["conversation_id"],
+                                                "content": "convertis ce html en pdf"})
+    job = next(e for e in events if e["type"] == "done")["job"]
+    assert job["status"] == "done" and job["params"]["mime"] == "application/pdf"
+    assert "Avenue de Morondava" in seen[0] and "page.html" in seen[0]

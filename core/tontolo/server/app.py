@@ -171,6 +171,21 @@ async def _last_file(core: Core, cid: str) -> tuple[str, str] | None:
     return str(params.get("format") or ""), text
 
 
+async def _file_material(core: Core, cid: str, skip_last: bool = False) -> str:
+    """Contenu à convertir pour une création de fichier : documents joints (texte extrait)
+    puis source du dernier fichier créé dans la discussion."""
+    parts: list[str] = []
+    for d in (await core.db.list_documents(cid, with_pages=True))[-3:]:
+        text = "\n".join(str(p) for p in d.get("pages") or [])
+        if text.strip():
+            parts.append(f"Document joint « {d.get('name')} » (contenu à utiliser) :\n"
+                         + text[:15000])
+    prev = None if skip_last else await _last_file(core, cid)
+    if prev and prev[1].strip():
+        parts.append(f"Source du dernier fichier créé ({prev[0]}) :\n{prev[1][:15000]}")
+    return "\n\n".join(parts)[-30000:]
+
+
 async def _image_source(core: Core, cid: str) -> tuple[bytes | None, str | None]:
     """Dernière image du fil. Une image échouée interdit le retour à une ancienne."""
     for m in reversed(await core.db.get_messages(cid)):
@@ -663,6 +678,11 @@ def create_app(
             f"[{m['role']}] {_text_of(m['content'])[:3000]}" for m in history[-6:]
             if m["role"] in ("user", "assistant") and not str(m["content"]).startswith("[média:")
         )[-9000:]
+        # Matière à transformer (« convertis ce HTML en PDF », « mets ce document en Word ») :
+        # documents joints à la discussion et source du dernier fichier créé, en entier.
+        material = await _file_material(core, cid, skip_last=base_source is not None)
+        if material:
+            context = f"{material}\n\n{context}"
         await core.db.add_message(cid, {"role": "user", "content": body.content})
         done: dict[str, Any] = {}
         images = [str((p.get("image_url") or {}).get("url"))

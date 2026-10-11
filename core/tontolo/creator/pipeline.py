@@ -214,7 +214,7 @@ class Creator:
                     f"cette demande, en gardant ce qui est bon, et renvoie la version complète "
                     f"dans le même format : {request}")
         messages: list[dict[str, Any]] = [{"role": "system", "content": system},
-                                          {"role": "user", "content": user[:12000]}]
+                                          {"role": "user", "content": user[:40000]}]
         loop = asyncio.get_running_loop()
         deadline = loop.time() + TOTAL_TIMEOUT
         yield {"type": "step", "step": "doc_writing"}
