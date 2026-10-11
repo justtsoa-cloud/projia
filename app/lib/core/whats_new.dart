@@ -14,6 +14,12 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.4.7': [
+    NewsItem(Icons.login, 'Connexion Google corrigée',
+        'Sur Android, Google et GitHub vous ramènent directement dans Tontolo. Le retour ne passe plus par une page localhost.',
+        'Google sign-in fixed', 'On Android, Google and GitHub return directly to Tontolo instead of a localhost page.',
+        mg: 'Fidirana Google voahitsy', mgText: 'Amin’ny Android, mamerina anao mivantana ao amin’i Tontolo i Google sy GitHub fa tsy amin’ny pejy localhost.'),
+  ],
   '0.4.6': [
     NewsItem(Icons.forum_outlined, 'Chaque discussion garde son fil',
         'Tontolo répond toujours à la demande de la discussion ouverte, même longue, avec des images, des vidéos et des changements de modèle. Les autres discussions du dossier et la mémoire passent après.',

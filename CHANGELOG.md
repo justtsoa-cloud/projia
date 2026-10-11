@@ -5,6 +5,22 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.4.7] - 2026-10-11
+
+### Corrigé
+- Connexion Google et GitHub sur Android : retour directement dans Tontolo par lien
+  dédié, sans serveur localhost. Le vérificateur PKCE est conservé temporairement
+  dans le stockage sécurisé pour reprendre après un redémarrage de l’application.
+- Linux : les requêtes parasites (favicon, retour sans code) ne terminent plus
+  l’attente de connexion. Échange du code limité à 20 secondes.
+- Validation stricte du lien de retour, refus des jetons implicites, double connexion
+  empêchée. Aucun changement de signature, de paquet ni de schéma de base.
+
+### Configuration serveur
+- Ajouter `io.github.raantss18.tontolo://login-callback/` aux Redirect URLs Supabase.
+  Garder `http://localhost:43823/` pour Linux et les anciennes versions Android.
+
+
 ## [0.4.6] - 2026-10-11
 
 ### Corrigé (retour d'utilisateur)

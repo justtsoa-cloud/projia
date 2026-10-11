@@ -3,12 +3,14 @@
 // phrase secrète de synchronisation (voir cloud_sync.dart) : la base ne voit que des blobs
 // chiffrés. Jetons conservés dans le stockage sécurisé du système.
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart' as hash;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
@@ -16,11 +18,18 @@ import 'package:url_launcher/url_launcher.dart';
 const supabaseUrl = String.fromEnvironment('TONTOLO_STATS_URL');
 const supabaseKey = String.fromEnvironment('TONTOLO_STATS_KEY');
 
-/// Retour de connexion : petit serveur local de l'application (Android et bureau), qui ne
-/// reçoit qu'une requête puis s'arrête. Le code reçu est inutilisable sans le vérificateur
-/// PKCE gardé en mémoire.
+/// Android revient directement dans Tontolo ; Linux utilise la boucle locale.
+/// Le code reçu exige le vérificateur PKCE conservé en stockage sécurisé.
 const callbackPort = 43823;
 const callbackUrl = 'http://localhost:$callbackPort/';
+const androidCallbackUrl = 'io.github.raantss18.tontolo://login-callback/';
+
+bool isAndroidAuthCallback(Uri uri) =>
+    uri.scheme == 'io.github.raantss18.tontolo' &&
+    uri.host == 'login-callback' && uri.path == '/' &&
+    !uri.hasPort && uri.userInfo.isEmpty && uri.fragment.isEmpty;
+
+String authCallbackUrl({required bool android}) => android ? androidCallbackUrl : callbackUrl;
 
 class Session {
   Session(this.accessToken, this.refreshToken, this.expiresAt, this.userId, this.email, this.provider);
@@ -68,6 +77,11 @@ class Account extends ChangeNotifier {
   final http.Client _http;
   final FlutterSecureStorage _storage;
   static const _key = 'account_session';
+  static const _pendingKey = 'account_pending_pkce';
+  static const _links = MethodChannel('tontolo/auth');
+  Completer<void>? _signInDone;
+  bool _handlingLink = false;
+  bool _signingIn = false;
   Session? session;
 
   static bool get configured => supabaseUrl.startsWith('https://') && supabaseKey.isNotEmpty;
@@ -95,7 +109,40 @@ class Account extends ChangeNotifier {
     } catch (_) {
       session = null;
     }
+    if (Platform.isAndroid) {
+      _links.setMethodCallHandler((call) async {
+        if (call.method == 'authLink' && call.arguments is String) {
+          await receiveAuthLink(Uri.parse(call.arguments as String));
+        }
+      });
+      final link = await _links.invokeMethod<String>('initialAuthLink');
+      if (link != null) await receiveAuthLink(Uri.parse(link));
+    }
     notifyListeners();
+  }
+
+  /// Retour Android : accepte seulement un code PKCE pour une connexion en attente.
+  Future<void> receiveAuthLink(Uri uri) async {
+    if (!isAndroidAuthCallback(uri) || _handlingLink) return;
+    _handlingLink = true;
+    try {
+      final raw = await _storage.read(key: _pendingKey);
+      if (raw == null) return;
+      final pending = jsonDecode(raw) as Map<String, dynamic>;
+      final started = (pending['started'] as num).toInt();
+      if (DateTime.now().millisecondsSinceEpoch - started > 300000) {
+        throw AccountError('acc_cancelled');
+      }
+      await _exchange(uri, pending['verifier'] as String);
+      if (_signInDone != null && !_signInDone!.isCompleted) _signInDone!.complete();
+    } catch (_) {
+      if (_signInDone != null && !_signInDone!.isCompleted) {
+        _signInDone!.completeError(AccountError('acc_failed'));
+      }
+    } finally {
+      await _storage.delete(key: _pendingKey);
+      _handlingLink = false;
+    }
   }
 
   Future<void> _save(Session? s) async {
@@ -120,55 +167,89 @@ class Account extends ChangeNotifier {
   /// Connexion avec `provider` (google | github) dans le navigateur du système.
   Future<void> signIn(String provider) async {
     if (!configured) throw AccountError('acc_not_configured');
+    if (_signingIn || !const {'google', 'github'}.contains(provider)) {
+      throw AccountError('acc_failed');
+    }
+    _signingIn = true;
     final verifier = _verifier();
     final url = Uri.parse('$supabaseUrl/auth/v1/authorize').replace(queryParameters: {
       'provider': provider,
-      'redirect_to': callbackUrl,
+      'redirect_to': authCallbackUrl(android: Platform.isAndroid),
       'code_challenge': challengeOf(verifier),
       'code_challenge_method': 's256',
     });
-    final Uri back;
-    HttpServer? server;
     try {
-      server = await HttpServer.bind(InternetAddress.loopbackIPv4, callbackPort);
-      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) throw AccountError('acc_failed');
-      final req = await server.first.timeout(const Duration(minutes: 5));
-      back = req.uri;
-      // Page de retour : propose de revenir dans l'application (Android : lien intent://).
-      req.response
-        ..statusCode = 200
-        ..headers.contentType = ContentType.html
-        ..write(_donePage(Platform.isAndroid));
-      await req.response.close();
+      if (Platform.isAndroid) {
+        final done = Completer<void>();
+        _signInDone = done;
+        // Installer l'attente avant d'ouvrir le navigateur ; elle couvre aussi les erreurs.
+        final waiting = done.future.timeout(const Duration(minutes: 5));
+        try {
+          await _storage.write(key: _pendingKey, value: jsonEncode({
+            'verifier': verifier, 'started': DateTime.now().millisecondsSinceEpoch,
+          }));
+          if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+            done.completeError(AccountError('acc_failed'));
+          }
+        } catch (_) {
+          if (!done.isCompleted) done.completeError(AccountError('acc_failed'));
+        }
+        await waiting;
+      } else {
+        final server = await HttpServer.bind(InternetAddress.loopbackIPv4, callbackPort);
+        try {
+          if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+            throw AccountError('acc_failed');
+          }
+          // Ignorer favicon et requêtes sans code : elles ne terminent pas la connexion.
+          final request = await server.firstWhere((req) {
+            final valid = req.uri.path == '/' &&
+                (req.uri.queryParameters.containsKey('code') || req.uri.queryParameters.containsKey('error'));
+            if (!valid) {
+              req.response.statusCode = 404;
+              unawaited(req.response.close());
+            }
+            return valid;
+          }).timeout(const Duration(minutes: 5));
+          request.response.headers.contentType = ContentType.html;
+          request.response.write('<!doctype html><meta charset="utf-8"><h1>Tontolo</h1>'
+              '<p>Retour reçu. Revenez dans Tontolo pour vérifier la connexion.</p>');
+          await request.response.close();
+          await _exchange(request.uri, verifier);
+        } finally {
+          await server.close(force: true);
+        }
+      }
     } on AccountError {
       rethrow;
-    } catch (e) {
+    } catch (_) {
       throw AccountError('acc_cancelled');
     } finally {
-      await server?.close(force: true);
+      if (Platform.isAndroid) await _storage.delete(key: _pendingKey);
+      _signInDone = null;
+      _signingIn = false;
     }
-    final params = {...back.queryParameters, ...Uri.splitQueryString(back.fragment)};
+  }
+
+  Future<void> _exchange(Uri back, String verifier) async {
+    final params = back.queryParameters;
     if (params['error'] != null) {
       final desc = '${params['error_description']}'.toLowerCase();
       throw AccountError(desc.contains('provider is not enabled') || desc.contains('unsupported provider') ? 'acc_provider_off' : 'acc_failed');
     }
     final code = params['code'];
-    if (code == null) throw AccountError('acc_failed');
+    if (code == null || code.isEmpty) throw AccountError('acc_failed');
     final r = await _http.post(Uri.parse('$supabaseUrl/auth/v1/token?grant_type=pkce'),
         headers: {'apikey': supabaseKey, 'Content-Type': 'application/json'},
-        body: jsonEncode({'auth_code': code, 'code_verifier': verifier}));
+        body: jsonEncode({'auth_code': code, 'code_verifier': verifier}))
+        .timeout(const Duration(seconds: 20));
     if (r.statusCode != 200) throw AccountError('acc_failed');
-    await _save(Session.fromToken(jsonDecode(utf8.decode(r.bodyBytes)) as Map<String, dynamic>));
+    final data = jsonDecode(utf8.decode(r.bodyBytes)) as Map<String, dynamic>;
+    if (data['access_token'] is! String || data['refresh_token'] is! String || data['user'] is! Map) {
+      throw AccountError('acc_failed');
+    }
+    await _save(Session.fromToken(data));
   }
-
-  static String _donePage(bool android) => '<!doctype html><meta charset="utf-8">'
-      '<meta name="viewport" content="width=device-width,initial-scale=1">'
-      '<body style="font-family:sans-serif;text-align:center;padding:40px">'
-      '<h2>Tontolo</h2><p>Connexion terminée. Vous pouvez revenir dans l\'application.</p>'
-      '${android ? '<p><a href="intent://#Intent;package=io.github.raantss18.tontolo;end" '
-          'style="font-size:20px">Revenir à Tontolo</a></p>'
-          '<script>location.href="intent://#Intent;package=io.github.raantss18.tontolo;end"</script>' : ''}'
-      '</body>';
 
   /// Jeton d'accès valide (rafraîchi si besoin) ; null si déconnecté ou session révoquée.
   Future<String?> token() async {

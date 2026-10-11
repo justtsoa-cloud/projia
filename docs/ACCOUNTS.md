@@ -29,7 +29,9 @@ appareils. Sans compte, Tontolo fonctionne exactement comme avant.
 ## Mise en service (propriétaire du projet Supabase)
 1. **SQL** : exécuter `docs/accounts/supabase_sync.sql` dans *SQL Editor*.
 2. **URL de retour** : *Authentication › URL Configuration › Redirect URLs*, ajouter
-   `http://localhost:43823/` (petit serveur local de l'application, Android comme Linux).
+   `http://localhost:43823/` (Linux et anciennes versions Android), ainsi que
+   `io.github.raantss18.tontolo://login-callback/` (Android à partir de la 0.4.7).
+   Conserver les deux URL exactes, sans wildcard.
 3. **Google** : console.cloud.google.com › *APIs & Services › Credentials* › *Create
    credentials › OAuth client ID* (type *Web application*), *Authorized redirect URI* :
    `https://<projet>.supabase.co/auth/v1/callback`. Puis Supabase › *Authentication ›

@@ -180,3 +180,26 @@ Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cass�
 - [x] B6. Question simple (« sites pour créer des portfolios ? ») → « Nombre maximal d'étapes atteint » : le modèle enchaîne les recherches ; au dernier tour, répondre sans outil avec ce qui a été trouvé, et ne pas répéter un même appel d'outil
 - [x] P1. Persistance du fil (signalé le 2026-10-11 : réponse à l'exercice d'une autre discussion) : priorités fil > dossier > mémoire, mémoire filtrée, résumé du fil en arrière-plan, photos anciennes allégées — v0.4.6
 - [x] V1. Publicité 60 s verticale en anglais, musique jazz originale (press/campaign-v04/)
+
+## Reprise Codex — authentification Google (2026-10-11)
+- [x] Lire les derniers commits (base e5ab90a), la checklist et les transmissions de Claude ; arbre propre avant intervention.
+- [x] Vérifier le flux existant : OAuth Supabase avec PKCE et retour local http://localhost:43823/.
+- [x] Accéder au projet Google Cloud et au projet Supabase existants (connexion propriétaire effectuée).
+- [x] Configurer le consentement et le client OAuth Web Google avec le callback exact du projet Supabase ; conserver GitHub. Configuration créée et secret enregistré par le propriétaire.
+- [x] Activer Google dans Supabase, sans placer le secret OAuth dans le dépôt ou dans l’application. Google et GitHub ENABLED vérifiés ; retour http://localhost:43823/ autorisé ; dossier de clés ignoré et permissions privées.
+- [ ] Tester connexion, annulation, retour Android/Linux, déconnexion et reconnexion ; vérifier GitHub également.
+- [ ] Relire le protocole de synchronisation séparément et vérifier la conservation des données.
+- [ ] Réconcilier les anciennes cases non cochées (publication 0.2.0, F3 Apprendre) avec les preuves de livraison ; ne pas les considérer automatiquement comme fonctionnalités absentes.
+
+- [ ] Google reste en statut Testing sans utilisateurs de test : ajouter un testeur autorisé avant essai ; compléter présentation/confidentialité avant publication publique.
+- [x] Tests ciblés PKCE et synchronisation : 5 tests réussis ; ne constitue pas un essai OAuth réel Android/Linux.
+
+## v0.4.7 — retour Google/GitHub sur Android
+- [x] Remplacer le serveur localhost Android par un lien natif vers Tontolo, sans nouvelle dépendance.
+- [x] Conserver le PKCE temporaire dans le stockage sécurisé pour reprendre après redémarrage ; délai et suppression après usage.
+- [x] Valider le lien reçu, ignorer les retours sans demande, empêcher les doubles échanges.
+- [x] Ajouter le retour Android exact dans Supabase avec accord du propriétaire ; conserver le retour Linux et anciennes versions.
+- [x] Tests : 192 cœur, 45 Flutter, analyse Flutter sans erreur ; dernier ajustement revérifié (analyse et 9 tests ciblés).
+- [x] Trois APK signés construits ; installation par-dessus sur émulateur réussie (0.4.7, versionCode 4022), lien natif rouvre MainActivity.
+- [ ] Publication GitHub et vérification des fichiers de release.
+- [ ] Essai Google réel par le propriétaire : configuration Google en mode Testing à vérifier si accès refusé.

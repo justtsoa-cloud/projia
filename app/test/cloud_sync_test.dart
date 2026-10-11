@@ -8,6 +8,25 @@ import 'package:tontolo/core/account.dart';
 import 'package:tontolo/core/cloud_sync.dart';
 
 void main() {
+  test('Android revient dans Tontolo ; Linux conserve le retour local', () {
+    expect(authCallbackUrl(android: true), 'io.github.raantss18.tontolo://login-callback/');
+    expect(authCallbackUrl(android: false), 'http://localhost:43823/');
+  });
+
+  test('retour OAuth : refuser les autres hôtes, ports, chemins et jetons implicites', () {
+    expect(isAndroidAuthCallback(Uri.parse('$androidCallbackUrl?code=sample')), isTrue);
+    for (final bad in [
+      'https://login-callback/?code=sample',
+      'io.github.raantss18.tontolo://other/?code=sample',
+      'io.github.raantss18.tontolo://login-callback/other?code=sample',
+      'io.github.raantss18.tontolo://login-callback:123/?code=sample',
+      'io.github.raantss18.tontolo://user@login-callback/?code=sample',
+      '$androidCallbackUrl#access_token=sample',
+    ]) {
+      expect(isAndroidAuthCallback(Uri.parse(bad)), isFalse, reason: bad);
+    }
+  });
+
   test('chiffrement : aller-retour, mauvaise clé et données associées refusées', () async {
     final salt = SyncCrypto.newSalt();
     final good = SyncCrypto(SecretKey(await SyncCrypto.deriveBytes('ma phrase secrète', salt, iterations: 1000)));
