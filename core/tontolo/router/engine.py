@@ -93,6 +93,7 @@ class Router:
         self._paid_ok: set[str] = set()             # conversations où le payant est accepté
         self._class_cache: dict[str, Category] = {}
         self.probe = http.is_online  # remplaçable (tests)
+        self.offline_since: float | None = None  # appareil hors ligne détecté (santé)
 
     async def startup(self) -> None:
         if self.db is not None:
@@ -275,6 +276,7 @@ class Router:
                 if err.kind == ErrorKind.NETWORK and not await self.probe():
                     # C'est l'appareil qui est hors ligne, pas le modèle : ne pas défiler toute la
                     # liste des modèles ni les pénaliser. On attend le retour de la connexion.
+                    self.offline_since = self.offline_since or time.time()
                     if started:
                         yield {"type": "stream_reset", "model": m.key, "reason": "hors ligne"}
                     back = False
@@ -295,6 +297,7 @@ class Router:
                                "category": prof.category.value}
                         return
                     recoveries += 1
+                    self.offline_since = None
                     await http.reset()
                     idx -= 1       # on retente le même modèle, sans « bascule »
                     attempts -= 1
@@ -314,6 +317,7 @@ class Router:
                 await self.persist()
                 continue
             # Succès
+            self.offline_since = None
             self.quota.on_success(m)
             self.reliability.record(m.key, True)
             cost = 0.0
@@ -332,6 +336,24 @@ class Router:
 
         await self.persist()
         yield self._no_model_event(decision, tried=attempts)
+
+    async def health(self) -> dict[str, Any]:
+        """État global pour la pastille de l'interface : vert (plusieurs modèles gratuits
+        prêts), orange (peu de choix ou réseau incertain), rouge (aucun modèle prêt)."""
+        d = await self.decide([{"role": "user", "content": "Bonjour"}])
+        ready = [c for c in d.chain if c.model.is_free]
+        waits = [t for c in d.waiting if (t := c.available_at) > 0]
+        offline = self.offline_since is not None
+        if not ready or (offline and time.time() - (self.offline_since or 0) < 120):
+            state = "red"
+        elif len(ready) < 3:
+            state = "orange"
+        else:
+            state = "green"
+        return {"state": state, "ready": len(ready), "waiting": len(d.waiting),
+                "retry_at": min(waits) if waits else None, "offline": offline,
+                "best": ready[0].model.name if ready else None,
+                "best_key": ready[0].model.key if ready else None}
 
     def _no_model_event(self, decision: RouteDecision, tried: int = 0) -> dict[str, Any]:
         waits = [c.available_at for c in decision.waiting if c.available_at > 0]

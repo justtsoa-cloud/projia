@@ -30,6 +30,7 @@ from tontolo.catalog.models import Category, ModelInfo
 from tontolo.config import Settings, load_settings, save_settings
 from tontolo.providers.registry import ProviderRegistry
 from tontolo.router.classifier import _is_followup, classify
+from tontolo.router.quota import QuotaManager
 from tontolo.router.refusal import looks_like_image_refusal, mentions_image
 from tontolo.security import LOOPBACK_NAMES, host_of, key_allowed, origin_allowed
 from tontolo.update import check_update, download_update
@@ -584,7 +585,8 @@ def create_app(
 
     # --- Catalogue, nouveautés, préférences --------------------------------
 
-    def _model_json(m: ModelInfo, usable: set[str]) -> dict[str, Any]:
+    def _model_json(m: ModelInfo, usable: set[str],
+                    quota: QuotaManager | None = None) -> dict[str, Any]:
         return {
             "key": m.key, "id": m.model_id, "provider": m.provider, "name": m.name,
             "free": m.is_free, "usable": m.provider in usable, "tools": m.supports_tools,
@@ -592,6 +594,7 @@ def create_app(
             "quality": m.quality, "speed": m.speed, "provisional": m.provisional,
             "rate_limit": m.rate_limit, "created": m.created,
             "price_in": m.price_in, "price_out": m.price_out,
+            "available_at": quota.available_at(m) if quota is not None else 0.0,
         }
 
     @app.get("/tontolo/catalog")
@@ -607,12 +610,17 @@ def create_app(
             models = [m for m in models if ql in m.key.lower() or ql in m.name.lower()]
         return {"updated_at": core.catalog.catalog.updated_at,
                 "sources": core.catalog.catalog.sources,
-                "models": [_model_json(m, usable_set) for m in models[:limit]]}
+                "models": [_model_json(m, usable_set, core.router.quota)
+                           for m in models[:limit]]}
 
     @app.post("/tontolo/catalog/refresh")
     async def refresh_catalog(request: Request) -> dict[str, Any]:
         changes = await core_of(request).catalog.refresh(force=True)
         return {"changes": len(changes)}
+
+    @app.get("/tontolo/health")
+    async def model_health(request: Request) -> dict[str, Any]:
+        return await core_of(request).router.health()
 
     @app.get("/tontolo/status")
     async def status(request: Request) -> dict[str, Any]:

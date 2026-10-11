@@ -440,3 +440,10 @@ def test_video_from_hf_space(client: TestClient, catalog_service: CatalogService
     job = client.post("/tontolo/media", json={"kind": "video_gen", "prompt": "encore"}).json()
     j = _wait_job(client, job["id"])
     assert j["status"] == "failed" and "clé Hugging Face" in j["error"]
+
+
+def test_model_health(client: TestClient) -> None:
+    h = client.get("/tontolo/health").json()
+    assert h["state"] in ("green", "orange") and h["ready"] >= 1 and h["best_key"]
+    models = client.get("/tontolo/catalog", params={"usable": True}).json()["models"]
+    assert all("available_at" in m for m in models)

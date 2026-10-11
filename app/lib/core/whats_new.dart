@@ -13,6 +13,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.2.8': [
+    NewsItem(Icons.dashboard_customize_outlined, 'Accueil en raccourcis',
+        'Huit raccourcis colorés pour démarrer d\'un geste : image, vidéo, retouche, recherche, traduction, explication, résumé, animation de photo. Plus trois idées qui changent chaque jour.',
+        'Shortcut home screen',
+        'Eight colourful shortcuts to start in one tap: image, video, retouch, search, translate, explain, summarize, animate a photo. Plus three ideas that change daily.'),
+    NewsItem(Icons.circle, 'Pastille de santé',
+        'Le bouton « Auto » porte une pastille : verte (plusieurs modèles gratuits prêts), orange (peu de choix), rouge (aucun, avec l\'heure de retour). Appui long : fixer un des meilleurs modèles d\'un geste.',
+        'Health dot',
+        'The “Auto” button now has a dot: green (several free models ready), orange (few), red (none, with the return time). Long-press: pin one of the best models in one tap.'),
+  ],
   '0.2.7': [
     NewsItem(Icons.movie_outlined, 'Vidéos gratuites',
         'Demandez « crée une vidéo d\'un renard dans la neige », ou joignez une photo et dites « anime cette photo ». Vidéos de quelques secondes, sans clé (quelques-unes par jour ; une clé Hugging Face gratuite en donne plus).',

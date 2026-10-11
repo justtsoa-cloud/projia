@@ -72,3 +72,11 @@ async def test_network_error_online_still_switches(
     events = await collect(chat.send(None, "Bonjour", use_tools=False))
     assert [e for e in events if e["type"] == "model_switched"]
     assert next(e for e in events if e["type"] == "done")["model"] != "fake:chatty"
+
+
+async def test_health_states(router: Router) -> None:
+    assert (await router.health())["state"] in ("green", "orange")
+    for m in router.catalog.catalog.models.values():
+        router.quota.on_error(m, ProviderError("quota", ErrorKind.QUOTA, retry_after=3600))
+    h = await router.health()
+    assert h["state"] == "red" and h["ready"] == 0 and h["retry_at"]

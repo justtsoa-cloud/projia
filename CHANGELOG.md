@@ -5,6 +5,21 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.2.8] - 2026-10-11
+
+### Ajouté
+- **Écran d'accueil interactif** : 8 raccourcis colorés (créer une image, une vidéo, retoucher
+  ou animer une photo, chercher sur le web, traduire, expliquer, résumer) qui préparent la
+  demande sans l'envoyer (la photo est demandée si besoin), et 3 exemples qui changent chaque
+  jour. Grille adaptée au téléphone, à la tablette et au bureau.
+- **Pastille de santé** sur le bouton du modèle : verte, orange ou rouge selon le nombre de
+  modèles gratuits prêts (rouge aussi hors ligne), avec le détail au survol et en tête du
+  sélecteur. Mise à jour au démarrage, après chaque réponse et toutes les 45 s.
+- **Appui long** sur le bouton du modèle : les 5 meilleurs modèles gratuits prêts, à fixer pour
+  la discussion d'un geste (ou retour en Auto).
+- Sélecteur de modèle : point d'état par modèle (prêt / en pause).
+- API : `GET /tontolo/health` (état global) et `available_at` dans `/tontolo/catalog`.
+
 ## [0.2.7] - 2026-10-11
 
 ### Ajouté
