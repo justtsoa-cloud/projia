@@ -27,6 +27,15 @@ class Keys {
     return (ok, '${res['detail']}');
   }
 
+  /// Clé reçue d'un autre appareil du même compte (déjà validée là-bas).
+  static Future<void> store(Backend backend, String provider, String key) async {
+    await _storage.write(key: '$_prefix$provider', value: key);
+    if (backend.isRemote) return;
+    try {
+      await backend.sendJson('PUT', '/tontolo/keys/$provider', {'key': key, 'persist': false, 'validate_key': false});
+    } catch (_) {}
+  }
+
   static Future<void> remove(Backend backend, String provider) async {
     await _storage.delete(key: '$_prefix$provider');
     await backend.sendJson('DELETE', '/tontolo/keys/$provider');

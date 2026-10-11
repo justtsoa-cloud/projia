@@ -80,6 +80,18 @@ class Prefs extends ChangeNotifier {
   String get learnLevel => _sp.getString('learnLevel') ?? 'lycee';
   set learnLevel(String v) => _set(() => _sp.setString('learnLevel', v));
 
+  // Synchronisation par compte (chiffrée de bout en bout).
+  bool get cloudSync => _sp.getBool('cloudSync') ?? false;
+  set cloudSync(bool v) => _set(() => _sp.setBool('cloudSync', v));
+  double get cloudLastPush => _sp.getDouble('cloudLastPush') ?? 0;
+  set cloudLastPush(double v) => _sp.setDouble('cloudLastPush', v);
+  String get cloudLastPull => _sp.getString('cloudLastPull') ?? '';
+  set cloudLastPull(String v) => _sp.setString('cloudLastPull', v);
+  String get cloudKeysHash => _sp.getString('cloudKeysHash') ?? '';
+  set cloudKeysHash(String v) => _sp.setString('cloudKeysHash', v);
+  Set<String> get cloudMemories => (_sp.getStringList('cloudMemories') ?? const []).toSet();
+  set cloudMemories(Set<String> v) => _sp.setStringList('cloudMemories', v.toList());
+
   int get lastUpdateCheck => _sp.getInt('lastUpdateCheck') ?? 0;
   set lastUpdateCheck(int v) => _sp.setInt('lastUpdateCheck', v);
 

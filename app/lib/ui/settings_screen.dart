@@ -4,6 +4,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../core/account.dart';
 import '../core/backend.dart';
 import '../core/key_guides.dart';
 import '../core/keys.dart';
@@ -12,6 +13,7 @@ import '../core/sync.dart';
 import '../core/updater.dart';
 import '../main.dart';
 import 'about_screen.dart';
+import 'account_section.dart';
 import 'personalization.dart';
 import 'message_view.dart' show openSafeLink;
 import 'status_screen.dart';
@@ -44,6 +46,7 @@ class _Simple extends StatelessWidget {
     return ListenableBuilder(
       listenable: Listenable.merge([prefs, scope.updater]),
       builder: (context, _) => ListView(children: [
+        if (Account.configured) ...[_Section(context.t('account')), const AccountSection()],
         _Section(context.t('keys')),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),

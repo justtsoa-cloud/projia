@@ -12,6 +12,8 @@ import 'core/updater.dart';
 import 'core/whats_new.dart';
 import 'l10n/strings.dart';
 import 'ui/chat_screen.dart';
+import 'core/account.dart';
+import 'core/cloud_sync.dart';
 import 'ui/creations_screen.dart';
 import 'ui/onboarding.dart';
 import 'ui/search_dialog.dart';
@@ -19,14 +21,24 @@ import 'ui/update_sheet.dart';
 import 'ui/settings_screen.dart';
 import 'ui/theme.dart';
 
+/// Synchronisation silencieuse (démarrage, retour au premier plan) si elle est activée.
+void syncSoon(Prefs prefs, Account account, CloudSync cloud) {
+  if (!prefs.cloudSync || !account.signedIn || !cloud.ready) return;
+  cloud.run().catchError((_) => 0);
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await Prefs.load();
   final backend = Backend(prefs);
   final updater = Updater(prefs);
   final chat = ChatController(backend);
-  runApp(AppScope(prefs: prefs, backend: backend, updater: updater, chat: chat, child: const TontoloApp()));
+  final account = Account();
+  final cloud = CloudSync(backend, account);
+  await Future.wait([account.load(), cloud.load()]).catchError((_) => <void>[]);
+  runApp(AppScope(prefs: prefs, backend: backend, updater: updater, chat: chat, account: account, cloud: cloud, child: const TontoloApp()));
   backend.start().then((_) {
+    syncSoon(prefs, account, cloud);
     updater.startAuto();
     Stats.maybeSend(prefs);
     // Langue de réponse par défaut du moteur = langue de l'interface.
@@ -43,6 +55,8 @@ class AppScope extends InheritedWidget {
     required this.backend,
     required this.updater,
     required this.chat,
+    required this.account,
+    required this.cloud,
     required super.child,
   });
 
@@ -50,6 +64,8 @@ class AppScope extends InheritedWidget {
   final Backend backend;
   final Updater updater;
   final ChatController chat;
+  final Account account;
+  final CloudSync cloud;
 
   static AppScope of(BuildContext context) => context.dependOnInheritedWidgetOrNull<AppScope>()!;
 
@@ -123,7 +139,11 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Retour au premier plan : un message en attente de réseau part tout de suite.
-    if (state == AppLifecycleState.resumed) AppScope.of(context).chat.checkOfflineQueue();
+    if (state == AppLifecycleState.resumed) {
+      final scope = AppScope.of(context);
+      scope.chat.checkOfflineQueue();
+      syncSoon(scope.prefs, scope.account, scope.cloud);
+    }
   }
 
   @override
