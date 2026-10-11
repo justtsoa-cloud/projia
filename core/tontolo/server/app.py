@@ -164,7 +164,8 @@ class ResumeBody(BaseModel):
 
 
 class RenameBody(BaseModel):
-    title: str
+    title: str | None = None
+    folder: str | None = None
 
 
 class PrefBody(BaseModel):
@@ -620,8 +621,8 @@ def create_app(
 
     @app.get("/tontolo/conversations")
     async def conversations(request: Request, q: str | None = None, limit: int = 50,
-                            offset: int = 0) -> list[dict[str, Any]]:
-        return await core_of(request).db.list_conversations(limit, offset, q)
+                            offset: int = 0, folder: str | None = None) -> list[dict[str, Any]]:
+        return await core_of(request).db.list_conversations(min(limit, 500), offset, q, folder)
 
     @app.get("/tontolo/conversations/{cid}")
     async def conversation(request: Request, cid: str, after: int = 0,
@@ -635,8 +636,16 @@ def create_app(
 
     @app.patch("/tontolo/conversations/{cid}")
     async def rename(request: Request, cid: str, body: RenameBody) -> dict[str, bool]:
-        await core_of(request).db.rename_conversation(cid, body.title)
+        db = core_of(request).db
+        if body.title is not None:
+            await db.rename_conversation(cid, body.title)
+        if body.folder is not None:
+            await db.set_folder(cid, body.folder)
         return {"ok": True}
+
+    @app.get("/tontolo/folders")
+    async def folders(request: Request) -> list[dict[str, Any]]:
+        return await core_of(request).db.list_folders()
 
     @app.put("/tontolo/conversations/{cid}/pin")
     async def pin(request: Request, cid: str, body: PinBody) -> dict[str, bool]:

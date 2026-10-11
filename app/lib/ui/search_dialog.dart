@@ -68,6 +68,9 @@ class _SearchDialogState extends State<_SearchDialog> {
                     ListTile(
                       leading: const Icon(Icons.chat_bubble_outline),
                       title: Text('${c['title']}', maxLines: 1, overflow: TextOverflow.ellipsis),
+                      subtitle: (c['snippet'] ?? '').toString().isEmpty
+                          ? null
+                          : Text('${c['snippet']}', maxLines: 2, overflow: TextOverflow.ellipsis),
                       onTap: () {
                         scope.chat.open('${c['id']}');
                         Navigator.pop(context);

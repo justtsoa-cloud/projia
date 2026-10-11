@@ -127,6 +127,26 @@ CREATE INDEX IF NOT EXISTS idx_documents_conv ON documents(conversation_id);
 """
 
 
+def _snippet(body: str | None, query: str, width: int = 90) -> str:
+    """Extrait du message trouvé, centré sur le terme cherché."""
+    if not body:
+        return ""
+    try:
+        data = json.loads(body)
+        content = data.get("content")
+        text = content if isinstance(content, str) else " ".join(
+            p.get("text", "") for p in content or [] if isinstance(p, dict))
+    except (ValueError, AttributeError):
+        text = body
+    text = " ".join(str(text).split())
+    i = text.lower().find(query.lower())
+    if i < 0:
+        return text[:width]
+    start = max(0, i - width // 3)
+    end = start + width
+    return ("…" if start else "") + text[start:end] + ("…" if end < len(text) else "")
+
+
 def now() -> float:
     return time.time()
 
@@ -161,6 +181,9 @@ class Database:
         if "pinned" not in cols:
             await self.conn.execute(
                 "ALTER TABLE conversations ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0")
+        if "folder" not in cols:
+            await self.conn.execute(
+                "ALTER TABLE conversations ADD COLUMN folder TEXT NOT NULL DEFAULT ''")
 
     async def close(self) -> None:
         if self._conn is not None:
@@ -200,22 +223,52 @@ class Database:
         return row is not None
 
     async def list_conversations(
-        self, limit: int = 50, offset: int = 0, query: str | None = None
+        self, limit: int = 50, offset: int = 0, query: str | None = None,
+        folder: str | None = None,
     ) -> list[dict[str, Any]]:
+        """Conversations (épinglées d'abord). `query` : recherche plein texte (titre et
+        messages, avec un extrait) ; `folder` : filtre par dossier (« » = sans dossier)."""
+        where, args = "c.deleted = 0", []
+        if folder is not None:
+            where += " AND c.folder = ?"
+            args.append(folder)
         if query:
+            like = "%" + query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
             rows = await self._fetchall(
-                """SELECT DISTINCT c.id, c.title, c.created_at, c.updated_at, c.pinned
-                   FROM conversations c LEFT JOIN messages m ON m.conversation_id = c.id
-                   WHERE c.deleted = 0 AND (c.title LIKE ? OR m.body LIKE ?)
+                f"""SELECT c.id, c.title, c.created_at, c.updated_at, c.pinned, c.folder,
+                          (SELECT m.body FROM messages m WHERE m.conversation_id = c.id
+                             AND m.body LIKE ? ESCAPE '\\' ORDER BY m.seq DESC LIMIT 1) AS hit
+                   FROM conversations c
+                   WHERE {where} AND (c.title LIKE ? ESCAPE '\\' OR EXISTS (
+                         SELECT 1 FROM messages m WHERE m.conversation_id = c.id
+                         AND m.body LIKE ? ESCAPE '\\'))
                    ORDER BY c.pinned DESC, c.updated_at DESC LIMIT ? OFFSET ?""",
-                (f"%{query}%", f"%{query}%", limit, offset),
+                (like, *args, like, like, limit, offset),
             )
-        else:
-            rows = await self._fetchall(
-                """SELECT id, title, created_at, updated_at, pinned FROM conversations
-                   WHERE deleted = 0 ORDER BY pinned DESC, updated_at DESC LIMIT ? OFFSET ?""",
-                (limit, offset),
-            )
+            out = []
+            for r in rows:
+                d = dict(r)
+                d["snippet"] = _snippet(d.pop("hit"), query)
+                out.append(d)
+            return out
+        rows = await self._fetchall(
+            f"""SELECT c.id, c.title, c.created_at, c.updated_at, c.pinned, c.folder
+               FROM conversations c WHERE {where}
+               ORDER BY c.pinned DESC, c.updated_at DESC LIMIT ? OFFSET ?""",
+            (*args, limit, offset),
+        )
+        return [dict(r) for r in rows]
+
+    async def set_folder(self, cid: str, folder: str) -> None:
+        await self.conn.execute(
+            "UPDATE conversations SET folder = ?, updated_at = ? WHERE id = ?",
+            (folder.strip()[:60], now(), cid))
+        await self.conn.commit()
+
+    async def list_folders(self) -> list[dict[str, Any]]:
+        rows = await self._fetchall(
+            "SELECT folder, COUNT(*) AS count FROM conversations WHERE deleted = 0 "
+            "AND folder != '' GROUP BY folder ORDER BY folder COLLATE NOCASE")
         return [dict(r) for r in rows]
 
     async def rename_conversation(self, cid: str, title: str) -> None:

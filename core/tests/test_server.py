@@ -550,3 +550,17 @@ def test_document_upload_api(client: TestClient) -> None:
     bad = client.post("/tontolo/documents",
                       files={"file": ("x.pdf", b"%PDF-xx", "application/pdf")})
     assert bad.status_code == 422
+
+
+def test_folders_and_full_text_search(client: TestClient) -> None:
+    ev = _events(client, "/tontolo/chat", {"content": "Recette du romazava 100% malgache"})
+    cid = next(e["id"] for e in ev if e["type"] == "conversation")
+    assert client.patch(f"/tontolo/conversations/{cid}", json={"folder": "Cuisine"}).json()["ok"]
+    assert client.get("/tontolo/folders").json() == [{"folder": "Cuisine", "count": 1}]
+    in_folder = client.get("/tontolo/conversations", params={"folder": "Cuisine"}).json()
+    assert [c["id"] for c in in_folder] == [cid] and in_folder[0]["folder"] == "Cuisine"
+    hits = client.get("/tontolo/conversations", params={"q": "romazava"}).json()
+    assert hits and "romazava" in hits[0]["snippet"].lower()
+    # « % » cherché littéralement (pas comme joker SQL)
+    assert client.get("/tontolo/conversations", params={"q": "100%"}).json()
+    assert not client.get("/tontolo/conversations", params={"q": "%zz%"}).json()

@@ -136,7 +136,7 @@ Règle : chaque étape est livrée seule (tests verts, rien de cassé), puis pub
 - [x] 5. Page « État des modèles » : disponibles / en pause / épuisés, heure de retour
 - [x] 6. Modèles locaux (Ollama ; GGUF sur Linux) comme dernier recours sans réseau
 - [x] 7. Documents : PDF / page web → questions avec citations des passages
-- [ ] 8. Dossiers de discussions + recherche plein texte
+- [x] 8. Dossiers de discussions + recherche plein texte
 - [ ] 9. Partage d'une discussion en image propre ou en page
 - [ ] 10. Dictée vocale + mode conversation mains libres
 - [ ] 11. Design : thème coloré enfantin-sérieux aligné sur le logo (palette, typographie, animations légères)

@@ -757,6 +757,8 @@ class HistoryDrawer extends StatefulWidget {
 
 class _HistoryDrawerState extends State<HistoryDrawer> {
   List<Map<String, dynamic>> items = [];
+  List<Map<String, dynamic>> folders = [];
+  String? folder; // null = toutes les discussions
 
   @override
   void didChangeDependencies() {
@@ -767,8 +769,53 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
   Future<void> _load() async {
     final b = AppScope.of(context).backend;
     if (b.state != BackendState.ready) return;
-    final data = await b.getJson('/tontolo/conversations', {'limit': 100}) as List;
-    if (mounted) setState(() => items = data.cast<Map<String, dynamic>>());
+    final data = await b.getJson('/tontolo/conversations', {'limit': 200, if (folder != null) 'folder': folder}) as List;
+    List<dynamic> f = const [];
+    try {
+      f = await b.getJson('/tontolo/folders') as List;
+    } catch (_) {} // ancien cœur distant sans dossiers
+    if (mounted) {
+      setState(() {
+        items = data.cast<Map<String, dynamic>>();
+        folders = f.cast<Map<String, dynamic>>();
+      });
+    }
+  }
+
+  /// « Déplacer vers un dossier » : dossiers existants, nouveau dossier, ou aucun.
+  Future<void> _moveToFolder(Map<String, dynamic> c) async {
+    final ctrl = TextEditingController();
+    final chosen = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(context.t('move_to_folder')),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Wrap(spacing: 6, runSpacing: 6, children: [
+            for (final f in folders)
+              ActionChip(
+                avatar: const Icon(Icons.folder_outlined, size: 16),
+                label: Text('${f['folder']}'),
+                onPressed: () => Navigator.pop(context, '${f['folder']}'),
+              ),
+            if ((c['folder'] ?? '').toString().isNotEmpty)
+              ActionChip(
+                avatar: const Icon(Icons.folder_off_outlined, size: 16),
+                label: Text(context.t('no_folder')),
+                onPressed: () => Navigator.pop(context, ''),
+              ),
+          ]),
+          const SizedBox(height: 12),
+          TextField(controller: ctrl, decoration: InputDecoration(labelText: context.t('new_folder')), maxLength: 60),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text(context.t('cancel'))),
+          FilledButton(onPressed: () => Navigator.pop(context, ctrl.text.trim()), child: Text(context.t('save'))),
+        ],
+      ),
+    );
+    if (chosen == null || !mounted) return;
+    await AppScope.of(context).backend.sendJson('PATCH', '/tontolo/conversations/${c['id']}', {'folder': chosen});
+    _load();
   }
 
   @override
@@ -805,6 +852,36 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
           },
         ),
         const Divider(),
+        if (folders.isNotEmpty)
+          SizedBox(
+            height: 44,
+            child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16), children: [
+              Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: ChoiceChip(
+                  label: Text(context.t('f_all')),
+                  selected: folder == null,
+                  onSelected: (_) {
+                    folder = null;
+                    _load();
+                  },
+                ),
+              ),
+              for (final f in folders)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: ChoiceChip(
+                    avatar: const Icon(Icons.folder_outlined, size: 16),
+                    label: Text('${f['folder']} · ${f['count']}'),
+                    selected: folder == f['folder'],
+                    onSelected: (_) {
+                      folder = '${f['folder']}';
+                      _load();
+                    },
+                  ),
+                ),
+            ]),
+          ),
         for (final c in items)
           ListTile(
             leading: c['pinned'] == 1 ? const Icon(Icons.push_pin, size: 18) : null,
@@ -818,6 +895,9 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
               onSelected: (v) async {
                 if (v == 'pin') {
                   await scope.backend.sendJson('PUT', '/tontolo/conversations/${c['id']}/pin', {'pinned': c['pinned'] != 1});
+                } else if (v == 'folder') {
+                  await _moveToFolder(c);
+                  return;
                 } else if (v == 'delete') {
                   await scope.backend.sendJson('DELETE', '/tontolo/conversations/${c['id']}');
                   if (scope.chat.conversationId == c['id']) scope.chat.newChat();
@@ -843,6 +923,7 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
               itemBuilder: (context) => [
                 PopupMenuItem(value: 'pin', child: Text(c['pinned'] == 1 ? context.t('unpin') : context.t('pin'))),
                 PopupMenuItem(value: 'rename', child: Text(context.t('rename'))),
+                PopupMenuItem(value: 'folder', child: Text(context.t('move_to_folder'))),
                 PopupMenuItem(value: 'delete', child: Text(context.t('delete'))),
               ],
             ),
