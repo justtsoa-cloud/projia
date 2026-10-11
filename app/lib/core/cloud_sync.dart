@@ -4,7 +4,9 @@
 // l'appareil. Éléments : une conversation entière (`conv`), une mémoire (`memory`), les clés
 // d'API (`keys`) et le bloc de vérification de la phrase (`meta/check`).
 
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
 
@@ -21,6 +23,26 @@ import 'keys.dart';
 const kdfIterations = 310000;
 const _checkPlain = 'tontolo-sync-check-v1';
 const maxImageChars = 500 * 1024; // images plus lourdes : non synchronisées
+const livePeriod = Duration(seconds: 20); // synchro tant que l'application est ouverte
+const liveExpiry = 120; // s : une tâche distante sans nouvelles depuis plus longtemps est oubliée
+
+// Éléments ajoutés en 0.5.1, rangés dans `conv` avec un préfixe (aucune modification de la
+// table ; les versions précédentes les ignorent car l'identifiant ne correspond pas) :
+// « m-<id> » = une création (≤ 1 Mo), « s-<appareil> » = les tâches en cours d'un appareil.
+const creationPrefix = 'm-';
+const statusPrefix = 's-';
+
+/// Tâche en cours sur un autre appareil.
+class RemoteTask {
+  RemoteTask(this.device, this.data, this.at);
+  final String device;
+  final Map<String, dynamic> data;
+  final double at;
+  String get conversationId => '${data['conversation_id']}';
+  String get title => '${data['title'] ?? ''}';
+  String get partial => '${data['partial'] ?? ''}';
+  String get step => '${data['step'] ?? ''}';
+}
 
 class SyncError implements Exception {
   SyncError(this.code);
@@ -117,6 +139,39 @@ class CloudSync extends ChangeNotifier {
 
   SyncCrypto? _crypto;
   bool running = false;
+  Timer? _live;
+  bool _statusSent = false; // l'état « rien en cours » n'est envoyé qu'une fois
+  /// Tâches en cours sur les autres appareils, par appareil.
+  final Map<String, RemoteTask> remoteTasks = {};
+  /// Conversations reçues au dernier cycle (pour rafraîchir celle qui est affichée).
+  Set<String> lastImported = {};
+
+  List<RemoteTask> get liveTasks {
+    final now = _now();
+    return [for (final t in remoteTasks.values) if (now - t.at < liveExpiry) t];
+  }
+
+  /// Synchro périodique tant que l'application est au premier plan.
+  void startLive(bool Function() enabled) {
+    _live?.cancel();
+    _live = Timer.periodic(livePeriod, (_) {
+      if (enabled() && ready && !running) run().catchError((_) => 0);
+    });
+  }
+
+  void stopLive() {
+    _live?.cancel();
+    _live = null;
+  }
+
+  static String get deviceName {
+    final os = Platform.isAndroid ? 'Android' : Platform.isLinux ? 'Linux' : Platform.operatingSystem;
+    try {
+      return '$os · ${Platform.localHostname}';
+    } catch (_) {
+      return os;
+    }
+  }
   String? lastError;
   DateTime? lastRun;
 
@@ -208,7 +263,7 @@ class CloudSync extends ChangeNotifier {
     lastError = null;
     notifyListeners();
     try {
-      final n = await _push(crypto) + await _pull(crypto);
+      final n = await _push(crypto) + await _pushCreations(crypto) + await _pushStatus(crypto) + await _pull(crypto);
       lastRun = DateTime.now();
       return n;
     } on SyncError catch (e) {
@@ -262,11 +317,70 @@ class CloudSync extends ChangeNotifier {
     return rows.length;
   }
 
+  /// Créations terminées (≤ 1 Mo), chiffrées comme le reste.
+  Future<int> _pushCreations(SyncCrypto crypto) async {
+    final p = backend.prefs;
+    var sent = 0;
+    for (var round = 0; round < 10; round++) {
+      final Map<String, dynamic> exp;
+      try {
+        exp = await backend.getJson('/tontolo/cloud/creations', {'since': p.cloudCreationsPush}) as Map<String, dynamic>;
+      } catch (_) {
+        return sent; // cœur plus ancien : pas de créations
+      }
+      final rows = <Map<String, dynamic>>[];
+      for (final c in (exp['creations'] as List).cast<Map<String, dynamic>>()) {
+        final id = '$creationPrefix${c['id']}';
+        final blob = await crypto.seal('conv', id, jsonEncode(c));
+        if (blob.length > 1900000) continue;
+        rows.add({'kind': 'conv', 'item_id': id, 'updated_at': (c['updated_at'] as num).toDouble(), 'deleted': false, 'blob': blob});
+      }
+      await _upsert(rows);
+      sent += rows.length;
+      final until = (exp['until'] as num).toDouble();
+      if (until <= p.cloudCreationsPush) break;
+      p.cloudCreationsPush = until;
+    }
+    return sent;
+  }
+
+  /// État des tâches en cours sur cet appareil (« en cours sur le téléphone… »).
+  Future<int> _pushStatus(SyncCrypto crypto) async {
+    List tasks;
+    try {
+      tasks = (await backend.getJson('/tontolo/activity') as Map<String, dynamic>)['tasks'] as List;
+    } catch (_) {
+      return 0;
+    }
+    if (tasks.isEmpty && _statusSent) return 0;
+    final id = '$statusPrefix${backend.prefs.deviceId}';
+    final blob = await crypto.seal('conv', id, jsonEncode({'device': deviceName, 'tasks': tasks, 'at': _now()}));
+    await _upsert([{'kind': 'conv', 'item_id': id, 'updated_at': _now(), 'deleted': false, 'blob': blob}]);
+    _statusSent = tasks.isEmpty;
+    return 0; // l'état n'est pas compté comme un élément échangé
+  }
+
+  void _applyStatus(String id, Map<String, dynamic> s) {
+    final device = id.substring(statusPrefix.length);
+    if (device == backend.prefs.deviceId) return;
+    final tasks = (s['tasks'] as List? ?? const []).cast<Map<String, dynamic>>();
+    final at = (s['at'] as num? ?? 0).toDouble();
+    if (tasks.isEmpty) {
+      remoteTasks.removeWhere((k, _) => k.startsWith('$device|'));
+      return;
+    }
+    remoteTasks.removeWhere((k, _) => k.startsWith('$device|'));
+    for (final t in tasks) {
+      remoteTasks['$device|${t['conversation_id']}'] = RemoteTask('${s['device'] ?? '?'}', t, at);
+    }
+  }
+
   Future<int> _pull(SyncCrypto crypto) async {
     final p = backend.prefs;
     var applied = 0;
     var since = p.cloudLastPull;
     final convs = <Map<String, dynamic>>[];
+    final creations = <Map<String, dynamic>>[];
     while (true) {
       final rows = await _select({
         'select': 'kind,item_id,updated_at,deleted,blob,server_ts',
@@ -280,7 +394,11 @@ class CloudSync extends ChangeNotifier {
         final kind = '${r['kind']}';
         final id = '${r['item_id']}';
         try {
-          if (kind == 'conv') {
+          if (kind == 'conv' && id.startsWith(statusPrefix)) {
+            _applyStatus(id, jsonDecode(await crypto.open('conv', id, '${r['blob']}')) as Map<String, dynamic>);
+          } else if (kind == 'conv' && id.startsWith(creationPrefix)) {
+            creations.add(jsonDecode(await crypto.open('conv', id, '${r['blob']}')) as Map<String, dynamic>);
+          } else if (kind == 'conv') {
             final c = jsonDecode(await crypto.open('conv', id, '${r['blob']}')) as Map<String, dynamic>;
             if (c['id'] == id) convs.add(c);
           } else if (kind == 'memory') {
@@ -297,10 +415,20 @@ class CloudSync extends ChangeNotifier {
       since = '${rows.last['server_ts']}';
       if (rows.length < 200) break;
     }
+    // Créations d'abord : la conversation qui les affiche arrive juste après.
+    for (var i = 0; i < creations.length; i += 5) {
+      try {
+        final res = await backend.sendJson('POST', '/tontolo/cloud/creations', {'creations': creations.sublist(i, min(i + 5, creations.length))}) as Map<String, dynamic>;
+        applied += (res['applied'] as num).toInt();
+      } catch (_) {
+        break; // cœur plus ancien
+      }
+    }
     for (var i = 0; i < convs.length; i += 50) {
       final res = await backend.sendJson('POST', '/tontolo/cloud/import', {'conversations': convs.sublist(i, min(i + 50, convs.length))}) as Map<String, dynamic>;
       applied += (res['applied'] as num).toInt();
     }
+    lastImported = {for (final c in convs) '${c['id']}'};
     p.cloudLastPull = since;
     return applied;
   }

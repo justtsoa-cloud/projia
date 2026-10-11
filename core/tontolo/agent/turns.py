@@ -30,6 +30,28 @@ class Turn:
     finished_at: float = 0.0
     task: asyncio.Task[None] | None = None
     changed: asyncio.Event = field(default_factory=asyncio.Event)
+    started_at: float = field(default_factory=time.time)
+
+    def progress(self) -> dict[str, Any]:
+        """Avancement résumé (suivi en direct sur les autres appareils) : dernière étape et
+        fin du texte déjà produit."""
+        text, step = "", ""
+        for ev in self.events:
+            kind = ev.get("type")
+            if kind == "delta" and ev.get("content"):
+                text += str(ev["content"])
+            elif kind in ("stream_reset", "media_switch"):
+                text = ""
+            elif kind == "step":
+                step = str(ev.get("step") or "")
+            elif kind == "tool_call":
+                step = f"tool:{ev.get('name')}"
+            elif kind == "job":
+                step = f"job:{ev.get('kind')}:{ev.get('status')}"
+            elif kind == "tool_confirmation":
+                step = "waiting_confirmation"
+        return {"conversation_id": self.conversation_id, "started_at": self.started_at,
+                "step": step, "partial": text[-400:], "chars": len(text)}
 
     def push(self, event: dict[str, Any]) -> None:
         self.events.append(event)
@@ -57,6 +79,9 @@ class TurnManager:
     def active(self, conversation_id: str) -> Turn | None:
         turn = self.turns.get(conversation_id)
         return turn if turn is not None and not turn.done else None
+
+    def running(self) -> list[Turn]:
+        return [t for t in self.turns.values() if not t.done]
 
     def get(self, conversation_id: str) -> Turn | None:
         self._cleanup()

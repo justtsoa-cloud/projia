@@ -139,10 +139,32 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Retour au premier plan : un message en attente de réseau part tout de suite.
+    final scope = AppScope.of(context);
     if (state == AppLifecycleState.resumed) {
-      final scope = AppScope.of(context);
       scope.chat.checkOfflineQueue();
       syncSoon(scope.prefs, scope.account, scope.cloud);
+      _startLive(scope);
+    } else if (state == AppLifecycleState.paused) {
+      scope.cloud.stopLive(); // en arrière-plan : pas de synchro périodique
+    }
+  }
+
+  /// Synchro toutes les ~20 s tant que l'application est ouverte : discussions, créations et
+  /// tâches en cours suivies d'un appareil à l'autre.
+  void _startLive(AppScope scope) {
+    scope.cloud.startLive(() => scope.prefs.cloudSync && scope.account.signedIn);
+  }
+
+  CloudSync? _cloud;
+
+  void _onCloud() {
+    final scope = AppScope.of(context);
+    final chat = scope.chat;
+    final id = chat.conversationId;
+    // La discussion affichée a reçu la suite depuis un autre appareil : on la recharge.
+    if (id != null && !chat.busy && scope.cloud.lastImported.contains(id)) {
+      scope.cloud.lastImported = {};
+      chat.open(id);
     }
   }
 
@@ -154,6 +176,8 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     // d'une nouvelle version dès qu'elle est prête.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      _cloud = AppScope.of(context).cloud..addListener(_onCloud);
+      _startLive(AppScope.of(context));
       _updater = AppScope.of(context).updater..addListener(_onUpdate);
       _maybeWhatsNew();
       _onUpdate();
@@ -164,6 +188,8 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _updater?.removeListener(_onUpdate);
+    _cloud?.removeListener(_onCloud);
+    _cloud?.stopLive();
     super.dispose();
   }
 

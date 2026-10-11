@@ -12,6 +12,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../core/backend.dart';
 import '../core/chat_controller.dart';
+import '../core/cloud_sync.dart' show RemoteTask;
 import '../core/export_html.dart';
 import '../core/image_prep.dart';
 import '../core/retouch.dart';
@@ -329,7 +330,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final chat = scope.chat;
     final backend = scope.backend;
     return ListenableBuilder(
-      listenable: Listenable.merge([chat, backend, scope.updater]),
+      listenable: Listenable.merge([chat, backend, scope.updater, scope.cloud]),
       builder: (context, _) {
         _scrollToEnd();
         return Scaffold(
@@ -360,6 +361,7 @@ class _ChatScreenState extends State<ChatScreen> {
           body: SafeArea(
             child: Column(children: [
               _UpdateBanner(),
+              for (final t in scope.cloud.liveTasks) _RemoteTaskBar(t, current: t.conversationId == chat.conversationId),
               if (backend.state == BackendState.starting) const LinearProgressIndicator(minHeight: 2),
               if (backend.state == BackendState.failed)
                 MaterialBanner(
@@ -818,6 +820,41 @@ class _StatusLine extends StatelessWidget {
         const SizedBox(width: 8),
         Text(text, style: Theme.of(context).textTheme.bodySmall),
       ]),
+    );
+  }
+}
+
+/// Tâche lancée sur un autre appareil, suivie en direct (synchro toutes les ~20 s).
+class _RemoteTaskBar extends StatelessWidget {
+  const _RemoteTaskBar(this.task, {required this.current});
+  final RemoteTask task;
+  final bool current;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final small = Theme.of(context).textTheme.bodySmall;
+    return Material(
+      color: scheme.secondaryContainer,
+      child: InkWell(
+        onTap: current ? null : () => AppScope.of(context).chat.open(task.conversationId),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(children: [
+            const Icon(Icons.devices_other, size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(context.t('remote_task', {'d': task.device, 't': task.title.isEmpty ? '…' : task.title}),
+                    maxLines: 1, overflow: TextOverflow.ellipsis),
+                if (task.partial.isNotEmpty)
+                  Text(task.partial.replaceAll('\n', ' ').trim(), maxLines: current ? 3 : 1, overflow: TextOverflow.ellipsis, style: small),
+              ]),
+            ),
+            if (!current) const Icon(Icons.chevron_right),
+          ]),
+        ),
+      ),
     );
   }
 }

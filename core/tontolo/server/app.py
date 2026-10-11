@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import binascii
 import hmac
 import json
 import re
@@ -39,6 +40,7 @@ from tontolo.security import LOOPBACK_NAMES, host_of, key_allowed, origin_allowe
 from tontolo.update import check_update, download_update
 
 LOOPBACK = {"127.0.0.1", "::1", "localhost"}
+SYNC_CREATION_MAX = 1_000_000  # créations synchronisées entre appareils (octets)
 MEDIA_TURN_KINDS = {"image_gen", "image_edit", "tts", "music_sfx", "video_gen"}
 REVIEWED_TOPICS = {"math", "code", "reasoning"}  # réponses vérifiées par un second modèle
 
@@ -1212,6 +1214,73 @@ def create_app(
             except (KeyError, TypeError, ValueError):
                 continue  # élément illisible : ignoré, les autres sont appliqués
         return {"applied": applied}
+
+    @app.get("/tontolo/cloud/creations")
+    async def cloud_creations(request: Request, since: float = 0) -> dict[str, Any]:
+        """Créations terminées (images, audio, fichiers…) de 1 Mo au plus, modifiées depuis
+        `since`, avec leur contenu : l'application les chiffre avant envoi. `until` : date de
+        la dernière vue (les plus lourdes restent sur l'appareil, mais avancent le curseur)."""
+        core = core_of(request)
+        out: list[dict[str, Any]] = []
+        until = since
+        for job in await core.db.jobs_since(since):
+            until = max(until, float(job.get("updated_at") or 0))
+            path = Path(str(job.get("result_path") or ""))
+            try:
+                if not path.is_file() or path.stat().st_size > SYNC_CREATION_MAX:
+                    continue
+                data = path.read_bytes()
+            except OSError:
+                continue
+            item = {k: job.get(k) for k in ("id", "kind", "status", "model", "prompt", "params",
+                                            "conversation_id", "created_at", "updated_at")}
+            item.update(name=path.name, data_b64=base64.b64encode(data).decode())
+            out.append(item)
+        return {"creations": out, "until": until}
+
+    @app.post("/tontolo/cloud/creations")
+    async def cloud_creation_import(request: Request) -> dict[str, int]:
+        """Création venue d'un autre appareil : fichier écrit dans le dossier des médias puis
+        enregistrée (jamais d'écrasement d'une création locale)."""
+        core = core_of(request)
+        body = await request.json()
+        applied = 0
+        for item in (body.get("creations") or [])[:50]:
+            try:
+                job_id = str(item["id"])
+                if not re.fullmatch(r"[0-9a-f]{8,64}", job_id) or await core.db.get_job(job_id):
+                    continue
+                data = base64.b64decode(str(item["data_b64"]), validate=True)
+                if len(data) > SYNC_CREATION_MAX:
+                    continue
+                name = re.sub(r"[^\w.\-]", "_", Path(str(item.get("name") or job_id)).name)[:120]
+                folder = core.settings.data_dir / "media" / "synced"
+                folder.mkdir(parents=True, exist_ok=True)
+                path = folder / (name if name.startswith(job_id) else f"{job_id}-{name}")
+                path.write_bytes(data)
+                params = item.get("params") if isinstance(item.get("params"), dict) else {}
+                params.pop("source_path", None)  # chemin d'un autre appareil : sans objet
+                await core.db.upsert_job({
+                    "id": job_id, "kind": str(item.get("kind") or "image_gen")[:20],
+                    "status": "done", "model": item.get("model"),
+                    "prompt": str(item.get("prompt") or "")[:4000], "params": params,
+                    "result_path": str(path), "conversation_id": item.get("conversation_id"),
+                    "created_at": float(item.get("created_at") or time.time())})
+                applied += 1
+            except (KeyError, TypeError, ValueError, binascii.Error, OSError):
+                continue
+        return {"applied": applied}
+
+    @app.get("/tontolo/activity")
+    async def activity(request: Request) -> dict[str, Any]:
+        """Tâches en cours sur cet appareil (suivi en direct depuis les autres appareils)."""
+        core = core_of(request)
+        items = []
+        for turn in core.turns.running():
+            p = turn.progress()
+            p["title"] = await core.db.get_title(turn.conversation_id) or ""
+            items.append(p)
+        return {"tasks": items, "at": time.time()}
 
     @app.get("/tontolo/sync")
     async def sync_export(request: Request, since: float = 0) -> dict[str, Any]:

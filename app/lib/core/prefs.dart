@@ -1,5 +1,6 @@
 // Préférences locales de l'application (non sensibles).
 
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -87,6 +88,18 @@ class Prefs extends ChangeNotifier {
   set cloudLastPush(double v) => _sp.setDouble('cloudLastPush', v);
   String get cloudLastPull => _sp.getString('cloudLastPull') ?? '';
   set cloudLastPull(String v) => _sp.setString('cloudLastPull', v);
+  double get cloudCreationsPush => _sp.getDouble('cloudCreationsPush') ?? 0;
+  set cloudCreationsPush(double v) => _sp.setDouble('cloudCreationsPush', v);
+  /// Identifiant aléatoire de cet appareil (suivi en direct des tâches entre appareils).
+  String get deviceId {
+    var id = _sp.getString('deviceId');
+    if (id == null) {
+      final r = Random.secure();
+      id = List.generate(12, (_) => r.nextInt(16).toRadixString(16)).join();
+      _sp.setString('deviceId', id);
+    }
+    return id;
+  }
   String get cloudKeysHash => _sp.getString('cloudKeysHash') ?? '';
   set cloudKeysHash(String v) => _sp.setString('cloudKeysHash', v);
   Set<String> get cloudMemories => (_sp.getStringList('cloudMemories') ?? const []).toSet();

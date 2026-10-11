@@ -262,6 +262,10 @@ class Database:
         )
         return [dict(r) for r in rows]
 
+    async def get_title(self, cid: str) -> str:
+        row = await self._fetchone("SELECT title FROM conversations WHERE id = ?", (cid,))
+        return str(row["title"] or "") if row else ""
+
     async def get_folder(self, cid: str) -> str:
         row = await self._fetchone("SELECT folder FROM conversations WHERE id = ?", (cid,))
         return str(row["folder"] or "") if row else ""
@@ -519,6 +523,13 @@ class Database:
         sql += " ORDER BY created_at DESC LIMIT ?"
         args.append(limit)
         return [_job_row(r) for r in await self._fetchall(sql, args)]
+
+    async def jobs_since(self, since: float, limit: int = 20) -> list[dict[str, Any]]:
+        """Créations terminées modifiées depuis `since` (synchronisation par compte)."""
+        rows = await self._fetchall(
+            "SELECT * FROM media_jobs WHERE status = 'done' AND updated_at > ? "
+            "AND result_path IS NOT NULL ORDER BY updated_at LIMIT ?", (since, limit))
+        return [_job_row(r) for r in rows]
 
     async def delete_job(self, job_id: str) -> None:
         await self.conn.execute("DELETE FROM media_jobs WHERE id = ?", (job_id,))

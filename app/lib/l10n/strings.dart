@@ -592,6 +592,7 @@ const Map<String, Map<String, String>> _t = {
     'workspace_clear': 'Ne plus utiliser ce dossier',
     'workspace_last': 'Dernier changement : {a} de {f}',
     'workspace_undo': 'Annuler',
+    'remote_task': 'En cours sur {d} : « {t} »',
   },
   'en': {
     'app': 'Tontolo', 'chat': 'Chat', 'creations': 'Creations', 'settings': 'Settings',
@@ -1057,6 +1058,7 @@ const Map<String, Map<String, String>> _t = {
     'workspace_clear': 'Stop using this folder',
     'workspace_last': 'Last change: {a} of {f}',
     'workspace_undo': 'Undo',
+    'remote_task': 'Running on {d}: “{t}”',
   },
   'mg': {
     'app': 'Tontolo', 'chat': 'Resaka', 'creations': 'Famoronana', 'settings': 'Kirakira',
@@ -1562,6 +1564,7 @@ const Map<String, Map<String, String>> _t = {
     'workspace_clear': 'Aza ampiasaina intsony ity lahatahiry ity',
     'workspace_last': 'Fanovana farany: {a} an\'i {f}',
     'workspace_undo': 'Foano',
+    'remote_task': 'Mandeha ao amin\'ny {d}: « {t} »',
   },
 };
 
