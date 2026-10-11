@@ -13,6 +13,12 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.2.6': [
+    NewsItem(Icons.menu, 'Plus de place pour discuter',
+        'Créations et Réglages sont maintenant dans le volet des discussions (☰). La barre du bas disparaît sur téléphone ; le bouton retour ramène à la discussion.',
+        'More room to chat',
+        'Creations and Settings now live in the conversations drawer (☰). The bottom bar is gone on phones; Back returns to the chat.'),
+  ],
   '0.2.5': [
     NewsItem(Icons.wifi_off, 'Coupure réseau : fini la cascade de bascules',
         'Quand c\'est votre connexion qui tombe, Tontolo le détecte, attend le retour du réseau et reprend avec le même modèle au lieu d\'essayer tous les modèles un par un.',

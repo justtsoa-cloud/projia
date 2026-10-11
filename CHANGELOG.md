@@ -5,6 +5,18 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.2.6] - 2026-10-11
+
+### Modifié
+- Téléphone : la barre de navigation du bas est supprimée ; Créations et Réglages sont dans le
+  volet des discussions, sous « Nouvelle conversation ». Ces écrans ont une flèche de retour et
+  le bouton retour d'Android ramène à la discussion au lieu de quitter. La barre latérale du
+  bureau et de la tablette ne change pas.
+
+### Documentation
+- Alerte « Google Play Protect : analyse recommandée » expliquée (README, notes de release) et
+  démarches pour la faire disparaître (`docs/RELEASING.md`).
+
 ## [0.2.5] - 2026-10-10
 
 ### Corrigé

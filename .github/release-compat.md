@@ -9,6 +9,8 @@
 | `tontolo-…-armeabi-v7a.apk` | Processeurs ARM 32 bits : appareils anciens ou d'entrée de gamme (avant ~2016) ou système installé en 32 bits. Android 7 et plus. |
 | `tontolo-…-x86_64.apk` | Processeurs Intel/AMD : émulateurs Android (Android Studio), Chromebooks, tablettes ou PC sous Android x86. |
 
+*Message « Play Protect : analyse recommandée » ?* C'est normal pour une application installée hors du Play Store : touchez **Analyser l'application**, puis l'installation continue.
+
 *Un doute ?* Prenez `arm64-v8a`. Si Android répond « application non compatible », prenez `armeabi-v7a`.
 Les mises à jour suivantes se proposent ensuite dans l'application elle-même (Réglages › Nouveautés), avec le résumé des changements.
 

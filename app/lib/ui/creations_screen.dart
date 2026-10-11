@@ -16,6 +16,7 @@ class CreationsScreen extends StatelessWidget {
         length: 2,
         child: Scaffold(
           appBar: AppBar(
+            leading: ShellNav.maybeOf(context)?.backButton(context),
             title: Text(context.t('creations')),
             bottom: TabBar(tabs: [Tab(text: context.t('creations')), Tab(text: context.t('news'))]),
           ),

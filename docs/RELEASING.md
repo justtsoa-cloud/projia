@@ -42,3 +42,28 @@ Sans ces secrets, la CI signe les APK avec une clé de débogage (avertissement 
 ```bash
 sha256sum -c SHA256SUMS --ignore-missing
 ```
+
+
+## Alerte Google Play Protect (« analyse recommandée »)
+
+Elle s'affiche pour les APK installés hors du Play Store et inconnus de Google. Le code ne peut
+pas la supprimer ; ce qui la fait disparaître dépend du propriétaire du compte développeur :
+
+1. **Vérification développeur Android** (Android Developer Console) : enregistrer l'identité du
+   développeur, le nom de paquet `io.github.raantss18.tontolo` et l'empreinte du certificat de
+   signature de `release-keys/tontolo.jks`. Google l'impose progressivement pour l'installation
+   hors Play Store sur les appareils certifiés ; une fois l'application enregistrée, l'alerte
+   « inconnue » n'a plus lieu d'être.
+2. **Publication sur Google Play** (même en test interne ou fermé) : Google analyse et connaît
+   alors l'application.
+3. Dans tous les cas : **ne jamais changer de clé de signature ni de nom de paquet**, sinon
+   l'application redevient « inconnue » et les mises à jour ne s'installent plus par-dessus.
+
+Empreinte du certificat à déclarer :
+
+```bash
+keytool -list -v -keystore release-keys/tontolo.jks | grep SHA256
+```
+
+Ces démarches demandent un compte Google du propriétaire (et éventuellement des frais
+d'inscription Play) : elles ne sont pas automatisées dans ce dépôt.

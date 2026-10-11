@@ -56,6 +56,21 @@ jobs:
           else
             echo "::warning::Aucun keystore : APK signés avec la clé de débogage."
           fi
+      - name: Pré-téléchargement de Python pour Android (avec nouveaux essais)
+        # Le téléchargement intégré au plugin échoue parfois sur les runners : on remplit son
+        # cache d'avance, avec plusieurs essais, à partir de la version qu'il attend.
+        run: |
+          props=$(find ~/.pub-cache/hosted/pub.dev -path "*serious_python_android-*/android/python_versions.properties" | sort -V | tail -1)
+          date=$(grep '^python_build_release_date=' "$props" | cut -d= -f2)
+          full=$(grep '^3.14.full_version=' "$props" | cut -d= -f2)
+          dir=~/.flet/cache/python-build/v$full
+          mkdir -p "$dir"
+          for abi in arm64-v8a armeabi-v7a x86_64; do
+            f=python-android-dart-$full-$abi.tar.gz
+            curl -fsSL --retry 6 --retry-all-errors --retry-delay 10 -o "$dir/$f" \
+              "https://github.com/flet-dev/python-build/releases/download/$date/$f"
+            tar -tzf "$dir/$f" > /dev/null
+          done
       - name: Construction des APK par ABI
         env:
           TONTOLO_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -65,7 +80,11 @@ jobs:
           cd app
           export SERIOUS_PYTHON_SITE_PACKAGES=$PWD/build/site-packages-Android
           export SERIOUS_PYTHON_APP=$PWD/build/python-app-Android
-          flutter build apk --release --split-per-abi
+          flutter build apk --release --split-per-abi || {
+            echo "::warning::Échec de la construction, nouvel essai dans 30 s"
+            sleep 30
+            flutter build apk --release --split-per-abi
+          }
           mkdir -p ../dist
           v=${GITHUB_REF_NAME#v}
           for abi in arm64-v8a armeabi-v7a x86_64; do

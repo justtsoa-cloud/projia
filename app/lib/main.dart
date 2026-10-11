@@ -81,6 +81,23 @@ class TontoloApp extends StatelessWidget {
   }
 }
 
+/// Navigation entre Discussion / Créations / Réglages, accessible depuis les écrans enfants.
+class ShellNav extends InheritedWidget {
+  const ShellNav({super.key, required this.index, required this.go, required this.wide, required super.child});
+
+  final int index;
+  final ValueChanged<int> go;
+  final bool wide;
+
+  static ShellNav? maybeOf(BuildContext context) => context.dependOnInheritedWidgetOfExactType<ShellNav>();
+
+  /// Flèche de retour vers la discussion (mobile, hors de l'écran de chat).
+  Widget? backButton(BuildContext context) => wide ? null : BackButton(onPressed: () => go(0));
+
+  @override
+  bool updateShouldNotify(ShellNav old) => old.index != index || old.wide != wide;
+}
+
 /// Coquille adaptative : barre du bas (mobile) ou barre latérale (desktop/tablette).
 class Shell extends StatefulWidget {
   const Shell({super.key});
@@ -145,7 +162,17 @@ class _ShellState extends State<Shell> {
       (Icons.settings_outlined, Icons.settings, context.t('settings')),
     ];
     final body = AnimatedSwitcher(duration: context.motion, child: KeyedSubtree(key: ValueKey(index), child: pages[index]));
-    return CallbackShortcuts(
+    return ShellNav(
+      index: index,
+      wide: wide,
+      go: (i) => setState(() => index = i),
+      // Retour système depuis Créations/Réglages : revient à la discussion au lieu de quitter.
+      child: PopScope(
+      canPop: index == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) setState(() => index = 0);
+      },
+      child: CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.keyK, control: true): () => showSearchDialog(context),
         const SingleActivator(LogicalKeyboardKey.keyN, control: true): () {
@@ -175,19 +202,8 @@ class _ShellState extends State<Shell> {
                   Expanded(child: body),
                 ]),
               )
-            : Scaffold(
-                body: body,
-                bottomNavigationBar: NavigationBar(
-                  selectedIndex: index,
-                  onDestinationSelected: (i) => setState(() => index = i),
-                  height: 64,
-                  destinations: [
-                    for (final d in destinations)
-                      NavigationDestination(icon: Icon(d.$1), selectedIcon: Icon(d.$2), label: d.$3),
-                  ],
-                ),
-              ),
+            : Scaffold(body: body), // mobile : Créations et Réglages sont dans le volet des discussions
       ),
-    );
+    )));
   }
 }

@@ -63,6 +63,12 @@ Téléchargez l'APK de votre appareil depuis la
 | `armeabi-v7a` | Appareils anciens ou d'entrée de gamme (ARM 32 bits) |
 | `x86_64` | Émulateurs, Chromebooks, Android x86 (Intel/AMD) |
 
+> **Message « Google Play Protect : analyse recommandée » ?** Il apparaît pour toute application
+> installée hors du Play Store que Google ne connaît pas encore ; ce n'est pas une détection de
+> virus. Touchez **Analyser l'application** : l'APK est envoyé à Google pour vérification, puis
+> l'installation continue. Tous les APK sont signés avec la même clé et leur empreinte SHA-256
+> figure dans `SHA256SUMS` de chaque release ; le code est public.
+
 ### Linux (application)
 ```bash
 chmod +x Tontolo-*-x86_64.AppImage
@@ -71,7 +77,7 @@ chmod +x Tontolo-*-x86_64.AppImage
 
 ### Linux (CLI et serveur)
 ```bash
-pip install "tontolo[linux] @ https://github.com/raantss18/tontolo/releases/latest/download/tontolo-0.2.5-py3-none-any.whl"
+pip install "tontolo[linux] @ https://github.com/raantss18/tontolo/releases/latest/download/tontolo-0.2.6-py3-none-any.whl"
 tontolo catalog list --free --category code
 tontolo chat "Explique-moi les intégrales"
 tontolo serve            # API compatible OpenAI sur http://127.0.0.1:8765/v1

@@ -20,6 +20,7 @@ class SettingsScreen extends StatelessWidget {
         length: 2,
         child: Scaffold(
           appBar: AppBar(
+            leading: ShellNav.maybeOf(context)?.backButton(context),
             title: Text(context.t('settings')),
             bottom: TabBar(tabs: [Tab(text: context.t('simple')), Tab(text: context.t('advanced'))]),
           ),

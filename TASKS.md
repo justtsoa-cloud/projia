@@ -107,3 +107,24 @@ Légende : `[x]` fait · `[~]` en cours · `[ ]` à faire
 - [x] Attente du retour du réseau puis reprise avec le même modèle ; message clair sinon
 - [x] Interface : bascules regroupées sur une ligne, statut « en attente du réseau »
 - [x] Tests (3) et publication
+
+## Feuille de route 2026-10 (validée par l'utilisateur, dans l'ordre, étape par étape)
+Règle : chaque étape est livrée seule (tests verts, rien de cassé), puis publiée.
+
+- [x] 0. v0.2.6 — Navigation : Discussion / Créations / Réglages dans le volet des discussions (barre du bas supprimée sur mobile, flèche de retour) ; vérifier sur émulateur
+- [x] 0b. Play Protect : documenter (README/INSTALL) pourquoi l'alerte apparaît et comment l'éviter (vérification développeur Google / Play Console, à faire par le propriétaire du compte)
+- [ ] V. Vidéo : essai de faisabilité des sources (Pollinations vidéo, Spaces Hugging Face Wan/LTX, payants plafonnés) ; brancher ce qui marche, sinon message honnête
+- [ ] 1. Écran vide interactif : raccourcis (image, retouche, recherche web, résumer un document, traduire, expliquer)
+- [ ] 2. Sélecteur de modèle : « Auto » + pastille de santé (vert/orange/rouge), appui long pour fixer un modèle
+- [ ] 3. Réponse rapide d'abord (petit modèle rapide, puis relève par le meilleur si complexe) — option
+- [ ] 4. File d'attente hors ligne : message mis en attente et envoyé au retour du réseau
+- [ ] 5. Page « État des modèles » : disponibles / en pause / épuisés, heure de retour
+- [ ] 6. Modèles locaux (Ollama ; GGUF sur Linux) comme dernier recours sans réseau
+- [ ] 7. Documents : PDF / page web → questions avec citations des passages
+- [ ] 8. Dossiers de discussions + recherche plein texte
+- [ ] 9. Partage d'une discussion en image propre ou en page
+- [ ] 10. Dictée vocale + mode conversation mains libres
+- [ ] 11. Design : thème coloré enfantin-sérieux aligné sur le logo (palette, typographie, animations légères)
+- [ ] 12. Android : widget d'écran d'accueil + raccourci « Demander à Tontolo »
+- [ ] 13. Tablette / bureau : volet permanent + deux colonnes (discussion / aperçu)
+- [ ] Transversal : plus d'interactivité (suggestions de relance après chaque réponse, actions rapides sur les messages, retours haptiques, animations)

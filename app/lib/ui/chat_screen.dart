@@ -604,6 +604,22 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
             Navigator.pop(context);
           },
         ),
+        ListTile(
+          leading: const Icon(Icons.photo_library_outlined),
+          title: Text(context.t('creations')),
+          onTap: () {
+            Navigator.pop(context);
+            ShellNav.maybeOf(context)?.go(1);
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.settings_outlined),
+          title: Text(context.t('settings')),
+          onTap: () {
+            Navigator.pop(context);
+            ShellNav.maybeOf(context)?.go(2);
+          },
+        ),
         const Divider(),
         for (final c in items)
           ListTile(
