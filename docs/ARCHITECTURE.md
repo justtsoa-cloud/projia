@@ -80,3 +80,12 @@ conversation est en plus résumé automatiquement quand il dépasse le contexte 
 - Serveurs MCP `stdio` : configuration locale uniquement. Envois limités à 25 Mo.
 - Application : liens limités à http(s)/mailto, mises à jour uniquement depuis GitHub avec
   SHA-256, signature APK vérifiée par Android, `allowBackup=false`.
+
+
+## Frontières de contexte (0.5.0)
+
+Les dossiers organisent les discussions sans partager leur contexte. Les souvenirs explicites
+et manuels sont rappelables entre fils ; les extractions automatiques conservent leur origine
+et ne sont pas injectées dans un autre fil. Le compactage conserve la provenance et sérialise
+les mutations. Voir [Isolation du contexte](CONTEXT_ISOLATION.md) pour les références médias,
+les tests et le traitement des anciens souvenirs compactés sans origine.

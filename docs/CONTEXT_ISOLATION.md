@@ -42,3 +42,14 @@ Tests interface : ouverture B avant la fin du chargement A ; nouvelle discussion
 le chargement d'un résultat média. Les retours tardifs ne modifient plus l'écran courant.
 
 Aucune modification de signature, paquet Android, OAuth ou schéma de base nécessaire.
+
+
+Validation finale locale : 203 tests cœur, 47 tests Flutter, analyse et typage propres ;
+installation signée par-dessus 0.4.7 réussie. Essai réel LTX avec une image synthétique :
+refus « quota GPU gratuit épuisé » correctement classé, donc aucun résultat vidéo réel
+validé lors de cet essai. Contrôles GitHub réussis sous Python 3.11/3.14, cœur minimal et Flutter.
+
+Publication v0.5.0 confirmée : workflow 38166719297 réussi, sept fichiers disponibles,
+téléchargements en tête des notes. Empreinte SHA-256 et installation de l’APK officiel
+x86_64 vérifiées (versionCode 4023, sans effacement). Trois APK 26,2–27,7 Mo ; AppImage
+47,4 Mo. Les discussions de l’émulateur restent visibles après la mise à jour.

@@ -169,7 +169,7 @@ Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cass�
 - [x] D6. Tests, émulateur, saut de mise à jour, publication 0.4.0
 - [x] D7. Tout type de fichier à la demande (par défaut, gratuit) : DOCX, PDF/LaTeX, XLSX, PPTX, CSV, HTML, Markdown, code, SVG/schémas, cartes mentales, graphiques ; outils payants branchables si l'utilisateur a une clé
 - [x] L1. Mode Apprendre plus simple : accueil épuré (niveau + une question), guidage strict sans réponse directe (« prochaine étape » au lieu de « solution »)
-- [ ] S1. Expliquer comment lire les statistiques (Supabase) ; voir avec l'utilisateur ce que Claude peut configurer lui-même pour les comptes
+- [x] S1. Statistiques Supabase : collecte active et accès en lecture protégés, vérifiés le 2026-10-11.
 
 ## Retours utilisateur du 2026-10-11 (vidéo) — prioritaires
 - [x] B1. Photo + « Put this on a public space in Antananarivo » : demande de modification d'image non reconnue (verbes « put / place / add… ») → envoyée à un modèle de texte
@@ -210,4 +210,6 @@ Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cass�
 - [x] R2. Mémoire : séparer capture explicite globale et capture automatique du fil ; préserver la provenance et sérialiser le compactage.
 - [x] R3. Médias : référence dans le fil courant, sans réutiliser une ancienne image après un échec ; animation avec photo jointe et consignes de mouvement.
 - [x] R4. Tests de frontières et de régénération, résumés et conservation des données.
-- [ ] R5. Tests complets, mise à jour signée et publication v0.5.0 après validation.
+- [x] R5. 203 tests cœur et 47 Flutter ; analyses/typage propres ; release v0.5.0 publiée (workflow 38166719297 réussi), APK officiel SHA-256 vérifié et installation sans effacement réussie.
+
+- [ ] R6. Vérifier visuellement une vidéo réelle quand le quota LTX revient : l’essai réel du 2026-10-11 atteint le service mais reçoit « quota GPU gratuit épuisé ». Le code, l’image source exacte, le mode Gradio et les reprises sont testés avec fournisseurs simulés.
