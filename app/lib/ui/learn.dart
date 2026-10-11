@@ -164,7 +164,7 @@ class _LearnEmptyStateState extends State<LearnEmptyState> {
                 ],
                 child: Chip(
                   avatar: const Icon(Icons.stairs_outlined, size: 18),
-                  label: Text('${context.t('learn_level')} : ${context.t('lvl_${chat.level}')}  ▾'),
+                  label: Text('${context.t('learn_level_is', {'l': context.t('lvl_${chat.level}')})}  ▾'),
                 ),
               ),
             ),

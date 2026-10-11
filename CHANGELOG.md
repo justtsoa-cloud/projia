@@ -5,6 +5,15 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.4.2] - 2026-10-11
+
+### Corrigé
+- Équipe de modèles : quand le relecteur prévu était indisponible, la bascule automatique
+  pouvait renvoyer la relecture au rédacteur lui-même, affichée « relu par » le même modèle.
+  Une auto-relecture n'est plus comptée ni affichée comme une vérification croisée.
+- Tailles de fichiers dans la langue de l'interface (KB / Ko) ; « Your level: » sans espace
+  avant les deux-points en anglais.
+
 ## [0.4.1] - 2026-10-11
 
 ### Corrigé

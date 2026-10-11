@@ -515,6 +515,10 @@ const Map<String, Map<String, String>> _t = {
     'review_fix_p': 'Un second modèle a relevé ces erreurs possibles dans ta réponse : {issues}. Vérifie-les et corrige ta réponse si besoin.',
     'team_review': 'Équipe de modèles',
     'team_review_help': 'Un second modèle d\'une autre famille vérifie les réponses de maths, de code et de raisonnement, et relit chaque fichier créé.',
+    'size_b': '{n} o',
+    'size_kb': '{n} Ko',
+    'size_mb': '{n} Mo',
+    'learn_level_is': 'Ton niveau : {l}',
   },
   'en': {
     'app': 'Tontolo', 'chat': 'Chat', 'creations': 'Creations', 'settings': 'Settings',
@@ -903,6 +907,10 @@ const Map<String, Map<String, String>> _t = {
     'review_fix_p': 'A second model spotted these possible errors in your answer: {issues}. Check them and fix your answer if needed.',
     'team_review': 'Team of models',
     'team_review_help': 'A second model from another family checks maths, code and reasoning answers, and reviews every file created.',
+    'size_b': '{n} B',
+    'size_kb': '{n} KB',
+    'size_mb': '{n} MB',
+    'learn_level_is': 'Your level: {l}',
   },
   'mg': {
     'app': 'Tontolo', 'chat': 'Resaka', 'creations': 'Famoronana', 'settings': 'Kirakira',
@@ -1331,6 +1339,10 @@ const Map<String, Map<String, String>> _t = {
     'review_fix_p': 'Nahita ireto mety ho diso ireto tamin\'ny valinao ny modely faharoa: {issues}. Hamarino ary ahitsio raha ilaina.',
     'team_review': 'Ekipan\'ny modely',
     'team_review_help': 'Modely faharoa avy amin\'ny fianakaviana hafa no manamarina ny valiny momba ny matematika, kaody ary fisainana, ary mamaky indray ny rakitra rehetra noforonina.',
+    'size_b': '{n} o',
+    'size_kb': '{n} Ko',
+    'size_mb': '{n} Mo',
+    'learn_level_is': 'Ny ambaratonganao: {l}',
   },
 };
 

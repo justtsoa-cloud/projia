@@ -14,6 +14,12 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.4.2': [
+    NewsItem(Icons.groups_outlined, 'Relecture vraiment croisée',
+        'Un fichier ou une réponse n\'est indiqué « relu par » que si un modèle différent l\'a réellement vérifié.',
+        'Truly cross-checked', 'A file or answer is marked “reviewed by” only when a different model really checked it.',
+        mg: 'Famakiana tena ifanaovana', mgText: 'Tsy lazaina hoe « novakiana » ny rakitra na valiny raha tsy modely hafa no tena nanamarina azy.'),
+  ],
   '0.4.1': [
     NewsItem(Icons.translate, 'Toujours dans votre langue',
         'Tontolo répond dans la langue de votre message, quiz et fiches compris.',

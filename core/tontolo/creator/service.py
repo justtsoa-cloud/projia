@@ -84,6 +84,10 @@ class CreatorService:
                     model=reviewer)
         except Exception:  # relecture facultative : jamais d'erreur visible
             return None
+        from tontolo.creator.pipeline import same_model
+
+        if same_model(key, writer):
+            return None  # bascule revenue au même modèle : pas de vraie vérification croisée
         import json
         import re
 

@@ -129,6 +129,14 @@ class Output:
 Ask = Callable[..., Any]
 
 
+def same_model(a: str, b: str) -> bool:
+    """Deux clés « fournisseur:modèle » désignent-elles le même modèle (même servi ailleurs) ?"""
+    def base(key: str) -> str:
+        mid = key.split(":", 1)[-1] if ":" in key else key
+        return re.sub(r"[^a-z0-9]", "", mid.lower().split("/")[-1].split(":")[0])
+    return bool(a) and bool(b) and base(a) == base(b)
+
+
 def strip_fences(text: str) -> str:
     """Retire un éventuel bloc ```…``` autour de la réponse du modèle."""
     m = re.search(r"```[a-zA-Z]*\n(.*?)```", text or "", re.S)
@@ -339,6 +347,10 @@ class Creator:
                     [{"role": "system", "content": prompt},
                      {"role": "user", "content": content}], model=reviewer)
         except Exception:  # relecteur indisponible : la relecture n'empêche pas la livraison
+            return [], "", ""
+        if same_model(key, writer):
+            # Le relecteur prévu était indisponible et la bascule est revenue au rédacteur :
+            # une auto-relecture n'est pas une relecture croisée, elle n'est pas comptée.
             return [], "", ""
         m = re.search(r"\{.*\}", text or "", re.S)
         try:

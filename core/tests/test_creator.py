@@ -87,13 +87,13 @@ class FakeModels:
     async def ask(self, messages: list[dict[str, Any]], *, category: Any = None,
                   model: str | None = None) -> tuple[str, str, str]:
         self.calls.append({"model": model, "last": messages[-1]["content"]})
-        if model == "rev:1":
-            return self.review, "rev:1", "Relecteur"
-        return self.answers.pop(0), "wri:1", "Rédacteur"
+        if model == "r:reviewer-model":
+            return self.review, "r:reviewer-model", "Relecteur"
+        return self.answers.pop(0), "w:writer-model", "Rédacteur"
 
     async def pick(self, *, exclude: str, vision: bool = False) -> str | None:
-        assert exclude == "wri:1"
-        return "rev:1"
+        assert exclude == "w:writer-model"
+        return "r:reviewer-model"
 
 
 async def _run(models: FakeModels, kind: str) -> tuple[Output, list[str]]:
@@ -118,7 +118,7 @@ async def test_review_by_other_model_triggers_fix() -> None:
     out, steps = await _run(models, "docx")
     assert steps.count("doc_reviewing") == 1 and "doc_fixing" in steps
     assert "conclusion" in str(models.calls[2]["last"])
-    assert out.models == ["wri:1", "rev:1"]
+    assert out.models == ["w:writer-model", "r:reviewer-model"]
 
 
 async def test_latex_error_log_is_sent_back(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -174,3 +174,23 @@ async def test_reviewer_is_never_the_same_model_from_another_provider() -> None:
 
     svc = CreatorService(None, Router(), __import__("pathlib").Path("/tmp"))  # type: ignore[arg-type]
     assert await svc.pick_reviewer(exclude=writer.key) == other.key
+
+
+def test_same_model_detection() -> None:
+    from tontolo.creator.pipeline import same_model
+
+    assert same_model("openrouter:nvidia/nemotron-3-ultra:free", "kilo:nvidia/nemotron-3-ultra")
+    assert not same_model("groq:qwen/qwen3-32b", "openrouter:nvidia/nemotron-3-ultra:free")
+
+
+async def test_self_review_after_fallback_is_not_counted() -> None:
+    class Fallback(FakeModels):
+        async def ask(self, messages: list[dict[str, Any]], *, category: Any = None,
+                      model: str | None = None) -> tuple[str, str, str]:
+            if model == "r:reviewer-model":  # relecteur indisponible : la bascule renvoie au rédacteur
+                return '{"ok": false, "issues": ["x"]}', "w:writer-model", "Rédacteur"
+            return await super().ask(messages, category=category, model=model)
+
+    models = Fallback(["# Doc\ntexte"])
+    out, steps = await _run(models, "docx")
+    assert [s["step"] for s in out.steps] == ["doc_writing"] and "doc_fixing" not in steps

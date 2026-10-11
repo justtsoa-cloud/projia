@@ -23,11 +23,11 @@ IconData fileIcon(String filename) => switch (filename.split('.').last.toLowerCa
       _ => Icons.code,
     };
 
-String sizeText(int bytes) => bytes < 1024
-    ? '$bytes o'
+String sizeText(BuildContext context, int bytes) => bytes < 1024
+    ? context.t('size_b', {'n': '$bytes'})
     : bytes < 1024 * 1024
-        ? '${(bytes / 1024).toStringAsFixed(0)} Ko'
-        : '${(bytes / 1024 / 1024).toStringAsFixed(1)} Mo';
+        ? context.t('size_kb', {'n': (bytes / 1024).toStringAsFixed(0)})
+        : context.t('size_mb', {'n': (bytes / 1024 / 1024).toStringAsFixed(1)});
 
 /// « Rédigé par X · relu par Y · 2 corrections ».
 String teamLine(BuildContext context, Map<String, dynamic> params) {
@@ -74,7 +74,7 @@ class FileCard extends StatelessWidget {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('${params['title'] ?? name}', style: Theme.of(context).textTheme.titleSmall, maxLines: 2, overflow: TextOverflow.ellipsis),
-                Text('$name · ${sizeText(bytes.length)}', style: Theme.of(context).textTheme.bodySmall),
+                Text('$name · ${sizeText(context, bytes.length)}', style: Theme.of(context).textTheme.bodySmall),
               ]),
             ),
           ]),
