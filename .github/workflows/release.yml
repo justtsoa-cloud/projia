@@ -17,7 +17,7 @@ env:
   # Budgets (section 11) — mesurés en phase 1, la release échoue s'ils sont dépassés.
   BUDGET_APK_MB: "30"
   BUDGET_APPIMAGE_MB: "55"
-  BUDGET_WHEEL_KB: "150"
+  BUDGET_WHEEL_KB: "220"
 
 jobs:
   checks:

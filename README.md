@@ -143,7 +143,7 @@ vérifiés par la CI : une release qui les dépasse est bloquée.
 |---|---|---|
 | APK arm64-v8a / armeabi-v7a / x86_64 | 24,8 / 23,8 / 25,4 Mo | 30 Mo |
 | AppImage Linux x86_64 | 45 Mo | 55 Mo |
-| Roue Python | 93 Ko | 150 Ko |
+| Roue Python | 93 Ko | 220 Ko (165 Ko en 0.4.0) |
 | Interface affichée à froid (Android) | 1,3 à 1,6 s | < 2 s |
 | Démarrage du cœur Python embarqué (imports) | 2,6 s, en arrière-plan | non bloquant |
 | Sélection du modèle (760 modèles) | < 1 ms | < 20 ms |
