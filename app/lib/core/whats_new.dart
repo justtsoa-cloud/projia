@@ -14,6 +14,12 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.4.1': [
+    NewsItem(Icons.translate, 'Toujours dans votre langue',
+        'Tontolo répond dans la langue de votre message, quiz et fiches compris.',
+        'Always in your language', 'Tontolo replies in the language of your message, quizzes and flashcards included.',
+        mg: 'Amin\'ny fiteninao foana', mgText: 'Mamaly amin\'ny fitenin\'ny hafatrao i Tontolo, ao anatin\'izany ny quiz sy ny karatra.'),
+  ],
   '0.4.0': [
     NewsItem(Icons.note_add_outlined, 'Tontolo crée vos fichiers',
         'Demandez un document Word, un PDF, un tableau Excel, une présentation PowerPoint, une carte mentale ou un graphique : le fichier est vérifié puis corrigé avant de vous être donné.',

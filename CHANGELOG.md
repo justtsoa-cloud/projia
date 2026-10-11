@@ -5,6 +5,13 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.4.1] - 2026-10-11
+
+### Corrigé
+- Réponses dans la langue du dernier message : une demande en anglais (ou en malgache)
+  recevait parfois une réponse en français, notamment les quiz du mode Apprendre (consignes du
+  modèle rédigées en français). Règle de langue explicite en tête des consignes.
+
 ## [0.4.0] - 2026-10-11
 
 ### Ajouté

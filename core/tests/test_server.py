@@ -593,6 +593,7 @@ def test_learn_mode_is_kept_per_conversation(client: TestClient, fake: FakeProvi
     assert conv["mode"] == "learn:college"
     system = fake.last_messages[0]["content"]
     assert "mode Apprendre" in system and "collège" in system
+    assert "language of the student's latest message" in system  # anglais → anglais
     # Message suivant sans « mode » : le mode de la discussion est conservé.
     with client.stream("POST", "/tontolo/chat", json={
             "conversation_id": cid, "content": "et 1/2 + 1/3 ?"}) as s:
