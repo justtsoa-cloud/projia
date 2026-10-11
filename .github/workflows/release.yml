@@ -174,10 +174,33 @@ jobs:
       - name: Notes de version (CHANGELOG)
         run: |
           v=${GITHUB_REF_NAME#v}
-          awk -v v="$v" '$0 ~ "^## \\[" v "\\]" {f=1; next} /^## \[/ {f=0} f' CHANGELOG.md > notes.md
-          { cat .github/release-compat.md
-            echo; echo "### Taille des fichiers"; cat size-report.md
-            echo; echo "Vérification : \`sha256sum -c SHA256SUMS --ignore-missing\`"; } >> notes.md
+          awk -v v="$v" '$0 ~ "^## \\[" v "\\]" {f=1; next} /^## \[/ {f=0} f' CHANGELOG.md > changes.md
+          dl="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}"
+          size() { du -h "dist/$1" | cut -f1; }
+          {
+            echo "## ⬇️ Télécharger"
+            echo
+            echo "| Fichier | Pour qui | Taille |"
+            echo "|---|---|---|"
+            echo "| [**tontolo-$v-arm64-v8a.apk**]($dl/tontolo-$v-arm64-v8a.apk) | 📱 **Android — le bon choix dans 95 % des cas** (téléphones et tablettes depuis 2016, Android 7 à 16) | $(size tontolo-$v-arm64-v8a.apk) |"
+            echo "| [tontolo-$v-armeabi-v7a.apk]($dl/tontolo-$v-armeabi-v7a.apk) | 📱 Android ancien ou d'entrée de gamme (32 bits) — si le premier affiche « non compatible » | $(size tontolo-$v-armeabi-v7a.apk) |"
+            echo "| [tontolo-$v-x86_64.apk]($dl/tontolo-$v-x86_64.apk) | 💻 Émulateurs, Chromebooks, Android sur PC (Intel/AMD) | $(size tontolo-$v-x86_64.apk) |"
+            echo "| [**Tontolo-$v-x86_64.AppImage**]($dl/Tontolo-$v-x86_64.AppImage) | 🐧 **Linux** (Ubuntu 22.04+, Debian 12+, Fedora, Arch…) : \`chmod +x\` puis double-clic | $(size Tontolo-$v-x86_64.AppImage) |"
+            echo "| [tontolo-$v-py3-none-any.whl]($dl/tontolo-$v-py3-none-any.whl) | 🧑‍💻 Ligne de commande et serveur compatible OpenAI (Python ≥ 3.11) | $(size tontolo-$v-py3-none-any.whl) |"
+            echo "| [SHA256SUMS]($dl/SHA256SUMS) | 🔒 Empreintes pour vérifier les fichiers | |"
+            echo
+            echo "> Déjà installé ? Tontolo se met à jour tout seul (depuis n'importe quelle version ≥ 0.2.0). Alerte « Play Protect » : normale hors Play Store, touchez « Analyser »."
+            echo
+            echo "## ✨ Nouveautés de la version $v"
+            echo
+            cat changes.md
+            echo
+            echo "## 📖 Détails"
+            echo
+            cat .github/release-compat.md
+            echo
+            echo "Vérification : \`sha256sum -c SHA256SUMS --ignore-missing\`"
+          } > notes.md
       - name: Publication de la release
         env:
           GH_TOKEN: ${{ github.token }}

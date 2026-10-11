@@ -5,6 +5,19 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.2.11] - 2026-10-11
+
+### Ajouté
+- **Documents** : PDF, texte, Markdown ou HTML joints par le bouton + ; texte extrait sur
+  l'appareil, extraits pertinents fournis au modèle, réponses avec citations « [nom, p. N] ».
+- **Dossiers de discussions** (filtres dans le volet, « Déplacer vers un dossier ») et
+  **recherche plein texte** avec extrait du passage trouvé.
+- **Partager en page web** : discussion exportée en un fichier HTML autonome et sûr (aucun
+  script possible, liens limités à http/https).
+- **Modèles sur l'appareil** : Ollama et llama.cpp détectés sur 127.0.0.1, utilisés en dernier
+  recours et immédiatement hors ligne.
+- Page de release réorganisée : fichiers à télécharger en premier, puis nouveautés et détails.
+
 ## [0.2.10] - 2026-10-11
 
 ### Corrigé

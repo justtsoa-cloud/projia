@@ -14,6 +14,20 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.2.11': [
+    NewsItem(Icons.description_outlined, 'Questions sur vos documents',
+        'Joignez un PDF ou un texte (bouton +) : Tontolo répond en citant les pages.',
+        'Ask about your documents', 'Attach a PDF or text file (+ button): Tontolo answers and cites the pages.',
+        mg: 'Fanontaniana momba ny rakitrao', mgText: 'Ampiraiketo PDF na lahatsoratra (bokotra +): mamaly i Tontolo ary manonona ny pejy.'),
+    NewsItem(Icons.folder_outlined, 'Dossiers, recherche et partage',
+        'Rangez vos discussions dans des dossiers, retrouvez un passage par la recherche, partagez une discussion en page web.',
+        'Folders, search and sharing', 'Sort chats into folders, find any passage with search, share a chat as a web page.',
+        mg: 'Lahatahiry, fikarohana ary fizarana', mgText: 'Alaharo ao anaty lahatahiry ny resakao, tadiavo izay andalana tianao, zarao ho pejy tranonkala ny resaka.'),
+    NewsItem(Icons.offline_bolt_outlined, 'Modèles sur l\'appareil',
+        'Avec Ollama ou llama.cpp installé, Tontolo répond même sans Internet.',
+        'On-device models', 'With Ollama or llama.cpp installed, Tontolo answers even without Internet.',
+        mg: 'Modely ao amin\'ny fitaovana', mgText: 'Raha misy Ollama na llama.cpp, mamaly i Tontolo na tsy misy Internet aza.'),
+  ],
   '0.2.10': [
     NewsItem(Icons.brush_outlined, 'Les demandes d\'image ne partent plus vers le texte',
         '« Draw… », « dessine… » donnent toujours une vraie image, même après avoir modifié le message. Si un modèle de texte prétend avoir créé l\'image, Tontolo bascule tout seul vers la création.',

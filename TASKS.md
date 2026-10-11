@@ -137,7 +137,7 @@ Règle : chaque étape est livrée seule (tests verts, rien de cassé), puis pub
 - [x] 6. Modèles locaux (Ollama ; GGUF sur Linux) comme dernier recours sans réseau
 - [x] 7. Documents : PDF / page web → questions avec citations des passages
 - [x] 8. Dossiers de discussions + recherche plein texte
-- [ ] 9. Partage d'une discussion en image propre ou en page
+- [~] 9. Partage d'une discussion : page web faite (0.2.11) ; image d'une réponse à faire
 - [ ] 10. Dictée vocale + mode conversation mains libres
 - [ ] 11. Design : thème coloré enfantin-sérieux aligné sur le logo (palette, typographie, animations légères)
 - [ ] 12. Android : widget d'écran d'accueil + raccourci « Demander à Tontolo »

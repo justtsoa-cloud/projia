@@ -1,3 +1,4 @@
+import 'dart:convert';
 // Écran principal : conversation + champ de saisie. Rien d'autre par défaut.
 
 
@@ -11,6 +12,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../core/backend.dart';
 import '../core/chat_controller.dart';
+import '../core/export_html.dart';
 import '../core/image_prep.dart';
 import '../core/retouch.dart';
 import '../core/updater.dart';
@@ -190,6 +192,17 @@ class _ChatScreenState extends State<ChatScreen> {
     ]));
   }
 
+  /// Page web autonome et sûre (sans script) de toute la discussion, à partager.
+  Future<void> _exportHtml(ChatController chat) async {
+    final prefs = AppScope.of(context).prefs;
+    final first = chat.messages.firstWhere((m) => m.role == 'user', orElse: () => ChatMessage(role: 'user', text: 'Tontolo'));
+    final title = first.text.length > 60 ? '${first.text.substring(0, 60)}…' : first.text;
+    final html = conversationHtml(chat.messages, title: title, locale: prefs.locale);
+    await SharePlus.instance.share(ShareParams(files: [
+      XFile.fromData(utf8.encode(html), mimeType: 'text/html', name: 'tontolo-discussion.html'),
+    ]));
+  }
+
   Future<void> _pin(ChatController chat) async {
     await AppScope.of(context).backend.sendJson('PUT', '/tontolo/conversations/${chat.conversationId}/pin', {'pinned': true});
   }
@@ -269,9 +282,14 @@ class _ChatScreenState extends State<ChatScreen> {
               IconButton(icon: const Icon(Icons.edit_square), tooltip: context.t('new_chat'), onPressed: chat.newChat),
               if (chat.conversationId != null)
                 PopupMenuButton<String>(
-                  onSelected: (v) => v == 'export' ? _export(chat) : _pin(chat),
+                  onSelected: (v) => switch (v) {
+                    'export' => _export(chat),
+                    'export_html' => _exportHtml(chat),
+                    _ => _pin(chat),
+                  },
                   itemBuilder: (context) => [
                     PopupMenuItem(value: 'pin', child: ListTile(leading: const Icon(Icons.push_pin_outlined), title: Text(context.t('pin')))),
+                    PopupMenuItem(value: 'export_html', child: ListTile(leading: const Icon(Icons.web_outlined), title: Text(context.t('export_html')))),
                     PopupMenuItem(value: 'export', child: ListTile(leading: const Icon(Icons.ios_share), title: Text(context.t('export')))),
                   ],
                 ),
