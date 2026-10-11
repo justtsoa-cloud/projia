@@ -38,8 +38,15 @@ _KEYWORDS: dict[Category, tuple[tuple[str, float], ...]] = {
         (r"\bovay ny sary\b", 4),
     ),
     Category.VIDEO_GEN: (
-        (r"\b(vid[ée]o|clip|anime cette image|animation)\b", 3),
-        (r"\b(video|animate)\b", 3),
+        # Demande de création (et non simple mention : « explique cette vidéo » reste du chat).
+        (r"\b(cr[ée]e[rz]?|g[ée]n[èe]re[rz]?|fai[st]|faire|produi[st]|r[ée]alise[rz]?|"
+         r"montre)(-moi)?(\s+\S{1,12}){0,3}?\s+(vid[ée]os?|clips?|animations?)\b", 5),
+        (r"\b(anime[rz]?|fais bouger|faire bouger|donne vie [àa])\b.{0,30}"
+         r"\b(photo|image|dessin|portrait|sc[èe]ne|illustration)s?\b", 5),
+        (r"^\s*(une\s+)?(courte\s+|petite\s+)?vid[ée]o\s+(d'|de |du |des |o[ùu] )", 4),
+        (r"\b(generate|create|make|produce)( me)?(\s+\S{1,10}){0,3}?\s+"
+         r"(videos?|clips?|animations?)\b", 5),
+        (r"\b(animate|bring to life)\b.{0,30}\b(photo|image|picture|drawing)s?\b", 5),
         (r"\bhoronan-?tsary\b", 4),
     ),
     Category.TTS: (
@@ -217,7 +224,12 @@ def classify(
     if "image" in parts and _EDIT_VERBS.search(text):
         # Une photo jointe + un verbe de retouche = édition (et non une simple question).
         scores[Category.IMAGE_EDIT] = scores.get(Category.IMAGE_EDIT, 0) + 4
-    if "image" in parts:
+    if "image" in parts and scores.get(Category.VIDEO_GEN):
+        # Photo jointe + « anime-la / fais-en une vidéo » = image → vidéo.
+        scores[Category.VIDEO_GEN] += 6
+        scores.pop(Category.IMAGE_EDIT, None)
+        scores.pop(Category.IMAGE_GEN, None)
+    elif "image" in parts:
         if scores.get(Category.IMAGE_EDIT) or scores.get(Category.IMAGE_GEN):
             scores[Category.IMAGE_EDIT] = scores.get(Category.IMAGE_EDIT, 0) + 4
             scores.pop(Category.IMAGE_GEN, None)

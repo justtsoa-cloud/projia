@@ -113,7 +113,7 @@ Règle : chaque étape est livrée seule (tests verts, rien de cassé), puis pub
 
 - [x] 0. v0.2.6 — Navigation : Discussion / Créations / Réglages dans le volet des discussions (barre du bas supprimée sur mobile, flèche de retour) ; vérifier sur émulateur
 - [x] 0b. Play Protect : documenter (README/INSTALL) pourquoi l'alerte apparaît et comment l'éviter (vérification développeur Google / Play Console, à faire par le propriétaire du compte)
-- [ ] V. Vidéo : essai de faisabilité des sources (Pollinations vidéo, Spaces Hugging Face Wan/LTX, payants plafonnés) ; brancher ce qui marche, sinon message honnête
+- [x] V. Vidéo : essai de faisabilité (Pollinations vidéo = payant uniquement ; Space officiel LTX-Video = gratuit sans clé, quota ZeroGPU quotidien) ; texte → vidéo et photo → vidéo branchés, lecture dans l'application, message clair sur le quota
 - [ ] 1. Écran vide interactif : raccourcis (image, retouche, recherche web, résumer un document, traduire, expliquer)
 - [ ] 2. Sélecteur de modèle : « Auto » + pastille de santé (vert/orange/rouge), appui long pour fixer un modèle
 - [ ] 3. Réponse rapide d'abord (petit modèle rapide, puis relève par le meilleur si complexe) — option
@@ -127,4 +127,5 @@ Règle : chaque étape est livrée seule (tests verts, rien de cassé), puis pub
 - [ ] 11. Design : thème coloré enfantin-sérieux aligné sur le logo (palette, typographie, animations légères)
 - [ ] 12. Android : widget d'écran d'accueil + raccourci « Demander à Tontolo »
 - [ ] 13. Tablette / bureau : volet permanent + deux colonnes (discussion / aperçu)
+- [x] U. Mises à jour : repli sans API GitHub (limite de débit), résultat toujours affiché, notes et nouveautés cumulées des versions sautées, CI de compatibilité depuis 0.2.0, test de base 0.2.0
 - [ ] Transversal : plus d'interactivité (suggestions de relance après chaque réponse, actions rapides sur les messages, retours haptiques, animations)

@@ -14,12 +14,15 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import contextlib
 import json
 import os
+import re
 import shutil
 import tempfile
 import time
 import urllib.parse
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -28,7 +31,7 @@ import httpx
 
 from tontolo import http, secrets, security
 from tontolo.catalog.models import ModelInfo
-from tontolo.catalog.sources import pollinations
+from tontolo.catalog.sources import hfspaces, pollinations
 from tontolo.providers.base import ErrorKind, ProviderError
 from tontolo.providers.openai_compat import classify_error
 
@@ -93,6 +96,168 @@ async def generate_image(
         r = await http.client().get(item["url"], timeout=120.0)
         return MediaOutput(r.content, r.headers.get("content-type", "image/png"))
     raise ProviderError("Aucune image renvoyée", ErrorKind.SERVER)
+
+
+VIDEO_MAX_BYTES = 60 * 1024 * 1024
+VIDEO_TIMEOUT = 300.0
+_QUOTA_RE = re.compile(r"(\d+):(\d{2}):(\d{2})")
+
+
+async def generate_video(model: ModelInfo, prompt: str, params: dict[str, Any]) -> MediaOutput:
+    """Vidéo par un Space Hugging Face public (API REST Gradio, sans clé).
+
+    Texte → vidéo, ou image → vidéo si une photo est jointe (`image_bytes`)."""
+    space = hfspaces.by_id(model.model_id)
+    if space is None:
+        raise ProviderError("Space inconnu", ErrorKind.UNAVAILABLE)
+    api = f"{space.base_url}/gradio_api"
+    headers = {}
+    if hf := secrets.get_key("huggingface"):  # quota GPU plus large avec une clé gratuite
+        headers["Authorization"] = f"Bearer {hf}"
+    duration = max(1.0, min(float(params.get("duration") or 4), 8.0))
+    image = params.get("image_bytes")
+    fn = "text_to_video"
+    image_arg: Any = None
+    if image:
+        fn = "image_to_video"
+        up = await _post(f"{api}/upload", headers=headers, timeout=60.0,
+                         files={"files": ("photo.jpg", image, "image/jpeg")})
+        paths = up.json()
+        if not paths:
+            raise ProviderError("Envoi de la photo refusé", ErrorKind.SERVER)
+        image_arg = {"path": paths[0], "meta": {"_type": "gradio.FileData"}}
+    width, height = _video_dims(image, params.get("aspect_ratio"))
+    data = [prompt, "worst quality, inconsistent motion, blurry, jittery, distorted",
+            image_arg, None, height, width, "image-to-video" if image else "text-to-video",
+            duration, 9, 42, True, 1, True]
+    result = await _gradio_queue(space.base_url, fn, data, headers)
+    url = _video_url(result, space.base_url)
+    try:
+        r = await http.client().get(url, headers=headers, timeout=120.0)
+    except httpx.HTTPError as exc:
+        raise ProviderError(type(exc).__name__, ErrorKind.NETWORK) from exc
+    if r.status_code >= 400 or not r.content:
+        raise ProviderError("Vidéo introuvable", ErrorKind.SERVER, status=r.status_code)
+    if len(r.content) > VIDEO_MAX_BYTES:
+        raise ProviderError("Vidéo trop volumineuse", ErrorKind.SERVER)
+    return MediaOutput(r.content, "video/mp4")
+
+
+def image_size(data: bytes) -> tuple[int, int] | None:
+    """Largeur et hauteur d'une image PNG ou JPEG (sans bibliothèque d'images)."""
+    if data[:8] == b"\x89PNG\r\n\x1a\n" and len(data) >= 24:
+        return int.from_bytes(data[16:20], "big"), int.from_bytes(data[20:24], "big")
+    if data[:2] == b"\xff\xd8":
+        i = 2
+        while i + 9 < len(data):
+            if data[i] != 0xFF:
+                i += 1
+                continue
+            marker = data[i + 1]
+            if marker in (0xC0, 0xC1, 0xC2):
+                h = int.from_bytes(data[i + 5:i + 7], "big")
+                w = int.from_bytes(data[i + 7:i + 9], "big")
+                return w, h
+            if marker in (0xD8, 0x01) or 0xD0 <= marker <= 0xD7:
+                i += 2
+                continue
+            i += 2 + int.from_bytes(data[i + 2:i + 4], "big")
+    return None
+
+
+def _video_dims(image: bytes | None, aspect: str | None) -> tuple[int, int]:
+    """Dimensions (multiples de 32, ≈ 704×512 pixels) qui respectent le cadrage voulu."""
+    ratio = 704 / 512
+    size = image_size(image) if image else None
+    if size and size[0] > 0 and size[1] > 0:
+        ratio = size[0] / size[1]
+    elif aspect and ":" in aspect:
+        a, _, b = aspect.partition(":")
+        with contextlib.suppress(ValueError, ZeroDivisionError):
+            ratio = float(a) / float(b)
+    ratio = max(9 / 21, min(21 / 9, ratio))
+    area = 704 * 512
+    w = (area * ratio) ** 0.5
+    h = w / ratio
+    return (max(256, min(1024, round(w / 32) * 32)), max(256, min(1024, round(h / 32) * 32)))
+
+
+_FN_INDEX: dict[tuple[str, str], int] = {}
+
+
+async def _fn_index(base_url: str, api_name: str, headers: dict[str, str]) -> int:
+    key = (base_url, api_name)
+    if key not in _FN_INDEX:
+        try:
+            r = await http.client().get(f"{base_url}/config", headers=headers, timeout=30.0)
+        except httpx.HTTPError as exc:
+            raise ProviderError(type(exc).__name__, ErrorKind.NETWORK) from exc
+        if r.status_code >= 400:
+            raise ProviderError("Space indisponible", ErrorKind.UNAVAILABLE, status=r.status_code)
+        for i, dep in enumerate(r.json().get("dependencies") or []):
+            if dep.get("api_name") == api_name:
+                _FN_INDEX[key] = int(dep.get("id", i))
+                break
+        else:
+            raise ProviderError("Fonction absente du Space", ErrorKind.UNAVAILABLE)
+    return _FN_INDEX[key]
+
+
+async def _gradio_queue(base_url: str, api_name: str, data: list[Any],
+                        headers: dict[str, str]) -> Any:
+    """File d'attente Gradio (`queue/join` puis flux `queue/data`). Contrairement à l'API
+    `call/`, elle renvoie la vraie raison d'un échec (quota GPU épuisé, etc.)."""
+    session = uuid.uuid4().hex[:11]
+    body = {"data": data, "fn_index": await _fn_index(base_url, api_name, headers),
+            "session_hash": session, "event_data": None, "trigger_id": None}
+    await _post(f"{base_url}/gradio_api/queue/join", json=body, headers=headers, timeout=30.0)
+    try:
+        async with http.client().stream(
+                "GET", f"{base_url}/gradio_api/queue/data", params={"session_hash": session},
+                headers=headers, timeout=httpx.Timeout(VIDEO_TIMEOUT, connect=15.0)) as resp:
+            if resp.status_code >= 400:
+                body_text = (await resp.aread()).decode("utf-8", "replace")
+                raise classify_error(resp.status_code, body_text, {})
+            async for line in resp.aiter_lines():
+                if not line.startswith("data:"):
+                    continue
+                try:
+                    msg = json.loads(line[5:].strip())
+                except ValueError:
+                    continue
+                if msg.get("msg") == "process_completed":
+                    out = msg.get("output") or {}
+                    if msg.get("success") and "data" in out:
+                        return out["data"]
+                    raise _gradio_error(str(out.get("error") or msg.get("title") or "null"))
+                if msg.get("msg") == "unexpected_error":
+                    raise _gradio_error(str(msg.get("message") or "null"))
+    except httpx.HTTPError as exc:
+        raise ProviderError(type(exc).__name__, ErrorKind.NETWORK) from exc
+    raise ProviderError("Génération interrompue", ErrorKind.SERVER)
+
+
+def _gradio_error(payload: str) -> ProviderError:
+    text = payload if payload not in ("null", "") else "erreur du Space"
+    low = text.lower()
+    if "quota" in low or ("gpu" in low and ("exceed" in low or "limit" in low)):
+        retry = 3600.0  # le quota ZeroGPU se reconstitue progressivement
+        if m := _QUOTA_RE.search(text):
+            h, mi, s = (int(x) for x in m.groups())
+            retry = max(retry, float(h * 3600 + mi * 60 + s))
+        return ProviderError("Quota GPU gratuit épuisé", ErrorKind.QUOTA, retry_after=retry)
+    return ProviderError(text[:200], ErrorKind.SERVER)
+
+
+def _video_url(result: Any, base_url: str) -> str:
+    """URL de la vidéo dans la réponse Gradio ; uniquement sur le domaine du Space."""
+    item = result[0] if isinstance(result, list) and result else result
+    if isinstance(item, dict) and "video" in item:
+        item = item["video"]
+    url = item.get("url") if isinstance(item, dict) else None
+    if not isinstance(url, str) or not url.startswith(base_url + "/"):
+        raise ProviderError("Réponse vidéo inattendue", ErrorKind.SERVER)
+    return url
 
 
 async def _pollinations_image(model: ModelInfo, prompt: str,

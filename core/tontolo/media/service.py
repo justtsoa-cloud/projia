@@ -32,13 +32,19 @@ KINDS = {"image_gen", "image_edit", "stt", "tts", "music_sfx", "video_gen"}
 Listener = Callable[[dict[str, Any]], None]
 
 UNAVAILABLE_MSG = {
-    "video_gen": "Génération vidéo indisponible gratuitement pour le moment. Vous pouvez "
-                 "autoriser un fournisseur payant (avec plafond) dans Réglages › Avancé.",
+    "video_gen": "La source vidéo gratuite ne répond pas pour le moment (GPU partagé saturé ou "
+                 "quota du jour atteint). Réessayez plus tard, ajoutez une clé Hugging Face "
+                 "gratuite dans Réglages, ou autorisez un fournisseur payant (avec plafond).",
     "music_sfx": "Aucune source gratuite de musique ou d'effets sonores n'est disponible "
                  "pour le moment.",
     "image_edit": "Aucune source gratuite ne sait retoucher une photo pour le moment, et la "
                   "création de remplacement a échoué. Réessayez dans un instant.",
 }
+
+VIDEO_QUOTA_MSG = (
+    "Quota vidéo gratuit atteint : le GPU partagé de Hugging Face n'accorde que quelques "
+    "vidéos par jour sans compte. Ajoutez une clé Hugging Face gratuite dans Réglages pour en "
+    "obtenir davantage, ou réessayez dans quelques heures.")
 
 REINTERPRETATION_NOTE = (
     "Aucun service gratuit ne retouche vraiment une photo : elle a été envoyée à une IA "
@@ -152,6 +158,8 @@ class MediaService:
         job["status"] = "failed"
         if job["params"].get("refused_preserve"):
             job["error"] = PRESERVE_REFUSAL
+        elif kind == "video_gen" and job["params"].get("quota_hit"):
+            job["error"] = VIDEO_QUOTA_MSG
         elif errors:
             job["error"] = "Toutes les sources gratuites ont échoué : " + "; ".join(errors[:4])
         else:
@@ -177,6 +185,8 @@ class MediaService:
                 out = await self._call(kind, m, provider, job)
             except ProviderError as err:
                 self.router.quota.on_error(m, err)
+                if err.kind == ErrorKind.QUOTA:
+                    job["params"]["quota_hit"] = True
                 if err.kind in (ErrorKind.SERVER, ErrorKind.NETWORK):
                     self.router.reliability.record(m.key, False)
                 errors.append(f"{m.name} : {human_reason(err)}")
@@ -244,6 +254,11 @@ class MediaService:
             if inp is None:
                 raise ValueError("Fichier audio manquant")
             return await mp.transcribe(m, provider, inp.read_bytes(), inp.name, params)
+        if kind == "video_gen":
+            vparams = dict(params)
+            if inp is not None:
+                vparams["image_bytes"] = inp.read_bytes()
+            return await mp.generate_video(m, job["prompt"], vparams)
         if kind in ("tts", "music_sfx"):
             return await mp.speak(m, provider, job["prompt"], params)
         raise ProviderError("Type non pris en charge par ce fournisseur", ErrorKind.BAD_REQUEST)

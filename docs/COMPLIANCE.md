@@ -29,5 +29,9 @@ Mesures techniques :
   envoyée au fournisseur d'IA gratuit choisi (Kilo Code, OVHcloud, LLM7, OpenRouter…), comme
   pour toute fonction de vision ; consultez ses conditions. Tontolo l'indique dans le message
   qui accompagne l'image créée.
+- **Vidéo** (« crée une vidéo… », « anime cette photo ») : la description et, le cas échéant,
+  la photo sont envoyées au Space public LTX-Video (Lightricks) hébergé par Hugging Face, qui
+  les traite sur son GPU partagé ; consultez les conditions de Hugging Face. N'animez pas la
+  photo d'une personne sans son accord.
 - Si la consigne demande de **ne pas changer la personne**, Tontolo ne recrée jamais une autre
   image : retouche locale, ou refus explicite.

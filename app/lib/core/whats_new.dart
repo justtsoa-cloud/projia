@@ -13,6 +13,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.2.7': [
+    NewsItem(Icons.movie_outlined, 'Vidéos gratuites',
+        'Demandez « crée une vidéo d\'un renard dans la neige », ou joignez une photo et dites « anime cette photo ». Vidéos de quelques secondes, sans clé (quelques-unes par jour ; une clé Hugging Face gratuite en donne plus).',
+        'Free videos',
+        'Ask “make a video of a fox in the snow”, or attach a photo and say “animate this photo”. Short clips, no key needed (a few per day; a free Hugging Face key gives more).'),
+    NewsItem(Icons.system_update, 'Mises à jour plus fiables',
+        'La recherche de mise à jour fonctionne même quand GitHub limite les requêtes (réseau mobile), dit clairement le résultat, et présente tous les changements des versions sautées.',
+        'More reliable updates',
+        'Update checks now work even when GitHub rate-limits requests (mobile networks), always report the result, and show every change from skipped versions.'),
+  ],
   '0.2.6': [
     NewsItem(Icons.menu, 'Plus de place pour discuter',
         'Créations et Réglages sont maintenant dans le volet des discussions (☰). La barre du bas disparaît sur téléphone ; le bouton retour ramène à la discussion.',
@@ -103,3 +113,23 @@ const whatsNew = <String, List<NewsItem>>{
 };
 
 List<NewsItem> newsFor(String version) => whatsNew[version] ?? const [];
+
+/// Nouveautés de toutes les versions comprises entre `since` (exclue) et `upTo` (incluse),
+/// de la plus récente à la plus ancienne : utile quand on saute plusieurs mises à jour.
+List<(String, List<NewsItem>)> newsBetween(String since, String upTo) {
+  List<int> p(String s) => RegExp(r'\d+').allMatches(s).map((m) => int.parse(m[0]!)).toList();
+  int cmp(String a, String b) {
+    final x = p(a), y = p(b);
+    for (var i = 0; i < 3; i++) {
+      final d = (i < x.length ? x[i] : 0) - (i < y.length ? y[i] : 0);
+      if (d != 0) return d;
+    }
+    return 0;
+  }
+
+  final versions = whatsNew.keys
+      .where((v) => (since.isEmpty || cmp(v, since) > 0) && cmp(v, upTo) <= 0)
+      .toList()
+    ..sort((a, b) => cmp(b, a));
+  return [for (final v in versions) (v, whatsNew[v]!)];
+}

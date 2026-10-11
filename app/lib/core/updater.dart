@@ -19,7 +19,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'prefs.dart';
 
-const appVersion = '0.2.6';
+const appVersion = '0.2.7';
 const repo = 'raantss18/tontolo';
 
 enum UpdateStatus { idle, checking, downloading, ready, failed, upToDate }
@@ -111,15 +111,14 @@ class Updater extends ChangeNotifier {
     if (t == null) return;
     _set(UpdateStatus.checking);
     try {
-      final r = await http.get(Uri.parse('https://api.github.com/repos/$repo/releases/latest'),
-          headers: {'Accept': 'application/vnd.github+json'}).timeout(const Duration(seconds: 15));
+      final rel = await _latestRelease();
       prefs.lastUpdateCheck = DateTime.now().millisecondsSinceEpoch;
-      if (r.statusCode != 200) return _set(UpdateStatus.idle);
-      final rel = jsonDecode(r.body) as Map<String, dynamic>;
+      if (rel == null) throw Exception('GitHub injoignable : vérifiez la connexion puis réessayez');
       latest = '${rel['tag_name']}'.replaceFirst('v', '');
       releaseUrl = rel['html_url'] as String?;
-      notesRaw = '${rel['body'] ?? ''}';
       if (!isNewer(latest!, appVersion)) return _set(UpdateStatus.upToDate);
+      // Notes cumulées de toutes les versions sautées (CHANGELOG), sinon celles de la release.
+      notesRaw = await _notesSince(latest!) ?? '${rel['body'] ?? ''}';
       if (t.$1 == 'linux' && Platform.environment['APPIMAGE'] == null) {
         // Installation hors AppImage (paquet, sources) : on signale seulement.
         message = 'Version $latest disponible';
@@ -135,7 +134,9 @@ class Updater extends ChangeNotifier {
           throw Exception('Origine du téléchargement non reconnue');
         }
       }
-      final sumsText = (await http.get(Uri.parse(sums['browser_download_url']))).body;
+      final sumsResp = await http.get(Uri.parse(sums['browser_download_url'])).timeout(const Duration(seconds: 30));
+      if (sumsResp.statusCode != 200) throw Exception('Fichier de mise à jour absent');
+      final sumsText = sumsResp.body;
       final expected = _parseSums(sumsText)[asset['name']];
       if (expected == null) throw Exception('Empreinte SHA-256 absente');
       file = await _download(asset, expected);
@@ -145,6 +146,85 @@ class Updater extends ChangeNotifier {
       message = '$e';
       _set(UpdateStatus.failed);
     }
+  }
+
+  /// Dernière release publiée. L'API GitHub est limitée à 60 requêtes/heure par adresse IP
+  /// (souvent partagée sur les réseaux mobiles) : en cas de refus, repli sur la redirection
+  /// de la page `releases/latest`, sans limite, et sur les noms de fichiers stables.
+  static Future<Map<String, dynamic>?> _latestRelease() async {
+    try {
+      final r = await http.get(Uri.parse('https://api.github.com/repos/$repo/releases/latest'),
+          headers: {'Accept': 'application/vnd.github+json'}).timeout(const Duration(seconds: 15));
+      if (r.statusCode == 200) return jsonDecode(r.body) as Map<String, dynamic>;
+    } catch (_) {}
+    final client = http.Client();
+    try {
+      final req = http.Request('GET', Uri.parse('https://github.com/$repo/releases/latest'))
+        ..followRedirects = false;
+      final resp = await client.send(req).timeout(const Duration(seconds: 15));
+      final m = RegExp(r'/releases/tag/v?([0-9][\w.\-]*)$').firstMatch(resp.headers['location'] ?? '');
+      if (m == null) return null;
+      return fallbackRelease(m.group(1)!);
+    } catch (_) {
+      return null;
+    } finally {
+      client.close();
+    }
+  }
+
+  /// Description minimale d'une release à partir de son numéro (noms de fichiers stables,
+  /// voir docs/RELEASING.md : ils ne doivent jamais changer).
+  static Map<String, dynamic> fallbackRelease(String v) {
+    String dl(String n) => 'https://github.com/$repo/releases/download/v$v/$n';
+    final names = [
+      for (final abi in ['arm64-v8a', 'armeabi-v7a', 'x86_64']) 'tontolo-$v-$abi.apk',
+      'Tontolo-$v-x86_64.AppImage', 'Tontolo-$v-aarch64.AppImage', 'SHA256SUMS',
+    ];
+    return {
+      'tag_name': 'v$v',
+      'html_url': 'https://github.com/$repo/releases/tag/v$v',
+      'body': '',
+      'assets': [for (final n in names) {'name': n, 'browser_download_url': dl(n)}],
+    };
+  }
+
+  /// Sections du CHANGELOG plus récentes que la version installée (jusqu'à `latest`).
+  static Future<String?> _notesSince(String latest) async {
+    try {
+      final r = await http
+          .get(Uri.parse('https://raw.githubusercontent.com/$repo/v$latest/CHANGELOG.md'))
+          .timeout(const Duration(seconds: 15));
+      if (r.statusCode != 200) return null;
+      final out = changelogSince(r.body, appVersion);
+      return out.trim().isEmpty ? null : out;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Extrait du CHANGELOG les rubriques des versions > `installed`, préfixées par la version.
+  static String changelogSince(String changelog, String installed) {
+    final buf = StringBuffer();
+    String? version;
+    for (final line in const LineSplitter().convert(changelog)) {
+      final h = RegExp(r'^## \[(\d+\.\d+\.\d+)\]').firstMatch(line);
+      if (h != null) {
+        version = h.group(1);
+        if (!isNewer(version!, installed)) break; // le CHANGELOG va du plus récent au plus ancien
+        continue;
+      }
+      if (line.startsWith('## ')) {
+        version = null; // « Non publié » ou autre
+        continue;
+      }
+      if (version == null) continue;
+      if (line.startsWith('### ')) {
+        buf.writeln('### $version · ${line.substring(4).trim()}');
+      } else {
+        buf.writeln(line);
+      }
+    }
+    return buf.toString();
   }
 
   Map<String, dynamic>? _pick(List<Map<String, dynamic>> assets, String os, String arch) {
@@ -177,6 +257,7 @@ class Updater extends ChangeNotifier {
     final client = http.Client();
     try {
       final resp = await client.send(http.Request('GET', Uri.parse(asset['browser_download_url'])));
+      if (resp.statusCode != 200) throw Exception('Fichier de mise à jour absent (${resp.statusCode})');
       final total = resp.contentLength ?? (asset['size'] as int? ?? 0);
       final sink = part.openWrite();
       final hashOut = AccumulatorSink<Digest>();

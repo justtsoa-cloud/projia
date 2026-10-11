@@ -5,6 +5,32 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.2.7] - 2026-10-11
+
+### Ajouté
+- **Vidéo gratuite, sans clé** : texte → vidéo et photo → vidéo (« anime cette photo ») par le
+  Space officiel LTX-Video de Lightricks sur Hugging Face (GPU partagé). Vidéo de 1 à 8 s
+  (4 s par défaut), cadrage portrait respecté pour une photo, lecture intégrée sous Android et
+  par le lecteur du système sous Linux. Le quota GPU anonyme est de quelques vidéos par jour :
+  une clé Hugging Face gratuite (Réglages) l'augmente, et un message clair l'explique quand il
+  est atteint.
+- Détection des demandes de vidéo plus précise : « crée / fais / génère une vidéo… », « une
+  vidéo de… », « anime cette photo » ; une simple mention (« explique cette vidéo ») reste une
+  question.
+
+### Corrigé
+- Mises à jour : quand l'API GitHub refusait la requête (limite de 60 requêtes/heure par
+  adresse IP, fréquente sur réseau mobile), la recherche échouait sans rien dire. Repli sur la
+  page `releases/latest` (sans limite) ; « Rechercher des mises à jour » affiche toujours le
+  résultat et rouvre l'annonce si une version est prête.
+- Saut de versions (par exemple 0.2.0 → dernière) : l'annonce présente les changements de
+  **toutes** les versions sautées, et « Quoi de neuf » toutes les nouveautés intermédiaires.
+
+### Sécurité et compatibilité
+- La CI refuse de publier une release qui casserait la mise à jour des versions installées
+  depuis la 0.2.0 (noms de fichiers, empreintes, CHANGELOG, numéro de build croissant) ; test
+  d'ouverture d'une base de données créée par la 0.2.0.
+
 ## [0.2.6] - 2026-10-11
 
 ### Modifié

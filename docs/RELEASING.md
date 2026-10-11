@@ -67,3 +67,20 @@ keytool -list -v -keystore release-keys/tontolo.jks | grep SHA256
 
 Ces démarches demandent un compte Google du propriétaire (et éventuellement des frais
 d'inscription Play) : elles ne sont pas automatisées dans ce dépôt.
+
+
+## Compatibilité des mises à jour (saut de versions)
+
+Toute version installée depuis la **0.2.0** doit pouvoir passer directement à la dernière.
+Ces invariants sont vérifiés par la CI (`release.yml`) et par les tests :
+
+- noms des fichiers : `tontolo-<v>-<abi>.apk`, `Tontolo-<v>-<arch>.AppImage`, `SHA256SUMS` ;
+- même clé de signature et même nom de paquet Android ; numéro de build (`+N` de
+  `pubspec.yaml`) strictement croissant ;
+- une section `## [<v>]` dans `CHANGELOG.md` et des nouveautés dans `whats_new.dart` ;
+- base de données : migrations additives uniquement (`core/tests/test_upgrade.py` ouvre une
+  base créée par la 0.2.0).
+
+L'application cherche la dernière release par l'API GitHub, puis, si l'API refuse (limite de
+60 requêtes/heure par adresse IP, fréquente sur réseau mobile), par la redirection de
+`/releases/latest` ; elle présente ensuite toutes les notes des versions sautées.

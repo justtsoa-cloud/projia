@@ -105,7 +105,8 @@ class _UpdateSheet extends StatelessWidget {
 }
 
 /// « Quoi de neuf » : présentation des nouveautés de la version installée.
-Future<void> showWhatsNew(BuildContext context, {String? version}) {
+/// `since` : dernière version vue ; toutes les nouveautés intermédiaires sont présentées.
+Future<void> showWhatsNew(BuildContext context, {String? version, String? since}) {
   final prefs = AppScope.of(context).prefs;
   final v = version ?? appVersion;
   prefs.lastSeenVersion = appVersion;
@@ -113,18 +114,20 @@ Future<void> showWhatsNew(BuildContext context, {String? version}) {
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    builder: (_) => _WhatsNew(version: v),
+    builder: (_) => _WhatsNew(version: v, since: since),
   );
 }
 
 class _WhatsNew extends StatelessWidget {
-  const _WhatsNew({required this.version});
+  const _WhatsNew({required this.version, this.since});
   final String version;
+  final String? since;
 
   @override
   Widget build(BuildContext context) {
     final locale = AppScope.of(context).prefs.locale;
-    final items = newsFor(version);
+    final groups = since == null ? [(version, newsFor(version))] : newsBetween(since!, version);
+    final items = [for (final g in groups) ...g.$2];
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.8,
@@ -142,7 +145,13 @@ class _WhatsNew extends StatelessWidget {
           const SizedBox(height: 12),
           Expanded(
             child: ListView(controller: controller, children: [
-              for (final n in items)
+              for (final (v, group) in groups) ...[
+                if (groups.length > 1)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12, bottom: 2),
+                    child: Text('Version $v', style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Theme.of(context).colorScheme.primary)),
+                  ),
+                for (final n in group)
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: CircleAvatar(
@@ -152,6 +161,7 @@ class _WhatsNew extends StatelessWidget {
                   title: Text(n.title(locale)),
                   subtitle: Text(n.text(locale)),
                 ),
+              ],
               if (items.isEmpty) Text(context.t('update_no_notes')),
             ]),
           ),

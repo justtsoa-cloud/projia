@@ -138,6 +138,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
       - uses: actions/download-artifact@v4
         with: {path: dist, merge-multiple: true}
       - name: Empreintes et rapport de taille
@@ -147,6 +148,25 @@ jobs:
           { echo "| Fichier | Taille |"; echo "|---|---|"
             for f in *; do [ "$f" = SHA256SUMS ] || echo "| $f | $(du -h "$f" | cut -f1) |"; done; } > ../size-report.md
           cat ../size-report.md
+      - name: Compatibilité des mises à jour (saut de versions depuis 0.2.0)
+        # Les applications déjà installées (0.2.0 et suivantes) cherchent ces noms exacts :
+        # les changer casserait leur mise à jour automatique.
+        run: |
+          v=${GITHUB_REF_NAME#v}
+          for f in "tontolo-$v-arm64-v8a.apk" "tontolo-$v-armeabi-v7a.apk" "tontolo-$v-x86_64.apk" \
+                   "Tontolo-$v-x86_64.AppImage" SHA256SUMS; do
+            test -f "dist/$f" || { echo "::error::Fichier attendu absent : $f"; exit 1; }
+            [ "$f" = SHA256SUMS ] || grep -q "  $f\$" dist/SHA256SUMS
+          done
+          grep -q "^## \[$v\]" CHANGELOG.md || { echo "::error::CHANGELOG sans section $v"; exit 1; }
+          # Le numéro de build Android doit croître, sinon Android refuse la mise à jour.
+          build=$(grep '^version:' app/pubspec.yaml | sed 's/.*+//')
+          prev=$(git tag -l 'v*' --sort=-v:refname | grep -vx "$GITHUB_REF_NAME" | head -1)
+          if [ -n "$prev" ]; then
+            pbuild=$(git show "$prev:app/pubspec.yaml" | grep '^version:' | sed 's/.*+//')
+            echo "build $build (précédent $prev : $pbuild)"
+            test "$build" -gt "$pbuild"
+          fi
       - name: Notes de version (CHANGELOG)
         run: |
           v=${GITHUB_REF_NAME#v}

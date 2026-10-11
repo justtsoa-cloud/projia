@@ -133,11 +133,13 @@ class _ShellState extends State<Shell> {
   Future<void> _maybeWhatsNew() async {
     final prefs = AppScope.of(context).prefs;
     if (prefs.lastSeenVersion == appVersion) return;
-    final firstInstall = prefs.lastSeenVersion.isEmpty;
+    final since = prefs.lastSeenVersion;
     prefs.lastSeenVersion = appVersion;
-    if (firstInstall || newsFor(appVersion).isEmpty) return; // 1re installation : l'accueil suffit
+    // 1re installation : l'accueil suffit. Après un saut de plusieurs versions, on présente
+    // toutes les nouveautés intermédiaires.
+    if (since.isEmpty || newsBetween(since, appVersion).isEmpty) return;
     _sheetOpen = true;
-    await showWhatsNew(context);
+    await showWhatsNew(context, since: since);
     _sheetOpen = false;
   }
 

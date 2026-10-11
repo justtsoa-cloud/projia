@@ -15,7 +15,7 @@ from tontolo.catalog import watcher
 from tontolo.catalog.cache import SourceCache
 from tontolo.catalog.catalog import Catalog, build_catalog
 from tontolo.catalog.models import ModelInfo
-from tontolo.catalog.sources import freeapis, openrouter, pollinations, rankings
+from tontolo.catalog.sources import freeapis, hfspaces, openrouter, pollinations, rankings
 from tontolo.config import Settings
 from tontolo.media.providers import LOCAL_TTS_MODEL
 from tontolo.storage.db import Database
@@ -36,6 +36,11 @@ BUILTIN_PROVIDERS: dict[str, dict[str, Any]] = {
         "id": "pollinations", "name": "Pollinations", "base_url": pollinations.TEXT_BASE_URL,
         "key_url": None, "keyless": True,
         "description": "Texte et images sans clé (débit limité).",
+    },
+    "hf_spaces": {
+        "id": "hf_spaces", "name": "Spaces Hugging Face", "base_url": "https://huggingface.co",
+        "key_url": None, "keyless": True,
+        "description": "Vidéo sans clé via des Spaces publics (GPU partagé, quota quotidien).",
     },
 }
 
@@ -68,7 +73,8 @@ class CatalogService:
         """Démarrage : catalogue construit depuis le cache, sans réseau ; s'il n'y a pas
         de cache (premier lancement), rafraîchissement bloquant."""
         await self._build(SourceCache(self.cache_dir, offline=True), record=False)
-        if not any(m.provider != "local" for m in self.catalog.models.values()):
+        if not any(m.provider not in ("local", "hf_spaces")
+                   for m in self.catalog.models.values()):
             # Premier lancement : catalogues rapides d'abord (quelques secondes) ; les
             # classements, plus lents, arrivent ensuite en arrière-plan.
             await self._build(SourceCache(self.cache_dir), record=True, quick=True)
@@ -105,7 +111,7 @@ class CatalogService:
             if isinstance(r, BaseException):
                 log.warning("Source en échec : %r", r)
         models: list[ModelInfo] = [*(or_models or []), *(poll_models or []),
-                                   LOCAL_TTS_MODEL.model_copy(deep=True)]
+                                   LOCAL_TTS_MODEL.model_copy(deep=True), *hfspaces.models()]
         providers = dict(BUILTIN_PROVIDERS)
         if isinstance(free_res, tuple):
             free_models, free_providers = free_res
@@ -113,7 +119,7 @@ class CatalogService:
             providers.update(free_providers)
         if not cache.offline:
             models += await self._discover_media(providers, cache)
-        if not any(m.provider != "local" for m in models):
+        if not any(m.provider not in ("local", "hf_spaces") for m in models):
             return []  # rien en cache ni en ligne : on garde l'ancien catalogue
         ranking_entries = [*(aa or []), *(lma or [])]
         catalog = build_catalog(models, ranking_entries, providers)

@@ -16,6 +16,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../core/chat_controller.dart';
 import '../core/speech.dart';
 import '../main.dart';
+import 'video_view.dart';
 
 class MessageView extends StatelessWidget {
   const MessageView({
@@ -517,7 +518,7 @@ class _MediaResultState extends State<MediaResult> {
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
           const SizedBox(width: 10),
-          Text(context.t('generating')),
+          Text(context.t(job['kind'] == 'video_gen' ? 'generating_video' : 'generating')),
         ],
       );
     }
@@ -594,6 +595,20 @@ class _MediaResultState extends State<MediaResult> {
               ),
             ),
           ),
+          share,
+        ],
+      );
+    }
+    if (mime.startsWith('video/')) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (warning != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text('$warning', style: Theme.of(context).textTheme.bodySmall),
+            ),
+          VideoBox(bytes: bytes!, id: '${job['id']}'),
           share,
         ],
       );

@@ -98,9 +98,21 @@ class _Simple extends StatelessWidget {
           leading: const Icon(Icons.refresh),
           title: Text(context.t('check_updates')),
           onTap: () async {
+            final messenger = ScaffoldMessenger.of(context);
+            messenger.showSnackBar(SnackBar(content: Text(context.t('checking_updates')), duration: const Duration(seconds: 2)));
             await scope.updater.run(manual: true);
-            if (context.mounted && scope.updater.status == UpdateStatus.upToDate) {
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('up_to_date'))));
+            if (!context.mounted) return;
+            messenger.hideCurrentSnackBar();
+            final up = scope.updater;
+            switch (up.status) {
+              case UpdateStatus.ready:
+                await showUpdateSheet(context); // toujours proposée sur demande, même déjà annoncée
+              case UpdateStatus.failed:
+                messenger.showSnackBar(SnackBar(content: Text(up.message ?? context.t('error_generic'))));
+              case UpdateStatus.upToDate:
+                messenger.showSnackBar(SnackBar(content: Text(context.t('up_to_date_v', {'v': appVersion}))));
+              default:
+                break;
             }
           },
         ),

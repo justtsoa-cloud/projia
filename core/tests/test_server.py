@@ -130,7 +130,7 @@ def test_video_best_effort_message(client: TestClient) -> None:
         if j["status"] in ("done", "failed"):
             break
         time.sleep(0.02)
-    assert j["status"] == "failed" and "indisponible gratuitement" in j["error"]
+    assert j["status"] == "failed" and "vidéo" in j["error"]
 
 
 def test_token_required(settings: Settings, catalog_service: CatalogService,
@@ -400,3 +400,43 @@ def test_local_retouch_result_is_stored_in_conversation(client: TestClient) -> N
     bad = client.post("/tontolo/chat/local-media", json={
         "content": "x", "result_b64": "pas du base64 !!"})
     assert bad.status_code == 400
+
+
+def _wait_job(client: TestClient, job_id: str) -> dict[str, Any]:
+    import time
+
+    for _ in range(100):
+        j = client.get(f"/tontolo/media/{job_id}").json()
+        if j["status"] in ("done", "failed"):
+            return j
+        time.sleep(0.02)
+    return j
+
+
+def test_video_from_hf_space(client: TestClient, catalog_service: CatalogService,
+                             monkeypatch: pytest.MonkeyPatch) -> None:
+    from tontolo.catalog.service import BUILTIN_PROVIDERS
+    from tontolo.catalog.sources import hfspaces
+
+    cat = catalog_service.catalog
+    cat.providers["hf_spaces"] = BUILTIN_PROVIDERS["hf_spaces"]
+    for m in hfspaces.models():
+        cat.models[m.key] = m
+
+    async def fake_video(model: Any, prompt: str, params: Any) -> mp.MediaOutput:
+        return mp.MediaOutput(b"\x00\x00\x00\x18ftypmp42", "video/mp4")
+
+    monkeypatch.setattr(mp, "generate_video", fake_video)
+    job = client.post("/tontolo/media", json={"kind": "video_gen", "prompt": "un renard"}).json()
+    j = _wait_job(client, job["id"])
+    assert j["status"] == "done" and j["params"]["mime"] == "video/mp4"
+    assert client.get(f"/tontolo/media/{job['id']}/file").content.startswith(b"\x00\x00\x00\x18")
+
+    async def no_quota(model: Any, prompt: str, params: Any) -> mp.MediaOutput:
+        from tontolo.providers.base import ErrorKind, ProviderError
+        raise ProviderError("Quota GPU gratuit épuisé", ErrorKind.QUOTA, retry_after=3600)
+
+    monkeypatch.setattr(mp, "generate_video", no_quota)
+    job = client.post("/tontolo/media", json={"kind": "video_gen", "prompt": "encore"}).json()
+    j = _wait_job(client, job["id"])
+    assert j["status"] == "failed" and "clé Hugging Face" in j["error"]
