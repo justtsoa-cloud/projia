@@ -144,8 +144,10 @@ def _safe_url(url: str) -> str:
 class CdpBrowser:
     """Navigateur de bureau piloté par DevTools (une connexion, un onglet par discussion)."""
 
-    def __init__(self, profile: Path, executable: str | None = None) -> None:
+    def __init__(self, profile: Path, executable: str | None = None,
+                 cache: Path | None = None) -> None:
         self.profile = profile
+        self.cache = cache  # cache web dans le dossier de cache unique, plafonné
         self.executable = executable or find_browser()
         self.proc: asyncio.subprocess.Process | None = None
         self.ws: Any = None
@@ -172,6 +174,8 @@ class CdpBrowser:
             self.executable, f"--user-data-dir={self.profile}", "--remote-debugging-port=0",
             "--remote-debugging-address=127.0.0.1", "--no-first-run",
             "--no-default-browser-check", "--disable-sync",
+            *([f"--disk-cache-dir={self.cache}", f"--disk-cache-size={64 * 1024 * 1024}",
+               f"--media-cache-size={16 * 1024 * 1024}"] if self.cache else []),
             *(["--headless=new"] if os.environ.get("TONTOLO_BROWSER_HEADLESS") else []),
             "about:blank",
             stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL,

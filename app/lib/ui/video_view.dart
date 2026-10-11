@@ -6,9 +6,9 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:video_player/video_player.dart';
 
+import '../core/storage_dirs.dart';
 import '../main.dart';
 
 class VideoBox extends StatefulWidget {
@@ -34,7 +34,7 @@ class _VideoBoxState extends State<VideoBox> {
   }
 
   Future<void> _prepare() async {
-    final dir = await getTemporaryDirectory();
+    final dir = await tmpDir();
     final f = File('${dir.path}/tontolo-video-${widget.id}.mp4');
     if (!await f.exists() || await f.length() != widget.bytes.length) await f.writeAsBytes(widget.bytes);
     _file = f;

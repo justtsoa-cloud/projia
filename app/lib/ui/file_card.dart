@@ -8,9 +8,9 @@ import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../core/storage_dirs.dart';
 import '../main.dart';
 
 IconData fileIcon(String filename) => switch (filename.split('.').last.toLowerCase()) {
@@ -45,7 +45,7 @@ String teamLine(BuildContext context, Map<String, dynamic> params) {
 }
 
 Future<File> _temp(Uint8List bytes, String name) async {
-  final dir = await getTemporaryDirectory();
+  final dir = await tmpDir();
   final f = File('${dir.path}/$name');
   await f.writeAsBytes(bytes, flush: true);
   return f;

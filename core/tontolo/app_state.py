@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import contextlib
 from dataclasses import dataclass, field
 from typing import Any
 
-from tontolo import http
+from tontolo import __version__, http
 from tontolo.agent.loop import ChatService
 from tontolo.agent.mcp_client import McpManager
 from tontolo.agent.turns import TurnManager
@@ -15,6 +16,7 @@ from tontolo.creator.service import CreatorService
 from tontolo.media.service import MediaService
 from tontolo.providers.registry import ProviderRegistry
 from tontolo.router.engine import Router
+from tontolo.storage import space
 from tontolo.storage.db import Database
 
 
@@ -42,6 +44,8 @@ class Core:
         refresh: bool = True,
     ) -> Core:
         settings = settings or load_settings()
+        with contextlib.suppress(OSError):  # caches regroupés, anciens fichiers effacés
+            space.tidy(settings.data_dir, __version__)
         db = await Database(settings.data_dir / "tontolo.db").open()
         catalog = CatalogService(settings, db)
         await catalog.load()

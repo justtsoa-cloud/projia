@@ -579,6 +579,8 @@ class _AdvancedState extends State<_Advanced> {
             },
           ),
       ],
+      _Section(context.t('storage')),
+      const _StorageSection(),
       _Section(context.t('paid')),
       if (s != null) ...[
         Padding(
@@ -702,4 +704,59 @@ class _Section extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 20, 16, 6),
         child: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary)),
       );
+}
+
+
+/// Place occupée : données (jamais effacées ici) et cache unique, vidable d'un geste.
+class _StorageSection extends StatefulWidget {
+  const _StorageSection();
+
+  @override
+  State<_StorageSection> createState() => _StorageSectionState();
+}
+
+class _StorageSectionState extends State<_StorageSection> {
+  Map<String, dynamic>? r;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (r == null) _load();
+  }
+
+  Future<void> _load([String method = 'GET']) async {
+    final b = AppScope.of(context).backend;
+    try {
+      final data = method == 'GET'
+          ? await b.getJson('/tontolo/storage')
+          : await b.sendJson('POST', '/tontolo/storage/clear-cache', {});
+      if (mounted) setState(() => r = (data as Map).cast<String, dynamic>());
+    } catch (_) {}
+  }
+
+  String _mb(Object? v) => '${(((v as num?) ?? 0) / 1048576).toStringAsFixed(1)} Mo';
+
+  @override
+  Widget build(BuildContext context) {
+    final data = r;
+    if (data == null) return const SizedBox.shrink();
+    final small = Theme.of(context).textTheme.bodySmall;
+    final rows = [
+      ('storage_conversations', data['conversations']),
+      ('storage_creations', data['creations']),
+      ('storage_tasks', data['tasks']),
+      ('storage_backups', data['backups']),
+      ('storage_browser', data['browser_profile']),
+    ];
+    return Column(children: [
+      for (final (k, v) in rows)
+        if (((v as num?) ?? 0) > 0) ListTile(dense: true, title: Text(context.t(k)), trailing: Text(_mb(v), style: small)),
+      ListTile(
+        leading: const Icon(Icons.cleaning_services_outlined),
+        title: Text(context.t('storage_cache', {'s': _mb(data['cache_total'])})),
+        subtitle: Text(context.t('storage_cache_help'), style: small),
+        trailing: TextButton(onPressed: () => _load('POST'), child: Text(context.t('storage_clear'))),
+      ),
+    ]);
+  }
 }

@@ -16,6 +16,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
+import 'storage_dirs.dart';
 
 import '../l10n/strings.dart';
 import 'prefs.dart';
@@ -250,8 +251,10 @@ class Updater extends ChangeNotifier {
   }
 
   Future<File> _download(Map<String, dynamic> asset, String expected) async {
-    final dir = Directory('${(await getApplicationSupportDirectory()).path}/updates');
-    await dir.create(recursive: true);
+    // Dossier de cache unique (partagé avec le cœur) ; l'ancien dossier « updates » est retiré.
+    final legacy = Directory('${(await getApplicationSupportDirectory()).path}/updates');
+    if (await legacy.exists()) await legacy.delete(recursive: true);
+    final dir = await cacheDir('updates');
     final dest = File('${dir.path}/${asset['name']}');
     if (await dest.exists() && (await sha256.bind(dest.openRead()).first).toString() == expected) {
       return dest;
@@ -282,7 +285,12 @@ class Updater extends ChangeNotifier {
         await part.delete();
         throw _UpdateError('upd_bad_hash');
       }
-      return await part.rename(dest.path);
+      final done = await part.rename(dest.path);
+      // Une seule mise à jour gardée : les versions précédentes sont effacées.
+      await for (final f in dir.list()) {
+        if (f is File && f.path != done.path && !f.path.endsWith('.part')) await f.delete();
+      }
+      return done;
     } finally {
       client.close();
     }

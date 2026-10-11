@@ -170,7 +170,8 @@ class ChatService:
                 self.set_workdir(settings.agent.workdir)
         self.mcp = mcp
         # Navigateur intégré : bureau (Chromium & co. piloté) ou panneau WebView (tablette).
-        self.browser_cdp = (browser.CdpBrowser(settings.data_dir / "browser-profile")
+        self.browser_cdp = (browser.CdpBrowser(settings.data_dir / "browser-profile",
+                                               cache=settings.data_dir / "cache" / "browser")
                             if is_desktop() else None)
         self.browser_bridge = browser.AppBridge()
         # Résultats intermédiaires des tâches complexes (dossier privé, 7 jours après la fin).

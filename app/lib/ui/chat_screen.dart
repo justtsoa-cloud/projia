@@ -6,7 +6,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
-import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -18,6 +17,7 @@ import '../core/image_prep.dart';
 import '../core/retouch.dart';
 import '../core/updater.dart';
 import 'update_sheet.dart';
+import '../core/storage_dirs.dart';
 import '../main.dart';
 import 'message_view.dart';
 import 'model_picker.dart';
@@ -219,7 +219,7 @@ class _ChatScreenState extends State<ChatScreen> {
       return;
     }
     if (!await recorder.hasPermission()) return;
-    final dir = await getTemporaryDirectory();
+    final dir = await tmpDir();
     await recorder.start(const RecordConfig(encoder: AudioEncoder.wav, sampleRate: 16000, numChannels: 1),
         path: '${dir.path}/dictee.wav');
     setState(() => recording = true);

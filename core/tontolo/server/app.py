@@ -39,6 +39,7 @@ from tontolo.router.classifier import _is_followup, classify
 from tontolo.router.quota import QuotaManager
 from tontolo.router.refusal import looks_like_image_refusal, mentions_image
 from tontolo.security import LOOPBACK_NAMES, host_of, key_allowed, origin_allowed
+from tontolo.storage import space
 from tontolo.update import check_update, download_update
 
 LOOPBACK = {"127.0.0.1", "::1", "localhost"}
@@ -1490,7 +1491,24 @@ def create_app(
         if target not in ("linux", "android"):
             raise HTTPException(400, "cible invalide")
         core = core_of(request)
-        return await download_update(core.settings.data_dir / "updates", target, arch)
+        result = await download_update(space.cache_dir(core.settings.data_dir, "updates"),
+                                       target, arch)
+        if result.get("ok"):
+            space.keep_only(Path(result["path"]).parent, Path(result["path"]))
+        return result
+
+    @app.get("/tontolo/storage")
+    async def storage(request: Request) -> dict[str, Any]:
+        """Place occupée : données (discussions, créations, tâches…) et cache unique."""
+        data = core_of(request).settings.data_dir
+        return await asyncio.to_thread(space.report, data)
+
+    @app.post("/tontolo/storage/clear-cache")
+    async def storage_clear(request: Request) -> dict[str, Any]:
+        core = core_of(request)
+        freed = await asyncio.to_thread(space.clear_cache, core.settings.data_dir)
+        return {"freed": freed, **await asyncio.to_thread(space.report,
+                                                          core.settings.data_dir)}
 
     @app.get("/tontolo/about")
     async def about() -> dict[str, Any]:
