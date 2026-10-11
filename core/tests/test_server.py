@@ -564,3 +564,21 @@ def test_folders_and_full_text_search(client: TestClient) -> None:
     # « % » cherché littéralement (pas comme joker SQL)
     assert client.get("/tontolo/conversations", params={"q": "100%"}).json()
     assert not client.get("/tontolo/conversations", params={"q": "%zz%"}).json()
+
+
+def test_import_conversation_then_continue(client: TestClient) -> None:
+    snap = {"snapshot_name": "Depuis Claude", "chat_messages": [
+        {"sender": "human", "content": [{"type": "text", "text": "Ma question"}]},
+        {"sender": "assistant", "content": [{"type": "text", "text": "Ma réponse"}]}]}
+    r = client.post("/tontolo/import", json={"data": json.dumps(snap)})
+    assert r.status_code == 200
+    conv = r.json()["conversations"][0]
+    assert conv["count"] == 2 and conv["source"] == "claude"
+    msgs = client.get(f"/tontolo/conversations/{conv['id']}").json()["messages"]
+    assert [m["role"] for m in msgs] == ["user", "assistant"]
+    with client.stream("POST", "/tontolo/chat", json={
+            "conversation_id": conv["id"], "content": "Et la suite ?"}) as s:
+        assert any('"done"' in line for line in s.iter_lines())
+    r = client.post("/tontolo/import", json={
+        "url": "https://claude.ai/chat/04393426-e2c1-4fce-a779-ad538512da66"})
+    assert r.status_code == 422 and r.json()["detail"]["code"] == "import_private"

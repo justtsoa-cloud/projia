@@ -20,6 +20,7 @@ import 'update_sheet.dart';
 import '../main.dart';
 import 'message_view.dart';
 import 'model_picker.dart';
+import 'import_flow.dart';
 import 'search_dialog.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -66,6 +67,15 @@ class _ChatScreenState extends State<ChatScreen> {
     final text = input.text.trim();
     if (text.isEmpty && attachments.isEmpty) return;
     stickToBottom = true;
+    // Lien d'une discussion Claude / ChatGPT / Gemini : on l'importe pour la continuer ici.
+    final link = attachments.isEmpty ? shareLink.firstMatch(text) : null;
+    if (link != null) {
+      input.clear();
+      importConversation(context, url: link.group(0), followUp: text.replaceFirst(link.group(0)!, '').trim().length > 25
+          ? text.replaceFirst(link.group(0)!, '').trim()
+          : '');
+      return;
+    }
     // Photo jointe + consigne de retouche fidèle → traitée sur l'appareil, sans envoi à une IA.
     if (attachments.length == 1 && originals.length == 1 && forcedCategory == null &&
         _editRequest.hasMatch(text.toLowerCase())) {
@@ -636,6 +646,13 @@ class _EmptyState extends StatelessWidget {
 
 /// Bandeau discret non bloquant : bascule, retour, erreur (phrase humaine + une action).
 /// Erreur du chat traduite depuis son code (`errorc|code|retry_at|message d'origine`).
+String _sourceName(BuildContext context, String source) => switch (source) {
+      'claude' => 'Claude',
+      'chatgpt' => 'ChatGPT',
+      'json' || 'text' => context.t('import_src_other'),
+      _ => source,
+    };
+
 String _errorText(BuildContext context, List<String> parts) {
   final code = parts.length > 1 ? parts[1] : '';
   final at = parts.length > 2 ? double.tryParse(parts[2]) : null;
@@ -678,6 +695,7 @@ class _Notice extends StatelessWidget {
       'media' => (Icons.auto_awesome, context.t('media_switch'), scheme.tertiary, false),
       'errorc' => (Icons.error_outline, _errorText(context, parts), scheme.error, true),
       'document' => (Icons.description_outlined, context.t('doc_attached', {'name': parts.length > 1 ? parts[1] : '', 'n': parts.length > 2 ? parts[2] : '?'}), scheme.secondary, false),
+      'imported' => (Icons.download_done, context.t(parts.length > 3 && parts[3] != '1' ? 'imported_many' : 'imported', {'n': parts.length > 1 ? parts[1] : '?', 'src': _sourceName(context, parts.length > 2 ? parts[2] : ''), 'k': parts.length > 3 ? parts[3] : '1'}), scheme.secondary, false),
       'offline_queued' => (Icons.cloud_upload_outlined, context.t('offline_queued'), scheme.tertiary, false),
       'memory' => (Icons.bookmark_added_outlined, context.t('memory_saved', {'text': parts.skip(1).join('|')}), scheme.secondary, false),
       _ => (Icons.error_outline, parts.skip(1).join('|'), scheme.error, true),
@@ -867,6 +885,15 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
           onTap: () {
             Navigator.pop(context);
             ShellNav.maybeOf(context)?.go(2);
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.move_to_inbox_outlined),
+          title: Text(context.t('import_title')),
+          subtitle: Text(context.t('import_sub'), maxLines: 1, overflow: TextOverflow.ellipsis),
+          onTap: () {
+            Navigator.pop(context);
+            showImportDialog(context);
           },
         ),
         const Divider(),

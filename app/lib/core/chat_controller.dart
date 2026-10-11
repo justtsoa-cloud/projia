@@ -56,6 +56,12 @@ class ChatController extends ChangeNotifier {
 
   void refresh() => notifyListeners();
 
+  /// Bandeau d'information dans la discussion courante (ex. « discussion importée »).
+  void addNotice(String raw) {
+    messages.add(ChatMessage(role: 'notice', text: raw));
+    notifyListeners();
+  }
+
   bool get offlineQueued => _offlineTimer != null;
 
   /// Hors ligne : le message reste en attente et part tout seul au retour du réseau.

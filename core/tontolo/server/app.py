@@ -21,9 +21,9 @@ from typing import Any
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from tontolo import __version__, documents, secrets
+from tontolo import __version__, documents, importer, secrets
 from tontolo.agent.loop import dumps
 from tontolo.agent.mcp_client import load_config, save_config
 from tontolo.app_state import Core
@@ -161,6 +161,12 @@ class MemoryBody(BaseModel):
 class ResumeBody(BaseModel):
     approved: bool
     model: str | None = None
+
+
+class ImportBody(BaseModel):
+    url: str | None = Field(default=None, max_length=500)
+    data: str | None = Field(default=None, max_length=importer.MAX_DATA)
+    folder: str | None = Field(default=None, max_length=60)
 
 
 class RenameBody(BaseModel):
@@ -642,6 +648,35 @@ def create_app(
         if body.folder is not None:
             await db.set_folder(cid, body.folder)
         return {"ok": True}
+
+    @app.post("/tontolo/import")
+    async def import_conversation(request: Request, body: ImportBody) -> dict[str, Any]:
+        """Importe une discussion (lien de partage Claude/ChatGPT/Gemini, JSON ou texte) pour
+        la continuer ici. Erreur 422 `{code, message, …}` ; `import_browser` demande à
+        l'application d'ouvrir le lien dans une vue web puis de renvoyer `data`."""
+        db = core_of(request).db
+        try:
+            if body.data:
+                found = importer.parse_any(body.data)
+            elif body.url:
+                found = [await importer.fetch(body.url)]
+            else:
+                raise importer.ConversationImportError("import_empty", "Rien à importer.")
+        except importer.ConversationImportError as exc:
+            raise HTTPException(422, {"code": exc.code, "message": str(exc), **exc.extra}
+                                ) from exc
+        out = []
+        for conv in found:
+            cid = await db.create_conversation(conv.title)
+            for m in conv.messages:
+                await db.add_message(cid, {"role": m["role"], "content": m["text"]},
+                                     model=f"import:{conv.source}" if m["role"] == "assistant"
+                                     else None)
+            if body.folder:
+                await db.set_folder(cid, body.folder)
+            out.append({"id": cid, "title": conv.title, "count": len(conv.messages),
+                        "source": conv.source})
+        return {"conversations": out}
 
     @app.get("/tontolo/folders")
     async def folders(request: Request) -> list[dict[str, Any]]:
