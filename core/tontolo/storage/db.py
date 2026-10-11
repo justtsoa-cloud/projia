@@ -262,6 +262,10 @@ class Database:
         )
         return [dict(r) for r in rows]
 
+    async def get_folder(self, cid: str) -> str:
+        row = await self._fetchone("SELECT folder FROM conversations WHERE id = ?", (cid,))
+        return str(row["folder"] or "") if row else ""
+
     async def get_mode(self, cid: str) -> str:
         row = await self._fetchone("SELECT mode FROM conversations WHERE id = ?", (cid,))
         return str(row["mode"]) if row else ""

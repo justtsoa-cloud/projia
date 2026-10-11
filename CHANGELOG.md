@@ -5,6 +5,23 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.4.6] - 2026-10-11
+
+### Corrigé (retour d'utilisateur)
+- Une photo d'exercice envoyée dans une discussion recevait la réponse à l'exercice d'une AUTRE
+  discussion : la mémoire injectait des souvenirs sans rapport (dont des tâches ponctuelles
+  d'autres discussions). Elle n'injecte plus que les souvenirs liés à la demande (et jamais
+  ceux tirés de la discussion en cours) et n'enregistre plus les tâches ponctuelles.
+
+### Ajouté
+- **Priorités du contexte** : 1) le fil de la discussion fait foi (réponse toujours à la
+  dernière demande, photo jointe comprise, même après un changement de modèle), 2) les autres
+  discussions du même dossier (titres et résumés) en contexte secondaire, 3) la mémoire en
+  dernier.
+- **Longues discussions** (texte, images, vidéos, fichiers) : résumé du début du fil tenu à
+  jour en arrière-plan et enregistré, derniers messages toujours envoyés mot pour mot ; seules
+  les 2 dernières photos sont renvoyées en image ; chaque création est décrite par sa demande.
+
 ## [0.4.5] - 2026-10-11
 
 ### Corrigé

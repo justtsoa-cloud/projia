@@ -251,10 +251,9 @@ class Router:
                        "to_name": m.name, "reason": last_reason, "reason_code": last_code,
                        "until": last_until}
             attempts += 1
-            adapted, new_summary, dropped = await fit(
-                messages, m, summary=summary, summarizer=self._summarize)
-            if new_summary and conversation_id and self.db is not None:
-                await self.db.set_summary(conversation_id, new_summary, dropped)
+            # Résumé d'urgence (petit contexte) : non enregistré, le résumé du fil est tenu à
+            # jour par la conversation elle-même (voir agent/loop.py).
+            adapted, _, _ = await fit(messages, m, summary=summary, summarizer=self._summarize)
             use_tools = tools if (tools and m.supports_tools) else None
             self.quota.record_request(m)
             started = False

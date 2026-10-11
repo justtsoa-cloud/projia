@@ -14,6 +14,12 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.4.6': [
+    NewsItem(Icons.forum_outlined, 'Chaque discussion garde son fil',
+        'Tontolo répond toujours à la demande de la discussion ouverte, même longue, avec des images, des vidéos et des changements de modèle. Les autres discussions du dossier et la mémoire passent après.',
+        'Every chat keeps its thread', 'Tontolo always answers the request of the open chat, even a long one with images, videos and model switches. Other chats in the folder and the memory come after.',
+        mg: 'Mitazona ny tadiny ny resaka tsirairay', mgText: 'Mamaly ny fangatahana ao amin\'ny resaka misokatra foana i Tontolo, na lava aza, misy sary, horonan-tsary ary fiovan\'ny modely. Aorian\'izany vao ny resaka hafa ao amin\'ny lahatahiry sy ny fahatsiarovana.'),
+  ],
   '0.4.5': [
     NewsItem(Icons.replay, 'Créations plus fiables',
         'Si le modèle qui rédige un fichier tarde ou ne répond plus, Tontolo réessaie automatiquement avec un autre ; en cas d\'échec, la raison est affichée.',
