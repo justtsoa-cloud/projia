@@ -23,8 +23,8 @@ from tontolo.server.app import create_app
 pytestmark = pytest.mark.skipif(not is_desktop(), reason="terminal du bureau Linux")
 
 
-async def _until(cond: Any, timeout: float = 5) -> None:
-    for _ in range(int(timeout * 20)):
+async def _until(cond: Any, seconds: float = 5) -> None:
+    for _ in range(int(seconds * 20)):
         if cond():
             return
         await asyncio.sleep(0.05)
