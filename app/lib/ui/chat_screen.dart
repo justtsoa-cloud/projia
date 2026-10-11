@@ -578,6 +578,24 @@ class _EmptyState extends StatelessWidget {
 }
 
 /// Bandeau discret non bloquant : bascule, retour, erreur (phrase humaine + une action).
+/// Erreur du chat traduite depuis son code (`errorc|code|retry_at|message d'origine`).
+String _errorText(BuildContext context, List<String> parts) {
+  final code = parts.length > 1 ? parts[1] : '';
+  final at = parts.length > 2 ? double.tryParse(parts[2]) : null;
+  var msg = switch (code) {
+    'offline' => context.t('err_offline'),
+    'all_failed' => context.t('err_all_failed'),
+    'no_model' => context.t('err_no_model'),
+    'strict_waiting' => context.t('err_strict'),
+    _ => parts.length > 3 ? parts.sublist(3).join('|') : context.t('error_generic'),
+  };
+  if (at != null) {
+    final d = DateTime.fromMillisecondsSinceEpoch((at * 1000).round());
+    msg += ' ${context.t('err_back_at', {'t': '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}'})}';
+  }
+  return msg;
+}
+
 class _Notice extends StatelessWidget {
   const _Notice(this.raw, {required this.onRetry});
   final String raw;
@@ -599,6 +617,7 @@ class _Notice extends StatelessWidget {
       'returned' => (Icons.undo, context.t('returned', {'model': parts[1]}), scheme.secondary, false),
       'stream_reset' => (Icons.refresh, context.t('stream_interrupted'), scheme.tertiary, false),
       'media' => (Icons.auto_awesome, context.t('media_switch'), scheme.tertiary, false),
+      'errorc' => (Icons.error_outline, _errorText(context, parts), scheme.error, true),
       'offline_queued' => (Icons.cloud_upload_outlined, context.t('offline_queued'), scheme.tertiary, false),
       'memory' => (Icons.bookmark_added_outlined, context.t('memory_saved', {'text': parts.skip(1).join('|')}), scheme.secondary, false),
       _ => (Icons.error_outline, parts.skip(1).join('|'), scheme.error, true),

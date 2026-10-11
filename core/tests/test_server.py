@@ -457,3 +457,29 @@ def test_online_endpoint(client: TestClient, monkeypatch: pytest.MonkeyPatch) ->
 
     core.router.probe = up
     assert client.get("/tontolo/online").json() == {"online": True}
+
+
+def test_paused_image_source_is_retried(client: TestClient, catalog_service: CatalogService,
+                                        monkeypatch: pytest.MonkeyPatch) -> None:
+    """Toutes les sources d'images en pause : on retente quand même (bug « aucune source »)."""
+    from tontolo.providers.base import ErrorKind, ProviderError
+
+    core = client.app.state.core  # type: ignore[attr-defined]
+    img = next(m for m in catalog_service.catalog.models.values() if "image_gen" in m.media)
+    core.router.quota.on_error(img, ProviderError("x", ErrorKind.NETWORK))
+
+    async def fake_image(model: Any, provider: Any, prompt: str, params: Any) -> mp.MediaOutput:
+        return mp.MediaOutput(b"\x89PNG\r\n\x1a\n", "image/png")
+
+    monkeypatch.setattr(mp, "generate_image", fake_image)
+    job = client.post("/tontolo/media", json={"kind": "image_gen", "prompt": "phare"}).json()
+    assert _wait_job(client, job["id"])["status"] == "done"
+
+    async def broken(model: Any, provider: Any, prompt: str, params: Any) -> mp.MediaOutput:
+        raise ProviderError("x", ErrorKind.SERVER)
+
+    monkeypatch.setattr(mp, "generate_image", broken)
+    job = client.post("/tontolo/media", json={"kind": "image_gen", "prompt": "phare"}).json()
+    j = _wait_job(client, job["id"])
+    assert j["status"] == "failed" and j["params"]["error_code"] == "sources_failed"
+    assert j["params"]["retry_at"]

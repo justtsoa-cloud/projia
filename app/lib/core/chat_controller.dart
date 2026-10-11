@@ -6,7 +6,9 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 
+import '../l10n/strings.dart';
 import 'backend.dart';
+import 'notifier.dart';
 import 'retouch.dart';
 
 class ChatMessage {
@@ -79,6 +81,26 @@ class ChatController extends ChangeNotifier {
     _offlineTimer = null;
     messages.removeWhere((m) => m.role == 'notice' && m.text.startsWith('offline_queued|'));
     if (notify) notifyListeners();
+  }
+
+  /// Échec avec heure de retour connue : notification « de nouveau disponible ». Une réussite
+  /// annule la notification du même sujet.
+  void _notifyAvailability(Map<String, dynamic> job) {
+    final kind = '${job['kind']}';
+    final topic = 'media_$kind';
+    if (job['status'] == 'done') {
+      Notifier.cancel(topic);
+      return;
+    }
+    final at = ((job['params'] as Map?)?['retry_at'] as num?)?.toDouble();
+    if (job['status'] == 'failed' && at != null) {
+      _schedule(at, topic, kind == 'video_gen' ? 'notif_video' : kind.startsWith('image') ? 'notif_image' : 'notif_media');
+    }
+  }
+
+  void _schedule(double at, String topic, String key) {
+    final locale = backend.prefs.locale;
+    Notifier.availableAt(at, topic, tr(locale, 'notif_title'), tr(locale, key));
   }
 
   void newChat() {
@@ -354,7 +376,9 @@ class ChatController extends ChangeNotifier {
           status = 'generating';
           final c = ensureCurrent();
           c.job = Map<String, dynamic>.from(ev)..remove('type');
+          _notifyAvailability(c.job!);
         case 'done':
+          if (ev['job'] == null) Notifier.cancel('chat');
           final c = ensureCurrent();
           final msg = (ev['message'] as Map).cast<String, dynamic>();
           if (ev['job'] != null) {
@@ -383,7 +407,14 @@ class ChatController extends ChangeNotifier {
           _queueOffline();
         case 'error':
           if (current != null && current!.text.isEmpty) messages.remove(current);
-          messages.add(ChatMessage(role: 'notice', text: 'error|${ev['message']}'));
+          final code = ev['code'] as String?;
+          final retryAt = (ev['retry_at'] as num?)?.toDouble();
+          if (retryAt != null && code != 'offline') _schedule(retryAt, 'chat', 'notif_chat');
+          messages.add(ChatMessage(
+              role: 'notice',
+              text: code == null
+                  ? 'error|${ev['message']}'
+                  : 'errorc|$code|${ev['retry_at'] ?? ''}|${ev['message']}'));
       }
       notifyListeners();
     }, onError: (Object e) {

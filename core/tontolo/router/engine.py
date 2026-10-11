@@ -292,6 +292,7 @@ class Router:
                     if not back:
                         await self.persist()
                         yield {"type": "error", "offline": True, "retry_at": None,
+                               "code": "offline",
                                "message": "Pas de connexion Internet. Vérifiez le réseau "
                                           "(Wi-Fi ou données mobiles) puis réessayez.",
                                "category": prof.category.value}
@@ -371,7 +372,9 @@ class Router:
             msg += f" Retour estimé vers {when}."
         elif retry_at:
             msg += " Nouvel essai possible dans quelques instants."
-        return {"type": "error", "message": msg, "retry_at": retry_at,
+        code = ("strict_waiting" if decision.preferred and decision.preferred.strict
+                and decision.waiting else "all_failed" if tried else "no_model")
+        return {"type": "error", "message": msg, "retry_at": retry_at, "code": code,
                 "category": decision.profile.category.value}
 
     async def _paid_gate(

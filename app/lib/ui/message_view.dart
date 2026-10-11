@@ -76,7 +76,7 @@ class MessageView extends StatelessWidget {
                 isUser
                     ? SelectableText(message.text)
                     : RichMarkdown(message.text),
-              if (message.job != null) MediaResult(job: message.job!),
+              if (message.job != null) MediaResult(job: message.job!, onRetry: onRegenerate),
               if (message.sources.isNotEmpty && !message.streaming)
                 _Sources(message.sources),
             ],
@@ -102,7 +102,8 @@ class MessageView extends StatelessWidget {
             ),
           if (!isUser &&
               !message.streaming &&
-              (message.modelName ?? message.model) != null)
+              (message.modelName ?? message.model) != null &&
+              message.job?['status'] != 'failed')
             Padding(
               padding: const EdgeInsets.only(left: 8, top: 4),
               child: Wrap(
@@ -454,8 +455,9 @@ class _CodeBuilder extends MarkdownElementBuilder {
 
 /// Résultat média intégré : image zoomable, lecteur audio, partage en un appui.
 class MediaResult extends StatefulWidget {
-  const MediaResult({super.key, required this.job});
+  const MediaResult({super.key, required this.job, this.onRetry});
   final Map<String, dynamic> job;
+  final VoidCallback? onRetry; // échec : « Réessayer » (dernière réponse uniquement)
 
   @override
   State<MediaResult> createState() => _MediaResultState();
@@ -503,9 +505,23 @@ class _MediaResultState extends State<MediaResult> {
     final status = job['status'];
     final params = (job['params'] as Map?)?.cast<String, dynamic>() ?? {};
     if (status == 'failed') {
-      return Text(
-        '${job['error'] ?? context.t('error_generic')}',
-        style: TextStyle(color: Theme.of(context).colorScheme.error),
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            mediaError(context, job),
+            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          ),
+          if (widget.onRetry != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: FilledButton.tonalIcon(
+                onPressed: widget.onRetry,
+                icon: const Icon(Icons.refresh, size: 18),
+                label: Text(context.t('regenerate')),
+              ),
+            ),
+        ],
       );
     }
     if (status != 'done') {
@@ -638,4 +654,27 @@ class _MediaResultState extends State<MediaResult> {
     if (mime == 'text/plain') return SelectableText(utf8.decode(bytes!));
     return share;
   }
+}
+
+
+/// Message d'échec d'un média dans la langue de l'interface (code stable envoyé par le cœur),
+/// avec l'heure de retour quand elle est connue.
+String mediaError(BuildContext context, Map<String, dynamic> job) {
+  final params = (job['params'] as Map?)?.cast<String, dynamic>() ?? const {};
+  final code = params['error_code'] as String?;
+  final kind = '${job['kind']}';
+  String? msg = switch (code) {
+    'preserve_refusal' => context.t('err_preserve'),
+    'video_quota' => context.t('err_video_quota'),
+    'sources_failed' => context.t('err_sources_failed'),
+    'no_source' => context.t(kind == 'video_gen' ? 'err_no_video' : 'err_no_source'),
+    _ => null,
+  };
+  if (msg == null) return '${job['error'] ?? context.t('error_generic')}';
+  final at = params['retry_at'] as num?;
+  if (at != null && code != 'preserve_refusal') {
+    final d = DateTime.fromMillisecondsSinceEpoch((at * 1000).round());
+    msg += ' ${context.t('err_back_at', {'t': '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}'})}';
+  }
+  return msg;
 }

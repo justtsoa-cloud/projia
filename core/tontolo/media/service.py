@@ -130,13 +130,30 @@ class MediaService:
         return await self.db.get_job(job_id)
 
     def _candidates(self, kind: str, model: str | None) -> list[Any]:
+        """Sources prêtes ; si toutes sont en pause, on les retente quand même (dans l'ordre
+        de retour) : l'utilisateur a demandé ce média, et une pause posée après une panne
+        passagère est souvent déjà levée côté service."""
         prof = TaskProfile(category=Category(kind), modality_out=kind)
         pref = None if is_auto(model) else Preference(str(model))
         decision = rank(self.router.catalog.catalog, prof,
                         usable=self.router.catalog.usable_providers(), quota=self.router.quota,
                         reliability=self.router.reliability, settings=self.router.settings,
                         preference=pref)
-        return decision.chain
+        if decision.chain:
+            return decision.chain
+        waiting = sorted((c for c in decision.waiting if c.model.is_free),
+                         key=lambda c: c.available_at)
+        return [c for c in waiting if self.router.quota.status_of(c.model).reason
+                not in ("auth", "unavailable")][:3]
+
+    def _retry_at(self, kind: str) -> float | None:
+        """Prochain retour d'une source de ce type (None si aucune n'est en pause)."""
+        prof = TaskProfile(category=Category(kind), modality_out=kind)
+        decision = rank(self.router.catalog.catalog, prof,
+                        usable=self.router.catalog.usable_providers(), quota=self.router.quota,
+                        reliability=self.router.reliability, settings=self.router.settings)
+        waits = [c.available_at for c in decision.waiting if c.available_at > 0]
+        return min(waits) if waits else None
 
     async def _run(self, job: dict[str, Any], model: str | None) -> None:
         kind = job["kind"]
@@ -156,15 +173,20 @@ class MediaService:
             await self.purge()
             return
         job["status"] = "failed"
-        if job["params"].get("refused_preserve"):
-            job["error"] = PRESERVE_REFUSAL
-        elif kind == "video_gen" and job["params"].get("quota_hit"):
-            job["error"] = VIDEO_QUOTA_MSG
+        # Code stable (traduit par l'application) + heure de retour estimée (notification).
+        params = job["params"]  # enregistré tel quel en base (pas de changement de schéma)
+        params["retry_at"] = self._retry_at(kind)
+        if params.get("refused_preserve"):
+            job["error"], params["error_code"] = PRESERVE_REFUSAL, "preserve_refusal"
+        elif kind == "video_gen" and params.get("quota_hit"):
+            job["error"], params["error_code"] = VIDEO_QUOTA_MSG, "video_quota"
         elif errors:
             job["error"] = "Toutes les sources gratuites ont échoué : " + "; ".join(errors[:4])
+            params["error_code"] = "sources_failed"
         else:
             job["error"] = UNAVAILABLE_MSG.get(
                 kind, "Aucune source gratuite disponible pour ce type de média.")
+            params["error_code"] = "no_source"
         await self.db.upsert_job(job)
         await self.router.persist()
         self._emit({"type": "job", **job})
