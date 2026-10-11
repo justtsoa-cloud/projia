@@ -14,6 +14,12 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.4.5': [
+    NewsItem(Icons.replay, 'Créations plus fiables',
+        'Si le modèle qui rédige un fichier tarde ou ne répond plus, Tontolo réessaie automatiquement avec un autre ; en cas d\'échec, la raison est affichée.',
+        'More reliable creations', 'If the model writing a file is slow or stops answering, Tontolo retries with another one; if it still fails, the reason is shown.',
+        mg: 'Famoronana azo antoka kokoa', mgText: 'Raha miadana na tsy mamaly intsony ny modely manoratra ny rakitra, manandrana amin\'ny hafa ho azy i Tontolo; raha tsy mety, aseho ny antony.'),
+  ],
   '0.4.4': [
     NewsItem(Icons.photo_camera_outlined, 'Votre exercice en photo, corrigé en PDF',
         'Photographiez un exercice et demandez « traite l\'exercice 8, rends la réponse en pdf » : Tontolo lit la photo, rédige la correction et la vérifie.',
