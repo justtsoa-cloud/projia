@@ -213,3 +213,18 @@ Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cass�
 - [x] R5. 203 tests cœur et 47 Flutter ; analyses/typage propres ; release v0.5.0 publiée (workflow 38166719297 réussi), APK officiel SHA-256 vérifié et installation sans effacement réussie.
 
 - [ ] R6. Vérifier visuellement une vidéo réelle quand le quota LTX revient : l’essai réel du 2026-10-11 atteint le service mais reçoit « quota GPU gratuit épuisé ». Le code, l’image source exacte, le mode Gradio et les reprises sont testés avec fournisseurs simulés.
+
+## v0.5.1 — demandes du 2026-10-11 (soir), après relecture du travail de Codex
+Décisions du propriétaire : dossiers isolés par défaut avec partage activable par dossier ; mode Agent ET agents prêts à
+l'emploi ; bureau Linux = fichiers + commandes confirmées dans un dossier choisi ; synchro = texte + créations ≤ 1 Mo + suivi en direct.
+- [ ] A0. Relecture Codex (0.4.7, 0.5.0) : tests verts, Supabase OK (retours Android/Linux, GitHub et Google actifs ; Google encore en « Testing ») ; incohérence : souvenirs automatiques extraits mais jamais rappelés → rappel limité à leur propre discussion
+- [ ] A1. Dossiers : interrupteur « Partager le contexte de ce dossier » (désactivé par défaut) ; priorité fil > dossier partagé > mémoire
+- [ ] A2. Modèles : liste plus claire, fiche détaillée (fournisseur, gratuit/payant, contexte, vision, outils, scores, vitesse, état), badge « Agent » pour les modèles agentiques
+- [ ] A3. Générateurs : liste simple des générateurs d'image, de vidéo et de son disponibles (état, quota)
+- [ ] A4. Mode Agent visible + agents prêts (Chercheur, Développeur, Rédacteur, Analyste) ; gratuit par défaut, payant possible, choix automatique sauf choix de l'utilisateur
+- [ ] A5. Compactage de la discussion automatique (désactivable) et manuel : fil structuré (sujets, faits, décisions, créations, tâches ouvertes) ; messages d'origine conservés
+- [ ] A6. Réponse coupée (limite de longueur) : relance « continue » automatique, 3 fois maximum, arrêt si rien de nouveau
+- [ ] A7. Bureau Linux : dossier de travail choisi, lecture/recherche/création/modification avec différences, sauvegarde et annulation, commandes du terminal confirmées une à une, dossiers sensibles bloqués
+- [ ] A8. Synchronisation : créations ≤ 1 Mo chiffrées, tâche en cours visible sur les autres appareils, synchro toutes les ~20 s quand l'application est ouverte
+- [ ] A9. Règle de version : x.y.9 → x.(y+1).0 ; x.9.9 → (x+1).0.0 ; script de montée de version + vérification CI
+- [ ] A10. Tests, émulateur, publication 0.5.1
