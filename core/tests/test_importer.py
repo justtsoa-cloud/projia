@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 from typing import ClassVar
 
@@ -98,10 +99,8 @@ def test_parse_message_list_and_empty() -> None:
         importer.parse_any("x" * (importer.MAX_DATA + 1))
     # JSON imbriqué à l'excès : refus propre ou lecture comme texte selon la version de
     # Python (limite de récursion), mais jamais d'exception non gérée.
-    try:
+    with contextlib.suppress(ConversationImportError):
         assert importer.parse_any("[" * 100_000 + "]" * 100_000)[0].source == "text"
-    except ConversationImportError:
-        pass
 
 
 async def test_fetch_private_and_browser(monkeypatch: pytest.MonkeyPatch) -> None:
