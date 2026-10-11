@@ -124,7 +124,8 @@ class Router:
             return prof
         last: dict[str, Any] = next(
             (m for m in reversed(messages) if m.get("role") == "user"), {})
-        h = hashlib.sha1(f"{conversation_id}:{last.get('content')}".encode()).hexdigest()
+        h = hashlib.sha1(f"{conversation_id}:{last.get('content')}".encode(),
+                         usedforsecurity=False).hexdigest()  # clé de cache, pas de sécurité
         if h not in self._class_cache:
             cat = await self._llm_classify(last)
             if cat is not None:
@@ -227,7 +228,7 @@ class Router:
         }
 
         previous: Candidate | None = None
-        last_reason, last_until = "", None
+        last_reason, last_until, last_code = "", None, ""
         attempts = 0
         chain = list(decision.chain)
         idx = recoveries = 0
@@ -246,7 +247,7 @@ class Router:
                     continue
             if previous is not None:
                 yield {"type": "model_switched", "from": previous.model.key, "to": m.key,
-                       "to_name": m.name, "reason": last_reason,
+                       "to_name": m.name, "reason": last_reason, "reason_code": last_code,
                        "until": last_until}
             attempts += 1
             adapted, new_summary, dropped = await fit(
@@ -308,6 +309,7 @@ class Router:
                                 ErrorKind.BAD_REQUEST):
                     self.reliability.record(m.key, False)
                 last_reason, last_until = human_reason(err), until or None
+                last_code = err.kind.value
                 log.info("Échec %s : %s", m.key, secrets.redact(str(err)))
                 if started:
                     yield {"type": "stream_reset", "model": m.key,

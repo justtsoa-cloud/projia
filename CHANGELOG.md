@@ -5,6 +5,37 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.2.10] - 2026-10-11
+
+### Corrigé
+- « Draw a woman wearing gucci. » répondu par un modèle de texte qui prétendait avoir créé
+  l'image : la **modification d'un message** ne détectait pas les demandes d'image, de vidéo
+  ou de voix (elle est maintenant traitée comme un média). Filet de sécurité : si un modèle de
+  texte prétend avoir généré une image (« I've generated an image… », « voici l'image »), Tontolo
+  bascule vers une vraie création.
+- Raisons de bascule traduites (« problème réseau » s'affichait en français dans l'interface
+  anglaise ou malagasy).
+- Malagasy : termes validés par l'auteur (Kirakira, Fanalahidy, Mandeha ho azy, Fintinina…).
+
+### Ajouté
+- **Crédits de l'auteur** — RANIRIAMANJAKA Antsa · github.com/raantss18 ·
+  antsa.raniriamanjaka@univ-antananarivo.mg · +261 33 43 838 82 — dans « À propos » (liens
+  GitHub, e-mail, téléphone, WhatsApp), dans chaque annonce de mise à jour et « Quoi de neuf »,
+  le README, le NOTICE, les notes de release et les métadonnées du paquet Python.
+- **Statistiques anonymes d'utilisation** (Supabase) : une fois par jour au plus, identifiant
+  aléatoire d'installation, version, système, langue, pays de la langue du téléphone, nombre de
+  messages — jamais le contenu. Annoncées dans l'accueil, désactivables, données visibles
+  (« Voir ce qui est envoyé »). Inactives tant que la base n'est pas configurée
+  (`docs/STATS.md`, `docs/stats/supabase.sql`).
+
+### Sécurité (audit du 2026-10-11, voir SECURITY.md)
+- Flux XML distant : DTD et entités refusées.
+- Vidéo : téléchargement sans redirection (la clé Hugging Face reste sur le domaine du Space)
+  et plafonné pendant le transfert.
+- Retouche locale : dimensions vérifiées avant décodage (images piégées).
+- Le dossier de travail de l'agent n'est plus modifiable par l'API.
+- `bandit` et `pip-audit` : aucune vulnérabilité restante connue.
+
 ## [0.2.9] - 2026-10-11
 
 ### Corrigé

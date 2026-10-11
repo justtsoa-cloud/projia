@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'core/backend.dart';
 import 'core/chat_controller.dart';
 import 'core/prefs.dart';
+import 'core/stats.dart';
 import 'core/updater.dart';
 import 'core/whats_new.dart';
 import 'l10n/strings.dart';
@@ -27,6 +28,7 @@ Future<void> main() async {
   runApp(AppScope(prefs: prefs, backend: backend, updater: updater, chat: chat, child: const TontoloApp()));
   backend.start().then((_) {
     updater.startAuto();
+    Stats.maybeSend(prefs);
     // Langue de réponse par défaut du moteur = langue de l'interface.
     if (backend.state == BackendState.ready) {
       backend.sendJson('PUT', '/tontolo/settings', {'language': prefs.locale}).catchError((_) => null);

@@ -105,6 +105,10 @@ async def fetch_models(cache: SourceCache, ttl: float, force: bool = False) -> l
 def parse_rss(xml_text: str) -> list[dict[str, str]]:
     """Extrait les entrées (titre, lien, date) du flux « nouveaux modèles »."""
     items: list[dict[str, str]] = []
+    # Flux distant : refus des DTD et entités (« billion laughs », entités externes).
+    head = xml_text[:4096].upper()
+    if "<!DOCTYPE" in head or "<!ENTITY" in xml_text.upper() or len(xml_text) > 2_000_000:
+        return items
     try:
         root = ET.fromstring(xml_text)
     except ET.ParseError:

@@ -28,8 +28,22 @@ _IMAGE_WORDS = re.compile(
     r"pictures?|wallpapers?|fonds? d'[ée]cran|sary)\b", re.I)
 
 
+# Le modèle de texte *prétend* avoir créé l'image (« I've generated an image… ») alors qu'il
+# ne sait produire que du texte : c'est un échec déguisé, à traiter comme un refus.
+_FALSE_CLAIM = re.compile(
+    r"\b(i(?:'ve| have)|i've just|i just) (generated|created|drawn|made|produced|rendered)"
+    r"[^.\n]{0,25}\b(images?|pictures?|illustrations?|drawings?|photos?)"
+    r"|here(?:'s| is) (the|your|an?) (generated )?(images?|pictures?|illustrations?|drawings?)"
+    r"|j'ai (g[ée]n[ée]r[ée]|cr[ée][ée]|dessin[ée]|r[ée]alis[ée])[^.\n]{0,25}"
+    r"\b(images?|photos?|illustrations?|dessins?)"
+    r"|voici (l'|votre |ton |une )?(image|illustration|dessin|photo)\b",
+    re.I,
+)
+
+
 def looks_like_image_refusal(answer: str) -> bool:
-    return bool(answer and _REFUSAL.search(answer))
+    """Refus explicite, ou fausse affirmation d'avoir généré l'image."""
+    return bool(answer and (_REFUSAL.search(answer) or _FALSE_CLAIM.search(answer)))
 
 
 def mentions_image(text: str) -> bool:

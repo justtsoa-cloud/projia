@@ -77,7 +77,7 @@ chmod +x Tontolo-*-x86_64.AppImage
 
 ### Linux (CLI et serveur)
 ```bash
-pip install "tontolo[linux] @ https://github.com/raantss18/tontolo/releases/latest/download/tontolo-0.2.9-py3-none-any.whl"
+pip install "tontolo[linux] @ https://github.com/raantss18/tontolo/releases/latest/download/tontolo-0.2.10-py3-none-any.whl"
 tontolo catalog list --free --category code
 tontolo chat "Explique-moi les intégrales"
 tontolo serve            # API compatible OpenAI sur http://127.0.0.1:8765/v1
@@ -141,6 +141,13 @@ vérifiés par la CI : une release qui les dépasse est bloquée.
 - [Attributions](docs/ATTRIBUTIONS.md) · [Conformité](docs/COMPLIANCE.md)
 - [Publier une version](docs/RELEASING.md) · [Maquettes](docs/UI_MOCKUPS.md)
 - [Contribuer](CONTRIBUTING.md) · [Sécurité](SECURITY.md) · [Journal](CHANGELOG.md)
+
+## Auteur
+
+**RANIRIAMANJAKA Antsa** — conception et développement
+- GitHub : [github.com/raantss18](https://github.com/raantss18)
+- E-mail : [antsa.raniriamanjaka@univ-antananarivo.mg](mailto:antsa.raniriamanjaka@univ-antananarivo.mg)
+- Téléphone / WhatsApp : [+261 33 43 838 82](https://wa.me/261334383882)
 
 ## Attributions
 

@@ -22,3 +22,6 @@ Les mises à jour suivantes se proposent ensuite dans l'application elle-même (
 | `tontolo-….whl` / `.tar.gz` | Ligne de commande et serveur compatible OpenAI sur Linux, macOS ou Windows avec Python ≥ 3.11 : `pip install tontolo-….whl`. |
 
 > Les APK ont été exécutés sur émulateur (x86_64, Android 10 et 16) ; les versions ARM sont construites avec le même code mais n'ont pas encore été essayées sur un appareil réel — signalez tout problème dans les *issues*.
+
+---
+**Tontolo**, par **RANIRIAMANJAKA Antsa** · [github.com/raantss18](https://github.com/raantss18) · [antsa.raniriamanjaka@univ-antananarivo.mg](mailto:antsa.raniriamanjaka@univ-antananarivo.mg) · Tél./WhatsApp : [+261 33 43 838 82](https://wa.me/261334383882)

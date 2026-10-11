@@ -230,6 +230,9 @@ EditIntent analyzeEdit(String text) {
   return EditIntent(mode, plan, preservesSubject: preserves, contentChange: change);
 }
 
+/// Au-delà (≈ 60 mégapixels), la retouche locale est refusée (protection de la mémoire).
+const maxRetouchPixels = 60000000;
+
 /// Applique les réglages (dans un autre fil d'exécution). Renvoie un JPEG.
 Future<Uint8List> retouchPhoto(Uint8List bytes, RetouchPlan plan, {int maxSide = 2048}) =>
     compute(_retouchIsolate, {'bytes': bytes, 'plan': plan.toMap(), 'maxSide': maxSide});
@@ -238,6 +241,11 @@ Uint8List _retouchIsolate(Map<String, Object> args) {
   final bytes = args['bytes'] as Uint8List;
   final plan = RetouchPlan.fromMap(args['plan'] as Map);
   final maxSide = args['maxSide'] as int;
+  // Garde-fou mémoire : une image piégée (dimensions énormes) n'est jamais décodée en entier.
+  final info = img.findDecoderForData(bytes)?.startDecode(bytes);
+  if (info == null || info.width * info.height > maxRetouchPixels) {
+    throw const FormatException('Image illisible ou trop grande');
+  }
   var im = img.decodeImage(bytes);
   if (im == null) throw const FormatException('Image illisible');
   im = img.bakeOrientation(im); // photos de téléphone : on respecte l'orientation EXIF

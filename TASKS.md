@@ -114,6 +114,15 @@ Légende : `[x]` fait · `[~]` en cours · `[ ]` à faire
 - [x] P3. Langues : anglais et malgache complets dans l'application (aucune chaîne française restante, messages du cœur traduits), questions à l'utilisateur pour les termes malgaches difficiles
 - [x] P4. Notification quand un modèle (ou la création d'image/vidéo) redevient disponible après une pause ou un quota épuisé
 
+## Priorités (retours utilisateur du 2026-10-11, 2e lot)
+- [x] Q1. Bug : « Draw a woman wearing gucci » → modèle texte qui prétend avoir créé l'image ; détecter « draw/sketch/paint » et basculer vers l'image quand un modèle texte prétend avoir généré une image
+- [x] Q2. Raisons de bascule traduites (« problème réseau » affiché en anglais/malagasy)
+- [x] Q3. Termes malagasy validés par l'utilisateur : Kirakira (réglages), Fanalahidy (clé), Horonan-tsary, Fetra, Fampandrenesana, Mandeha ho azy (auto), Matihanina, Fintinina (résumer), impératif
+- [x] Q4. Crédits de l'auteur partout (À propos, crédits, notes de chaque mise à jour, README) : RANIRIAMANJAKA Antsa · github.com/raantss18 · antsa.raniriamanjaka@univ-antananarivo.mg · +261 33 43 838 82
+- [~] Q5. Statistiques d'utilisation (Supabase choisi, activées par défaut et désactivables) : application, SQL et doc prêts ; en attente du projet Supabase de l'utilisateur (variables STATS_URL / STATS_ANON_KEY)
+- [x] Q6. Audit de sécurité complet + corrections
+- [ ] Q7. Vérifier à nouveau la compatibilité de mise à jour (0.2.0 → dernière) à chaque version
+
 ## Feuille de route 2026-10 (validée par l'utilisateur, dans l'ordre, étape par étape)
 Règle : chaque étape est livrée seule (tests verts, rien de cassé), puis publiée.
 

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 // Retouche locale : analyse des consignes et corrections d'image.
 
 import 'package:flutter_test/flutter_test.dart';
@@ -101,5 +103,14 @@ void main() {
       expect(back.width, 64);
       expect(back.height, 48);
     });
+  });
+
+  test('image piégée aux dimensions énormes : refusée sans être décodée', () async {
+    // En-tête PNG annonçant 100 000 × 100 000 pixels.
+    final bomb = Uint8List.fromList([
+      0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52,
+      0x00, 0x01, 0x86, 0xA0, 0x00, 0x01, 0x86, 0xA0, 8, 2, 0, 0, 0, 0, 0, 0, 0,
+    ]);
+    await expectLater(retouchPhoto(bomb, RetouchPlan()), throwsA(anything));
   });
 }

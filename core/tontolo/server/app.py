@@ -107,6 +107,12 @@ async def _english_prompt(core: Core, text: str) -> str:
     return out[:900] if 3 <= len(out.split()) <= 160 else text
 
 
+def _wants_image(text: str) -> bool:
+    """La demande porte sur une image (mot « image », ou « draw / dessine… » détecté)."""
+    return mentions_image(text) or classify([{"role": "user", "content": text}]).category in (
+        Category.IMAGE_GEN, Category.IMAGE_EDIT)
+
+
 def _first_image(content: Any) -> bytes | None:
     """Première image jointe (data URL) d'un message, pour l'édition d'image."""
     if not isinstance(content, list):
@@ -444,7 +450,7 @@ def create_app(
                                        strict=body.strict, use_tools=body.use_tools):
             if ev["type"] == "user_saved":
                 user_seq = int(ev.get("seq") or 0)
-            if (ev["type"] == "done" and mentions_image(text)
+            if (ev["type"] == "done" and _wants_image(text)
                     and looks_like_image_refusal(str((ev.get("message") or {}).get("content")))):
                 switch = True
                 break                     # on ne montre pas le refus
@@ -511,6 +517,18 @@ def create_app(
     @app.post("/tontolo/chat/{cid}/edit")
     async def edit_message(request: Request, cid: str, body: EditBody) -> StreamingResponse:
         core = core_of(request)
+        history = await core.db.get_messages(cid)
+        target = next((m for m in history if m["_meta"]["seq"] == body.seq), None)
+        if target is not None and target["role"] == "user":
+            earlier = [{"role": "user", "content": m["content"]} for m in history
+                       if m["role"] == "user" and m["_meta"]["seq"] < body.seq][-3:]
+            kind = classify([*earlier, {"role": "user", "content": body.content}]).category
+            if kind.value in MEDIA_TURN_KINDS:
+                # Message modifié en demande d'image/vidéo/voix : média, pas texte.
+                await core.db.edit_message(cid, body.seq, {"role": "user", "content": body.content})
+                await core.db.truncate_after(cid, body.seq)
+                media_body = ChatBody(conversation_id=cid, content=body.content, model=body.model)
+                return _turn(core, cid, _media_turn(core, media_body, kind, add_user=False))
         return _turn(core, cid, core.chat.edit_and_resend(cid, body.seq, body.content,
                                                           model=body.model))
 
@@ -759,6 +777,8 @@ def create_app(
         core = core_of(request)
         patch = await request.json()
         patch.pop("server", None)  # jamais modifiable à distance
+        if isinstance(patch.get("agent"), dict):
+            patch["agent"].pop("workdir", None)  # dossier des outils fichiers : local seulement
         merged = core.settings.model_dump(mode="json")
         for k, v in patch.items():
             if isinstance(v, dict) and isinstance(merged.get(k), dict):

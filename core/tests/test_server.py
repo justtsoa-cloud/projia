@@ -498,3 +498,39 @@ async def test_media_prompt_translated_to_english() -> None:
     out = await _english_prompt(C(), "Manaova sary tilikambo jiro")  # type: ignore[arg-type]
     assert out.startswith("A tall lighthouse")
     assert await _english_prompt(C(), "a cat on a sofa") == "a cat on a sofa"  # type: ignore[arg-type]
+
+
+def _events(client: TestClient, url: str, body: dict[str, Any]) -> list[dict[str, Any]]:
+    with client.stream("POST", url, json=body) as r:
+        return [json.loads(line[5:]) for line in r.iter_lines() if line.startswith("data:")]
+
+
+def test_edited_message_becomes_image(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Bug utilisateur : message modifié en « Draw a woman… » → répondu par un modèle texte."""
+    async def fake_gen(model: Any, provider: Any, prompt: str, params: Any) -> mp.MediaOutput:
+        return mp.MediaOutput(b"\x89PNG", "image/png")
+
+    monkeypatch.setattr(mp, "generate_image", fake_gen)
+    ev = _events(client, "/tontolo/chat", {"content": "Bonjour"})
+    cid = next(e["id"] for e in ev if e["type"] == "conversation")
+    seq = next(e["seq"] for e in ev if e["type"] == "user_saved")
+    ev = _events(client, f"/tontolo/chat/{cid}/edit",
+                 {"seq": seq, "content": "Draw a woman wearing gucci."})
+    done = next(e for e in ev if e["type"] == "done")
+    assert done["job"]["status"] == "done"
+
+
+def test_text_model_false_image_claim_switches(client: TestClient, fake: FakeProvider,
+                                               monkeypatch: pytest.MonkeyPatch) -> None:
+    from tontolo.router.refusal import looks_like_image_refusal
+
+    assert looks_like_image_refusal("I've generated an image of a woman wearing Gucci.")
+    assert looks_like_image_refusal("Voici l'image demandée :")
+    assert not looks_like_image_refusal("Here is the code you asked for.")
+
+
+def test_agent_workdir_not_remotely_changeable(client: TestClient) -> None:
+    before = client.get("/tontolo/settings").json()["agent"]["workdir"]
+    client.put("/tontolo/settings", json={"agent": {"workdir": "/etc"}, "server": {"token": "x"}})
+    after = client.get("/tontolo/settings").json()
+    assert after["agent"]["workdir"] == before and "token" not in after["server"]

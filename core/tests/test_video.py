@@ -140,3 +140,24 @@ def test_malagasy_photo_requests() -> None:
 
     assert classify([with_photo("Ampihetsiho ity sary ity")]).category == Category.VIDEO_GEN
     assert classify([with_photo("Hatsarao ity sary ity")]).category == Category.IMAGE_EDIT
+
+
+async def test_video_download_never_follows_redirects(monkeypatch: pytest.MonkeyPatch) -> None:
+    def handler(req: httpx.Request) -> httpx.Response:
+        if "file=" in str(req.url):
+            return httpx.Response(302, headers={"location": "https://evil.example/x.mp4"})
+        return httpx.Response(200, content=b"ok")
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler), follow_redirects=True)
+    monkeypatch.setattr(http, "client", lambda: client)
+    with pytest.raises(ProviderError):
+        await mp._download_limited(f"{BASE}/gradio_api/file=/tmp/x.mp4", {"Authorization": "t"})
+
+
+async def test_video_download_size_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(mp, "VIDEO_MAX_BYTES", 10)
+    client = httpx.AsyncClient(transport=httpx.MockTransport(
+        lambda req: httpx.Response(200, content=b"x" * 100)))
+    monkeypatch.setattr(http, "client", lambda: client)
+    with pytest.raises(ProviderError):
+        await mp._download_limited(f"{BASE}/gradio_api/file=/tmp/x.mp4", {})

@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart';
 import '../l10n/strings.dart';
 import 'backend.dart';
 import 'notifier.dart';
+import 'stats.dart';
 import 'retouch.dart';
 
 class ChatMessage {
@@ -104,6 +105,15 @@ class ChatController extends ChangeNotifier {
         channel: tr(locale, 'notif_channel'), channelDescription: tr(locale, 'notif_channel_desc'));
   }
 
+  /// Raison de bascule dans la langue de l'interface (code du moteur, sinon texte d'origine).
+  String _reasonText(Map<String, dynamic> ev) {
+    final code = ev['reason_code'] as String?;
+    if (code == null || code.isEmpty) return '${ev['reason'] ?? ''}';
+    final key = 'why_$code';
+    final t = tr(backend.prefs.locale, key);
+    return t == key ? '${ev['reason'] ?? ''}' : t;
+  }
+
   void newChat() {
     cancelOfflineQueue(notify: false);
     _sub?.cancel();
@@ -162,6 +172,7 @@ class ChatController extends ChangeNotifier {
   Future<void> send(String text, {List<String> images = const [], String? category}) async {
     if (busy || (text.trim().isEmpty && images.isEmpty)) return;
     cancelOfflineQueue(notify: false);
+    Stats.countMessage(backend.prefs);
     _lastText = text;
     final user = ChatMessage(role: 'user', text: text)..images = List.of(images);
     messages.add(user);
@@ -367,7 +378,7 @@ class ChatController extends ChangeNotifier {
             messages.remove(prev);
           }
           messages.insert(messages.length - 1,
-              ChatMessage(role: 'notice', text: 'switched|${ev['to_name'] ?? ev['to']}|${ev['reason']}|$count'));
+              ChatMessage(role: 'notice', text: 'switched|${ev['to_name'] ?? ev['to']}|${_reasonText(ev)}|$count'));
         case 'offline':
           status = 'offline|${ev['seconds']}';
         case 'tool_call':

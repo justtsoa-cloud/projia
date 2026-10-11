@@ -35,3 +35,13 @@ Mesures techniques :
   photo d'une personne sans son accord.
 - Si la consigne demande de **ne pas changer la personne**, Tontolo ne recrée jamais une autre
   image : retouche locale, ou refus explicite.
+
+
+## Statistiques anonymes d'utilisation
+
+Voir [`STATS.md`](STATS.md). Activées par défaut, **annoncées** dès l'accueil, **désactivables**
+en un geste (Réglages), avec l'affichage exact des données envoyées. Données strictement
+non identifiantes (identifiant aléatoire d'installation, version, système majeur, langue, pays
+de la langue du téléphone, nombre de messages) ; jamais le contenu des conversations. Base
+Supabase en insertion seule : les applications ne peuvent ni lire ni modifier les données.
+L'utilisateur peut à tout moment désactiver l'envoi ; l'identifiant reste sur l'appareil.

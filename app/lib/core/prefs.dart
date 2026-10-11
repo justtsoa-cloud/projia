@@ -50,6 +50,15 @@ class Prefs extends ChangeNotifier {
   set onboarded(bool v) => _set(() => _sp.setBool('onboarded', v));
 
   bool get autoUpdate => _sp.getBool('autoUpdate') ?? true;
+  // Statistiques anonymes d'utilisation (activées par défaut, annoncées, désactivables).
+  bool get shareStats => _sp.getBool('shareStats') ?? true;
+  set shareStats(bool v) => _set(() => _sp.setBool('shareStats', v));
+  String get installId => _sp.getString('installId') ?? '';
+  set installId(String v) => _sp.setString('installId', v);
+  int get lastStatsDay => _sp.getInt('lastStatsDay') ?? 0;
+  set lastStatsDay(int v) => _sp.setInt('lastStatsDay', v);
+  int get usageCount => _sp.getInt('usageCount') ?? 0;
+  set usageCount(int v) => _sp.setInt('usageCount', v);
   set autoUpdate(bool v) => _set(() => _sp.setBool('autoUpdate', v));
 
   bool get notifyNewFree => _sp.getBool('notifyNewFree') ?? false;

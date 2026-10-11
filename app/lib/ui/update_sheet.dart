@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../core/author.dart';
 import '../core/updater.dart';
 import '../core/whats_new.dart';
 import '../main.dart';
@@ -66,6 +67,7 @@ class _UpdateSheet extends StatelessWidget {
                               ]),
                             ),
                         ],
+                        const _AuthorLine(),
                       ]),
               ),
               if (up.status == UpdateStatus.downloading)
@@ -163,6 +165,7 @@ class _WhatsNew extends StatelessWidget {
                 ),
               ],
               if (items.isEmpty) Text(context.t('update_no_notes')),
+              const _AuthorLine(),
             ]),
           ),
           SizedBox(
@@ -173,4 +176,19 @@ class _WhatsNew extends StatelessWidget {
       ),
     );
   }
+}
+
+
+/// Signature de l'auteur, présente dans chaque annonce de mise à jour et « Quoi de neuf ».
+class _AuthorLine extends StatelessWidget {
+  const _AuthorLine();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(top: 16, bottom: 4),
+        child: Text(
+          '${context.t('made_by')} $authorName · $authorGithub · $authorEmail · $authorPhone',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
+      );
 }

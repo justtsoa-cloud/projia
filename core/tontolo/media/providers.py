@@ -132,15 +132,27 @@ async def generate_video(model: ModelInfo, prompt: str, params: dict[str, Any]) 
             duration, 9, 42, True, 1, True]
     result = await _gradio_queue(space.base_url, fn, data, headers)
     url = _video_url(result, space.base_url)
+    return MediaOutput(await _download_limited(url, headers), "video/mp4")
+
+
+async def _download_limited(url: str, headers: dict[str, str]) -> bytes:
+    """Téléchargement borné : sans redirection (la clé Hugging Face ne quitte jamais le
+    domaine du Space) et arrêté dès que la taille maximale est dépassée."""
+    buf = bytearray()
     try:
-        r = await http.client().get(url, headers=headers, timeout=120.0)
+        async with http.client().stream("GET", url, headers=headers, timeout=120.0,
+                                        follow_redirects=False) as r:
+            if r.status_code >= 300:
+                raise ProviderError("Vidéo introuvable", ErrorKind.SERVER, status=r.status_code)
+            async for chunk in r.aiter_bytes():
+                buf.extend(chunk)
+                if len(buf) > VIDEO_MAX_BYTES:
+                    raise ProviderError("Vidéo trop volumineuse", ErrorKind.SERVER)
     except httpx.HTTPError as exc:
         raise ProviderError(type(exc).__name__, ErrorKind.NETWORK) from exc
-    if r.status_code >= 400 or not r.content:
-        raise ProviderError("Vidéo introuvable", ErrorKind.SERVER, status=r.status_code)
-    if len(r.content) > VIDEO_MAX_BYTES:
-        raise ProviderError("Vidéo trop volumineuse", ErrorKind.SERVER)
-    return MediaOutput(r.content, "video/mp4")
+    if not buf:
+        raise ProviderError("Vidéo vide", ErrorKind.SERVER)
+    return bytes(buf)
 
 
 def image_size(data: bytes) -> tuple[int, int] | None:
@@ -287,8 +299,7 @@ async def _pollinations_image(model: ModelInfo, prompt: str,
             if last.kind in (ErrorKind.RATE_LIMIT, ErrorKind.QUOTA, ErrorKind.AUTH):
                 break                      # inutile d'insister : on laisse la bascule agir
         await asyncio.sleep(1.5 * (attempt + 1))
-    assert last is not None
-    raise last
+    raise last or ProviderError("Aucune image", ErrorKind.SERVER)
 
 
 async def transcribe(

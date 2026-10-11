@@ -1,9 +1,12 @@
 // Réglages en deux onglets : Simple (l'essentiel) et Avancé (tout le reste).
 
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 
 import '../core/backend.dart';
 import '../core/keys.dart';
+import '../core/stats.dart';
 import '../core/sync.dart';
 import '../core/updater.dart';
 import '../main.dart';
@@ -137,6 +140,27 @@ class _Simple extends StatelessWidget {
           },
         ),
         SwitchListTile(title: Text(context.t('notif_new_free')), value: prefs.notifyNewFree, onChanged: (v) => prefs.notifyNewFree = v),
+        SwitchListTile(
+          secondary: const Icon(Icons.insights_outlined),
+          title: Text(context.t('share_stats')),
+          subtitle: Text(context.t('share_stats_help')),
+          value: prefs.shareStats,
+          onChanged: (v) => prefs.shareStats = v,
+        ),
+        ListTile(
+          dense: true,
+          leading: const SizedBox(width: 24),
+          title: Text(context.t('stats_see')),
+          onTap: () => showDialog<void>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text(context.t('stats_see')),
+              content: SelectableText(const JsonEncoder.withIndent('  ').convert(Stats.payload(prefs)),
+                  style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+              actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(context.t('got_it')))],
+            ),
+          ),
+        ),
         ListTile(
           leading: const Icon(Icons.info_outline),
           title: Text(context.t('about')),

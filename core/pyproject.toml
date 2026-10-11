@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tontolo"
-version = "0.2.9"
+version = "0.2.10"
 description = "Hub d'IA libre : choisit automatiquement le meilleur modèle gratuit, bascule sur quota épuisé et revient au meilleur."
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
-authors = [{ name = "Tontolo contributors" }]
+authors = [{ name = "RANIRIAMANJAKA Antsa", email = "antsa.raniriamanjaka@univ-antananarivo.mg" }]
 keywords = ["llm", "router", "openrouter", "free", "ai", "agent", "mcp"]
 classifiers = [
   "Development Status :: 3 - Alpha",

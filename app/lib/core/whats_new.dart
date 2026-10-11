@@ -14,6 +14,26 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.2.10': [
+    NewsItem(Icons.brush_outlined, 'Les demandes d\'image ne partent plus vers le texte',
+        '« Draw… », « dessine… » donnent toujours une vraie image, même après avoir modifié le message. Si un modèle de texte prétend avoir créé l\'image, Tontolo bascule tout seul vers la création.',
+        'Image requests no longer go to text',
+        '“Draw…” always produces a real image, even after editing the message. If a text model claims it created the image, Tontolo switches to real image creation.',
+        mg: 'Tsy lasa any amin\'ny soratra intsony ny fangatahana sary',
+        mgText: 'Sary tena izy hatrany no azo amin\'ny « Manaova sary… », na dia efa novaina aza ny hafatra. Raha milaza ho namorona sary ny modely soratra, mifindra ho azy amin\'ny famoronana sary i Tontolo.'),
+    NewsItem(Icons.shield_outlined, 'Sécurité renforcée',
+        'Audit complet : téléchargements vidéo bornés, protection contre les images piégées et les flux XML malveillants, réglages sensibles verrouillés.',
+        'Stronger security',
+        'Full audit: bounded video downloads, protection against booby-trapped images and malicious XML feeds, sensitive settings locked.',
+        mg: 'Fiarovana nohamafisina',
+        mgText: 'Fanaraha-maso feno: voafetra ny fisintonana horonan-tsary, voaaro amin\'ny sary misy fandrika sy ny XML ratsy, voahidy ny kirakira saro-pady.'),
+    NewsItem(Icons.person_outline, 'Auteur et statistiques anonymes',
+        'Tontolo est conçu par RANIRIAMANJAKA Antsa (github.com/raantss18). Des statistiques anonymes l\'aident à l\'améliorer — jamais vos messages — désactivables dans Réglages.',
+        'Author and anonymous statistics',
+        'Tontolo is made by RANIRIAMANJAKA Antsa (github.com/raantss18). Anonymous statistics help improve it — never your messages — and can be turned off in Settings.',
+        mg: 'Mpamorona sy antontan\'isa tsy mitonona anarana',
+        mgText: 'RANIRIAMANJAKA Antsa (github.com/raantss18) no namorona an\'i Tontolo. Antontan\'isa tsy mitonona anarana no manampy azy hanatsara — tsy alefa mihitsy ny hafatrao — azo atsahatra ao amin\'ny Kirakira.'),
+  ],
   '0.2.9': [
     NewsItem(Icons.notifications_active_outlined, 'Prévenu quand c\'est de nouveau disponible',
         'Si un modèle ou la création d\'images/vidéos est en pause, Tontolo affiche l\'heure de retour et vous envoie une notification quand c\'est reparti. Un bouton « Régénérer » relance d\'un geste.',

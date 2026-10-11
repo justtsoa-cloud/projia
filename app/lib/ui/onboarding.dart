@@ -55,6 +55,12 @@ class _OnboardingState extends State<Onboarding> {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(context.t('stats_notice'),
+                textAlign: TextAlign.center, style: Theme.of(context).textTheme.bodySmall),
+          ),
+          const SizedBox(height: 8),
           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
             for (var i = 0; i < pages.length; i++)
               AnimatedContainer(

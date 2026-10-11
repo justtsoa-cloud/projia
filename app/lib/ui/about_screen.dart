@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/updater.dart';
+import '../core/author.dart';
 import '../main.dart';
 
 class AboutScreen extends StatelessWidget {
@@ -33,6 +34,9 @@ class AboutScreen extends StatelessWidget {
             child: const Text('github.com/raantss18/tontolo'),
           ),
           const Divider(),
+          Text(context.t('author'), style: Theme.of(context).textTheme.titleMedium),
+          const AuthorCard(),
+          const Divider(),
           Text(context.t('attributions'), style: Theme.of(context).textTheme.titleMedium),
           for (final (name, url, use) in attributions)
             ListTile(
@@ -49,4 +53,38 @@ class AboutScreen extends StatelessWidget {
           ),
         ]),
       );
+}
+
+
+/// Carte de l'auteur : nom et contacts cliquables (GitHub, e-mail, téléphone, WhatsApp).
+class AuthorCard extends StatelessWidget {
+  const AuthorCard({super.key, this.dense = false});
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = [
+      (Icons.code, authorGithub, authorGithubUrl),
+      (Icons.mail_outline, authorEmail, authorEmailUrl),
+      (Icons.phone_outlined, authorPhone, authorPhoneUrl),
+      (Icons.chat_outlined, 'WhatsApp $authorPhone', authorWhatsappUrl),
+    ];
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      ListTile(
+        dense: dense,
+        contentPadding: EdgeInsets.zero,
+        leading: const CircleAvatar(child: Icon(Icons.person_outline)),
+        title: const Text(authorName, style: TextStyle(fontWeight: FontWeight.w600)),
+        subtitle: Text(context.t('author_role')),
+      ),
+      for (final (icon, label, url) in rows)
+        ListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(icon, size: 20),
+          title: Text(label),
+          onTap: () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication),
+        ),
+    ]);
+  }
 }
