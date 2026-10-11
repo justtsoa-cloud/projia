@@ -483,6 +483,7 @@ const Map<String, Map<String, String>> _t = {
     'sync_signed_out': 'Session expirée : reconnectez-vous.',
     'sync_server': 'Serveur de synchronisation injoignable. Réessayez plus tard.',
     'sync_not_setup': 'Saisissez d\'abord votre phrase secrète.',
+    'acc_soon': 'Comptes et synchronisation entre appareils : bientôt disponibles (activation en cours par l\'auteur).',
   },
   'en': {
     'app': 'Tontolo', 'chat': 'Chat', 'creations': 'Creations', 'settings': 'Settings',
@@ -839,6 +840,7 @@ const Map<String, Map<String, String>> _t = {
     'sync_signed_out': 'Session expired: please sign in again.',
     'sync_server': 'Sync server unreachable. Try again later.',
     'sync_not_setup': 'Enter your secret phrase first.',
+    'acc_soon': 'Accounts and sync between devices: coming soon (being enabled by the author).',
   },
   'mg': {
     'app': 'Tontolo', 'chat': 'Resaka', 'creations': 'Famoronana', 'settings': 'Kirakira',
@@ -1235,6 +1237,7 @@ const Map<String, Map<String, String>> _t = {
     'sync_signed_out': 'Tapitra ny fidirana: midira indray.',
     'sync_server': 'Tsy tratra ny mpizara fampifanarahana. Andramo any aoriana.',
     'sync_not_setup': 'Ampidiro aloha ny fehezanteny miafinao.',
+    'acc_soon': 'Kaonty sy fampifanarahana eo amin\'ny fitaovana: ho avy tsy ho ela (ampandehanin\'ny mpamorona).',
   },
 };
 

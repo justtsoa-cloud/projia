@@ -119,9 +119,9 @@ Légende : `[x]` fait · `[~]` en cours · `[ ]` à faire
 - [x] Q2. Raisons de bascule traduites (« problème réseau » affiché en anglais/malagasy)
 - [x] Q3. Termes malagasy validés par l'utilisateur : Kirakira (réglages), Fanalahidy (clé), Horonan-tsary, Fetra, Fampandrenesana, Mandeha ho azy (auto), Matihanina, Fintinina (résumer), impératif
 - [x] Q4. Crédits de l'auteur partout (À propos, crédits, notes de chaque mise à jour, README) : RANIRIAMANJAKA Antsa · github.com/raantss18 · antsa.raniriamanjaka@univ-antananarivo.mg · +261 33 43 838 82
-- [~] Q5. Statistiques d'utilisation (Supabase choisi, activées par défaut et désactivables) : application, SQL et doc prêts ; en attente du projet Supabase de l'utilisateur (variables STATS_URL / STATS_ANON_KEY)
+- [x] Q5. Statistiques d'utilisation (Supabase) : projet créé par l'utilisateur, connexion vérifiée le 2026-10-11 ; actives à partir des builds 0.3.0
 - [x] Q6. Audit de sécurité complet + corrections
-- [ ] Q7. Vérifier à nouveau la compatibilité de mise à jour (0.2.0 → dernière) à chaque version
+- [x] Q7. Compatibilité de mise à jour vérifiée pour la 0.3.0 (émulateur : 0.2.0 officielle → 0.3.0 par-dessus, discussion et mémoire conservées) — à refaire à chaque version
 
 ## Feuille de route 2026-10 (validée par l'utilisateur, dans l'ordre, étape par étape)
 Règle : chaque étape est livrée seule (tests verts, rien de cassé), puis publiée.
@@ -154,7 +154,8 @@ Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cass�
 - [x] F1. Aide par fournisseur d'API : étapes simples et lien direct pour obtenir la clé (fr/en/mg)
 - [x] F2. Réglages simplifiés : proposer les serveurs d'API payants avec plafond de dépense (simple)
 - [ ] F3. Mode Apprendre (élèves / étudiants), inspiré de Khanmigo, MagicSchool, MIA Seconde, Dinobot : bascule Général / Apprendre bien visible, niveau scolaire, guidage pas à pas sans donner la réponse, indices, quiz interactifs, fiches, correction d'exercice en photo, plan de révision
-- [~] F4. Comptes (Google / GitHub) et synchronisation entre appareils : discussions, mémoires, clés d'API (chiffrées de bout en bout)
+- [~] F4. Comptes (Google / GitHub) et synchronisation entre appareils : discussions, mémoires, clés d'API (chiffrées de bout en bout) — code, tests, SQL et doc faits ; **reste à l'auteur** : exécuter docs/accounts/supabase_sync.sql et activer Google/GitHub dans Supabase (docs/ACCOUNTS.md) ; relecture du protocole par Codex demandée
 - [x] F5. Guide de publication : Play Store, F-Droid, dépôts Linux (Flathub, AUR, Snap, .deb)
-- [ ] F6. Audit de vulnérabilités + compatibilité de saut de mise à jour (0.2.0 → 0.3.0) sur émulateur
-- [ ] F7. Publier la 0.3.0
+- [x] F6. Audit de vulnérabilités + compatibilité de saut de mise à jour (0.2.0 → 0.3.0) sur émulateur
+- [x] F7. Publier la 0.3.0
+- [x] Collaboration : ChatGPT/Codex en vérification indépendante (canal docs/collaboration/, hors dépôt) ; F5 repris par Claude après la limite d'usage de Codex

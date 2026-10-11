@@ -20,14 +20,24 @@ class AccountSection extends StatelessWidget {
         final cloud = scope.cloud;
         final small = Theme.of(context).textTheme.bodySmall;
         if (!acc.signedIn) {
+          if (acc.providers == null) acc.loadProviders();
+          final avail = acc.providers ?? const {'google', 'github'};
+          if (acc.providers != null && avail.isEmpty) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(context.t('acc_soon'), style: small),
+            );
+          }
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(context.t('acc_help'), style: small),
               const SizedBox(height: 10),
               Wrap(spacing: 8, runSpacing: 8, children: [
-                FilledButton.tonalIcon(icon: const Icon(Icons.g_mobiledata, size: 28), label: Text(context.t('acc_google')), onPressed: () => _signIn(context, 'google')),
-                FilledButton.tonalIcon(icon: const Icon(Icons.code), label: Text(context.t('acc_github')), onPressed: () => _signIn(context, 'github')),
+                if (avail.contains('google'))
+                  FilledButton.tonalIcon(icon: const Icon(Icons.g_mobiledata, size: 28), label: Text(context.t('acc_google')), onPressed: () => _signIn(context, 'google')),
+                if (avail.contains('github'))
+                  FilledButton.tonalIcon(icon: const Icon(Icons.code), label: Text(context.t('acc_github')), onPressed: () => _signIn(context, 'github')),
               ]),
             ]),
           );

@@ -71,6 +71,21 @@ class Account extends ChangeNotifier {
   static bool get configured => supabaseUrl.startsWith('https://') && supabaseKey.isNotEmpty;
   bool get signedIn => session != null;
 
+  /// Méthodes de connexion activées par l'auteur dans Supabase (google, github) ; null tant
+  /// qu'elles ne sont pas connues (hors ligne).
+  Set<String>? providers;
+
+  Future<void> loadProviders() async {
+    if (!configured) return;
+    try {
+      final r = await _http.get(Uri.parse('$supabaseUrl/auth/v1/settings'), headers: {'apikey': supabaseKey}).timeout(const Duration(seconds: 10));
+      if (r.statusCode != 200) return;
+      final ext = ((jsonDecode(utf8.decode(r.bodyBytes)) as Map)['external'] as Map?) ?? {};
+      providers = {for (final p in const ['google', 'github']) if (ext[p] == true) p};
+      notifyListeners();
+    } catch (_) {}
+  }
+
   Future<void> load() async {
     try {
       final raw = await _storage.read(key: _key);
