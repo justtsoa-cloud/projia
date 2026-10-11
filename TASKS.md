@@ -161,12 +161,12 @@ Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cass�
 - [x] Collaboration : ChatGPT/Codex en vérification indépendante (canal docs/collaboration/, hors dépôt) ; F5 repris par Claude après la limite d'usage de Codex
 
 ## v0.4.0 — demandes du 2026-10-11 (4e lot) : créations de fichiers et équipe de modèles
-- [ ] D1. Générer des fichiers : DOCX (Word), LaTeX compilé en PDF, carte mentale (image précise, pas une image d'IA) pour les révisions
-- [ ] D2. Vérifier puis corriger avant de livrer : compilation sans erreur (journal LaTeX renvoyé au modèle), contrôle du rendu (modèle de vision sur l'image), relecture du contenu ; jusqu'à 3 corrections
-- [ ] D3. Services de création gratuits et anonymes, choisis automatiquement avec repli (compilateurs LaTeX en ligne, Kroki pour les schémas), sans compte ni clé
-- [ ] D4. Équipe de modèles (agentique) : plusieurs modèles mobilisés pour une même demande complexe (rédacteur, relecteur d'une autre famille, correction), choisis par le routeur
-- [ ] D5. Interface : carte « fichier » dans la discussion (ouvrir, partager, enregistrer), fichiers dans Créations, étapes visibles (« compilation… », « vérification du rendu… »)
-- [ ] D6. Tests, émulateur, saut de mise à jour, publication 0.4.0
-- [ ] D7. Tout type de fichier à la demande (par défaut, gratuit) : DOCX, PDF/LaTeX, XLSX, PPTX, CSV, HTML, Markdown, code, SVG/schémas, cartes mentales, graphiques ; outils payants branchables si l'utilisateur a une clé
-- [ ] L1. Mode Apprendre plus simple : accueil épuré (niveau + une question), guidage strict sans réponse directe (« prochaine étape » au lieu de « solution »)
+- [x] D1. Générer des fichiers : DOCX (Word), LaTeX compilé en PDF, carte mentale (image précise, pas une image d'IA) pour les révisions
+- [x] D2. Vérifier puis corriger avant de livrer : compilation sans erreur (journal LaTeX renvoyé au modèle), contrôle du rendu (modèle de vision sur l'image), relecture du contenu ; jusqu'à 3 corrections
+- [x] D3. Services de création gratuits et anonymes, choisis automatiquement avec repli (compilateurs LaTeX en ligne, Kroki pour les schémas), sans compte ni clé
+- [x] D4. Équipe de modèles (agentique) : plusieurs modèles mobilisés pour une même demande complexe (rédacteur, relecteur d'une autre famille, correction), choisis par le routeur
+- [x] D5. Interface : carte « fichier » dans la discussion (ouvrir, partager, enregistrer), fichiers dans Créations, étapes visibles (« compilation… », « vérification du rendu… »)
+- [x] D6. Tests, émulateur, saut de mise à jour, publication 0.4.0
+- [x] D7. Tout type de fichier à la demande (par défaut, gratuit) : DOCX, PDF/LaTeX, XLSX, PPTX, CSV, HTML, Markdown, code, SVG/schémas, cartes mentales, graphiques ; outils payants branchables si l'utilisateur a une clé
+- [x] L1. Mode Apprendre plus simple : accueil épuré (niveau + une question), guidage strict sans réponse directe (« prochaine étape » au lieu de « solution »)
 - [ ] S1. Expliquer comment lire les statistiques (Supabase) ; voir avec l'utilisateur ce que Claude peut configurer lui-même pour les comptes

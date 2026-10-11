@@ -5,6 +5,31 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.4.0] - 2026-10-11
+
+### Ajouté
+- **Créer tout type de fichier** à la demande (« génère un document Word… », « fais une carte
+  mentale… », « exporte en PDF », raccourci « Créer un fichier ») : DOCX, PDF (LaTeX compilé),
+  source LaTeX, Excel (XLSX, formules), PowerPoint (PPTX), cartes mentales et schémas en images
+  nettes, graphiques, et tout fichier texte (CSV, JSON, HTML, SVG, Markdown, code, calendrier…).
+- **Équipe de modèles** : un modèle rédige, le fichier est réellement construit et vérifié
+  (compilation, structure, mise en page), les erreurs lui sont renvoyées pour correction (jusqu'à
+  3 fois), puis un modèle **d'une autre famille** relit (en voyant l'image ou les pages quand
+  c'est possible) avant livraison. Un fichier qui ne se construit pas n'est jamais livré.
+- Réponses de **maths, code et raisonnement vérifiées par un second modèle** : « Vérifié par… »
+  ou les erreurs relevées avec un bouton « Corriger » (réglage « Équipe de modèles »).
+- Carte « fichier » dans la discussion : ouvrir, partager, enregistrer ; étapes en direct.
+- Services de création gratuits et sans compte, avec repli automatique (LaTeX-on-HTTP,
+  latexonline.cc, Kroki, QuickChart) ; moteurs locaux utilisés s'ils sont installés. Les modèles
+  payants autorisés dans Réglages (OpenAI, Anthropic, DeepSeek, xAI, OpenRouter) rejoignent
+  automatiquement l'équipe, dans la limite du plafond.
+
+### Modifié
+- **Mode Apprendre plus simple et plus strict** : accueil réduit à une question, le niveau en un
+  geste et quatre grandes actions (« Mon exercice », « Comprendre une leçon », « Me tester »,
+  « Carte mentale »), le reste dans « Plus » ; le tuteur ne donne jamais la réponse finale, même
+  sur demande : « Montre la solution » devient « Étape suivante ».
+
 ## [0.3.0] - 2026-10-11
 
 ### Ajouté

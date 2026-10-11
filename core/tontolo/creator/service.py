@@ -4,6 +4,7 @@ créations (même table et même dossier que les médias : le fichier apparaît 
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 import uuid
 from collections.abc import AsyncIterator
@@ -49,12 +50,15 @@ class CreatorService:
         probe: list[dict[str, Any]] = [{"role": "user", "content": "relecture"}]
         decision = await self.router.decide(
             probe, forced=Category.VISION if vision else Category.REASONING)
+        def base(model_id: str) -> str:  # même modèle servi par plusieurs fournisseurs
+            return re.sub(r"[^a-z0-9]", "", model_id.lower().split("/")[-1].split(":")[0])
+
         for c in decision.chain:
             m = c.model
             if m.key == exclude or (vision and not m.supports_vision):
                 continue
-            if writer is not None and (m.provider == writer.provider and m.family
-                                       and m.family == writer.family):
+            if writer is not None and (base(m.model_id) == base(writer.model_id)
+                                       or (m.family and m.family == writer.family)):
                 continue
             return m.key
         return None

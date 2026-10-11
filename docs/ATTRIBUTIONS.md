@@ -17,3 +17,4 @@ visibles dans l'application (Réglages › À propos).
 
 Les noms et marques cités appartiennent à leurs propriétaires respectifs ; Tontolo n'est
 affilié à aucun d'eux.
+- **Créations de fichiers** : LaTeX-on-HTTP (YtoTech), latexonline.cc, [Kroki](https://kroki.io/), [QuickChart](https://quickchart.io/), [Graphviz](https://graphviz.org/), [Mermaid](https://mermaid.js.org/), [Chart.js](https://www.chartjs.org/) — services et logiciels libres utilisés sans compte.

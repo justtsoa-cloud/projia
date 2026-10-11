@@ -152,3 +152,25 @@ async def test_service_down_is_reported(monkeypatch: pytest.MonkeyPatch) -> None
     models = FakeModels([json.dumps({"title": "T", "children": [{"label": "a"}, {"label": "b"}]})])
     with pytest.raises(CreationError, match="injoignable"):
         await _run(models, "mindmap")
+
+
+async def test_reviewer_is_never_the_same_model_from_another_provider() -> None:
+    from types import SimpleNamespace
+
+    from tontolo.catalog.models import ModelInfo
+    from tontolo.creator.service import CreatorService
+
+    writer = ModelInfo(provider="openrouter", model_id="nvidia/nemotron-ultra:free",
+                       family="Nemotron")
+    same = ModelInfo(provider="kilo", model_id="nvidia/nemotron-ultra", family="Nemotron")
+    other = ModelInfo(provider="groq", model_id="qwen/qwen3-32b", family="Qwen")
+    models = {m.key: m for m in (writer, same, other)}
+
+    class Router:
+        catalog = SimpleNamespace(catalog=SimpleNamespace(get=models.get))
+
+        async def decide(self, *a: Any, **k: Any) -> Any:
+            return SimpleNamespace(chain=[SimpleNamespace(model=m) for m in (writer, same, other)])
+
+    svc = CreatorService(None, Router(), __import__("pathlib").Path("/tmp"))  # type: ignore[arg-type]
+    assert await svc.pick_reviewer(exclude=writer.key) == other.key

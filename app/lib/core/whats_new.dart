@@ -14,6 +14,20 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.4.0': [
+    NewsItem(Icons.note_add_outlined, 'Tontolo crée vos fichiers',
+        'Demandez un document Word, un PDF, un tableau Excel, une présentation PowerPoint, une carte mentale ou un graphique : le fichier est vérifié puis corrigé avant de vous être donné.',
+        'Tontolo creates your files', 'Ask for a Word document, a PDF, an Excel sheet, a PowerPoint deck, a mind map or a chart: the file is checked and fixed before you get it.',
+        mg: 'Mamorona ny rakitrao i Tontolo', mgText: 'Angataho rakitra Word, PDF, Excel, PowerPoint, sarintsaina na sary fanoharana: hamarinina sy ahitsy alohan\'ny homena anao ny rakitra.'),
+    NewsItem(Icons.groups_outlined, 'Une équipe de modèles',
+        'Pour les maths, le code et les fichiers, un second modèle vérifie le travail du premier et signale les erreurs.',
+        'A team of models', 'For maths, code and files, a second model checks the first one\'s work and points out mistakes.',
+        mg: 'Ekipan\'ny modely', mgText: 'Ho an\'ny matematika, kaody ary rakitra, misy modely faharoa manamarina ny asan\'ny voalohany ary manondro ny diso.'),
+    NewsItem(Icons.school_outlined, 'Apprendre, en plus simple',
+        'Quatre grandes actions et un tuteur qui ne donne jamais la réponse : il te guide pas à pas jusqu\'à ce que tu la trouves.',
+        'Learn, made simpler', 'Four big actions and a tutor that never gives the answer: it guides you step by step until you find it.',
+        mg: 'Mianatra, tsotra kokoa', mgText: 'Asa lehibe efatra sy mpanoro tsy manome ny valiny mihitsy: mitarika anao dingana tsirairay mandra-pahitanao azy.'),
+  ],
   '0.3.0': [
     NewsItem(Icons.school_outlined, 'Mode Apprendre',
         'Touchez « Apprendre » en haut : un tuteur qui guide pas à pas selon votre niveau, sans faire les devoirs à votre place, avec quiz interactifs et fiches de révision.',

@@ -45,6 +45,15 @@ chiffrées sur l'appareil (AES-256-GCM, clé dérivée d'une phrase secrète jam
 ni Supabase ni l'auteur ne peuvent les lire. Suppression des données en ligne depuis
 Réglages ; suppression du compte sur demande à l'auteur. Détails : `docs/ACCOUNTS.md`.
 
+## Créations de fichiers
+
+Pour construire un PDF, une carte mentale, un schéma ou un graphique, le **source** (texte
+LaTeX, plan de la carte, source Mermaid, configuration du graphique — jamais vos autres
+discussions) est envoyé à un service gratuit sans compte : LaTeX-on-HTTP ou latexonline.cc,
+Kroki, QuickChart. Sur un ordinateur où `pdflatex`/`tectonic` ou `dot` sont installés, la
+construction se fait sur l'appareil. Les DOCX, XLSX, PPTX et fichiers texte sont construits sur
+l'appareil. Le contenu est rédigé et relu par les modèles d'IA choisis comme pour une réponse.
+
 ## Import de discussions
 
 Une discussion d'un autre assistant n'est importée qu'à la demande de l'utilisateur, à partir
