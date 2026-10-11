@@ -10,12 +10,14 @@ import uuid
 from collections.abc import AsyncIterator
 from typing import Any
 
+from tontolo.agent.loop import CONTINUE_PROMPT
 from tontolo.catalog.models import Category
 from tontolo.creator.pipeline import CALL_TIMEOUT, CreationError, Creator, Output
 from tontolo.router.engine import Router
 from tontolo.storage.db import Database
 
 MAX_TOKENS = 8000
+MAX_CONTINUES = 3
 
 
 class CreatorService:
@@ -30,15 +32,31 @@ class CreatorService:
     async def ask(self, messages: list[dict[str, Any]], *, category: Category | None = None,
                   model: str | None = None) -> tuple[str, str, str]:
         text, key = "", ""
+        convo = list(messages)
         async with asyncio.timeout(CALL_TIMEOUT):
-            async for ev in self.router.run(messages, stream=False, forced=category, model=model,
-                                            params={"max_tokens": MAX_TOKENS,
-                                                    "temperature": 0.3}):
-                if ev["type"] == "done":
-                    text = str(ev["message"].get("content") or "")
-                    key = str(ev.get("model") or model or "")
-                elif ev["type"] == "error":
-                    raise CreationError(str(ev.get("message") or "aucun modèle disponible"))
+            # Long document coupé par la limite de longueur : suite demandée (3 fois au plus,
+            # arrêt si elle n'apporte rien), avec le même modèle de préférence.
+            for _ in range(1 + MAX_CONTINUES):
+                finish, piece = None, ""
+                async for ev in self.router.run(convo, stream=False, forced=category,
+                                                model=model or key or None,
+                                                params={"max_tokens": MAX_TOKENS,
+                                                        "temperature": 0.3}):
+                    if ev["type"] == "done":
+                        piece = str(ev["message"].get("content") or "")
+                        key = key or str(ev.get("model") or model or "")
+                        finish = ev.get("finish_reason")
+                    elif ev["type"] == "error":
+                        if text:
+                            break
+                        raise CreationError(str(ev.get("message") or "aucun modèle disponible"))
+                if not piece.strip() or (text and piece.strip()[:200] in text):
+                    break
+                text += piece
+                if finish != "length":
+                    break
+                convo = [*messages, {"role": "assistant", "content": text},
+                         {"role": "user", "content": CONTINUE_PROMPT}]
         if not text.strip():
             raise CreationError("réponse vide du modèle")
         m = self.router.catalog.catalog.get(key)

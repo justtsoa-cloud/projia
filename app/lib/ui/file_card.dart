@@ -20,6 +20,7 @@ IconData fileIcon(String filename) => switch (filename.split('.').last.toLowerCa
       'pptx' => Icons.slideshow_outlined,
       'png' || 'svg' => Icons.image_outlined,
       'ics' => Icons.event_outlined,
+      'zip' => Icons.folder_zip_outlined,
       _ => Icons.code,
     };
 

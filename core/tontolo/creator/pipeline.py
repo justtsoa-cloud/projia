@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from tontolo.catalog.models import Category
-from tontolo.creator import charts, diagram, docx, latex, office, textfile
+from tontolo.creator import bundle, charts, diagram, docx, latex, office, textfile
 
 MAX_FIXES = 3
 CALL_TIMEOUT = 240     # rédaction ou correction d'un document long par un modèle gratuit
@@ -38,6 +38,7 @@ KINDS = {
     "pptx": ("présentation PowerPoint", Category.WRITING),
     "chart": ("graphique", Category.CODE),
     "diagram": ("schéma", Category.CODE),
+    "bundle": ("projet de plusieurs fichiers (archive .zip)", Category.CODE),
 }
 
 
@@ -93,6 +94,16 @@ WRITER_PROMPTS["diagram"] = """Tu dessines un schéma avec Mermaid. Réponds UNI
 source Mermaid valide (flowchart TD, sequenceDiagram, timeline, classDiagram, gantt ou \
 erDiagram selon la demande), libellés courts en {language} entre guillemets si ils \
 contiennent des espaces ou de la ponctuation."""
+WRITER_PROMPTS["bundle"] = """Tu crées un projet de PLUSIEURS fichiers (textes en \
+{language}), livré ensuite dans une archive .zip. Réponds UNIQUEMENT avec les fichiers, \
+chacun précédé d'une ligne exacte « === \
+FICHIER: chemin/relatif.ext === » puis son contenu complet, sans bloc de code ni \
+explication. Arborescence claire (dossiers si utile : chapitres/, src/, data/…), noms sans \
+espaces ni accents, un README.md court qui décrit les fichiers. Pour un livre ou un long \
+document LaTeX : un main.tex (\\documentclass, préambule, \\input{{chapitres/…}}) et un \
+fichier par chapitre, sans \\documentclass dans les chapitres, sans image externe ; paquets \
+standards seulement (amsmath, amssymb, geometry, hyperref, babel ({babel}), xcolor, \
+tcolorbox, booktabs). Pour du code : fichiers complets, syntaxe valide, commentés."""
 TEXT_PROMPT = """Tu écris le contenu complet d'un fichier « .{ext} » demandé par \
 l'utilisateur, en {language} pour les textes. Réponds UNIQUEMENT avec le contenu du fichier, \
 sans explication ni bloc de code autour. Il doit être directement utilisable (syntaxe \
@@ -220,13 +231,15 @@ class Creator:
         fixes = 0
         reviewed = False
         while True:
-            source = strip_fences(text)
+            # Projet : les blocs de code sont propres à chaque fichier (retirés par bundle).
+            source = text.strip() if kind == "bundle" else strip_fences(text)
             yield {"type": "step", "step": "doc_building"}
             try:
                 built, problems = await self._build(kind, source)
                 # Un fichier vide (source refusé avant construction) n'est jamais livrable.
                 result = built if built.data else None
-            except (latex.LatexError, diagram.DiagramError, charts.ChartError) as exc:
+            except (latex.LatexError, diagram.DiagramError, charts.ChartError,
+                    bundle.BundleError) as exc:
                 if getattr(exc, "retryable", False):
                     raise CreationError(f"service de création injoignable : {exc}") from exc
                 problems = [str(exc) + (f"\n{exc.log}" if isinstance(exc, latex.LatexError)
@@ -318,6 +331,8 @@ class Creator:
             first = source.strip().splitlines()[0] if source.strip() else "schema"
             return Output(png, "image/png", "schema.png", "Schéma", source, "schema.mmd"), (
                 [] if diagram.png_size(png)[0] > 0 else [f"rendu vide ({first})"])
+        if kind == "bundle":
+            return await self._build_bundle(source)
         if kind.startswith("text:"):
             ext = kind[5:]
             problems = textfile.problems(ext, source)
@@ -330,6 +345,28 @@ class Creator:
         return Output(png, "image/png", f"carte-mentale-{slug(title)}.png", title,
                       json.dumps(outline, ensure_ascii=False, indent=1),
                       f"carte-mentale-{slug(title)}.json"), problems
+
+    async def _build_bundle(self, source: str) -> tuple[Output, list[str]]:
+        files = bundle.parse(source)
+        problems = bundle.problems(files)
+        extra: dict[str, bytes] = {}
+        main = bundle.main_tex(files)
+        if main is not None and not problems:
+            # Projet LaTeX : compilation réelle du document entier, PDF joint à l'archive.
+            full, missing = bundle.inline_tex(files, main)
+            if missing:
+                problems.append("fichiers inclus mais absents du projet : "
+                                + ", ".join(missing[:6]))
+            else:
+                pdf, log, _ = await latex.compile_pdf(full)
+                extra[main[:-4] + ".pdf"] = pdf
+                problems += latex.warnings_from_log(log)
+        title = bundle.title_of(files)
+        name = slug(title)
+        data = bundle.build_zip(files, extra)
+        count = len(files) + len(extra)
+        return Output(data, "application/zip", f"{name}.zip", f"{title} ({count} fichiers)",
+                      source, f"{name}-sources.txt"), problems
 
     async def _review(self, kind: str, what: str, request: str, source: str,
                       result: Output | None, writer: str) -> tuple[list[str], str, str]:

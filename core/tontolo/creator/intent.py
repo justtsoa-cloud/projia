@@ -33,11 +33,23 @@ _EXT_ALIASES = {"markdown": "md", "texte": "txt", "python": "py", "javascript": 
                 "calendrier": "ics", "c++": "cpp", "kotlin": "kt", "bash": "sh"}
 
 
+_BUNDLE = re.compile(
+    r"\b(zip|archive (zip|compress[ée]e)|plusieurs fichiers|several files|multiple files|"
+    r"multi-?fichiers?|"
+    r"rakitra maromaro|arborescence|un fichier par (chapitre|section|module|page|partie)|"
+    r"one file per (chapter|section|module|page)|(chaque|each) (chapitre|chapter|module) "
+    r"(dans|in) (un|a|its own) (fichier|file)|(dossier|projet|folder|project) (complet |"
+    r"structur[ée] |latex |de code |python |web )*(en|avec|with|in) (plusieurs|multiple|"
+    r"several) fichiers|structur[ée] en (plusieurs )?fichiers)\b")
+
+
 def detect(text: str) -> str | None:
     t = (text or "").lower()
     if len(t) > 4000:
         t = t[:4000]
     has_verb = re.search(rf"\b{_VERB}\b", t) is not None
+    if _BUNDLE.search(t) and has_verb:
+        return "bundle"  # plusieurs fichiers : livrés ensemble dans une archive .zip
     as_format = re.search(r"\b(en|au format|in|as|sous forme d['e]|version)\s+"
                           r"(pdf|docx|word|excel|xlsx|pptx|powerpoint|latex)\b", t)
     for kind, pattern in _FORMATS:
