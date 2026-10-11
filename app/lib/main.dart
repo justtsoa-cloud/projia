@@ -106,14 +106,21 @@ class Shell extends StatefulWidget {
   State<Shell> createState() => _ShellState();
 }
 
-class _ShellState extends State<Shell> {
+class _ShellState extends State<Shell> with WidgetsBindingObserver {
   int index = 0;
   bool _sheetOpen = false;
   Updater? _updater;
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Retour au premier plan : un message en attente de réseau part tout de suite.
+    if (state == AppLifecycleState.resumed) AppScope.of(context).chat.checkOfflineQueue();
+  }
+
+  @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Après le premier affichage : nouveautés de la version (après mise à jour) et annonce
     // d'une nouvelle version dès qu'elle est prête.
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -126,6 +133,7 @@ class _ShellState extends State<Shell> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _updater?.removeListener(_onUpdate);
     super.dispose();
   }

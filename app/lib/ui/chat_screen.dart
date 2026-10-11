@@ -599,6 +599,7 @@ class _Notice extends StatelessWidget {
       'returned' => (Icons.undo, context.t('returned', {'model': parts[1]}), scheme.secondary, false),
       'stream_reset' => (Icons.refresh, context.t('stream_interrupted'), scheme.tertiary, false),
       'media' => (Icons.auto_awesome, context.t('media_switch'), scheme.tertiary, false),
+      'offline_queued' => (Icons.cloud_upload_outlined, context.t('offline_queued'), scheme.tertiary, false),
       'memory' => (Icons.bookmark_added_outlined, context.t('memory_saved', {'text': parts.skip(1).join('|')}), scheme.secondary, false),
       _ => (Icons.error_outline, parts.skip(1).join('|'), scheme.error, true),
     };
@@ -609,6 +610,11 @@ class _Notice extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(child: Text(text, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: color))),
         if (action) TextButton(onPressed: onRetry, child: Text(context.t('retry'))),
+        if (parts.first == 'offline_queued')
+          TextButton(
+            onPressed: () => AppScope.of(context).chat.cancelOfflineQueue(),
+            child: Text(context.t('cancel')),
+          ),
       ]),
     );
   }

@@ -447,3 +447,13 @@ def test_model_health(client: TestClient) -> None:
     assert h["state"] in ("green", "orange") and h["ready"] >= 1 and h["best_key"]
     models = client.get("/tontolo/catalog", params={"usable": True}).json()["models"]
     assert all("available_at" in m for m in models)
+
+
+def test_online_endpoint(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    core = client.app.state.core  # type: ignore[attr-defined]
+
+    async def up() -> bool:
+        return True
+
+    core.router.probe = up
+    assert client.get("/tontolo/online").json() == {"online": True}

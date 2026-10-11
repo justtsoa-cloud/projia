@@ -48,10 +48,41 @@ class ChatController extends ChangeNotifier {
   PendingAction? pending;
   StreamSubscription<Map<String, dynamic>>? _sub;
   String? _lastText;
+  Timer? _offlineTimer; // message en attente du retour du réseau
 
   void refresh() => notifyListeners();
 
+  bool get offlineQueued => _offlineTimer != null;
+
+  /// Hors ligne : le message reste en attente et part tout seul au retour du réseau.
+  void _queueOffline() {
+    _offlineTimer?.cancel();
+    messages.add(ChatMessage(role: 'notice', text: 'offline_queued|'));
+    _offlineTimer = Timer.periodic(const Duration(seconds: 8), (_) => checkOfflineQueue());
+  }
+
+  /// Vérifie la connexion (aussi appelé au retour au premier plan) et renvoie le message.
+  Future<void> checkOfflineQueue() async {
+    if (_offlineTimer == null || busy) return;
+    try {
+      final r = await backend.getJson('/tontolo/online') as Map<String, dynamic>;
+      if (r['online'] != true || _offlineTimer == null) return;
+    } catch (_) {
+      return;
+    }
+    cancelOfflineQueue(notify: false);
+    retry();
+  }
+
+  void cancelOfflineQueue({bool notify = true}) {
+    _offlineTimer?.cancel();
+    _offlineTimer = null;
+    messages.removeWhere((m) => m.role == 'notice' && m.text.startsWith('offline_queued|'));
+    if (notify) notifyListeners();
+  }
+
   void newChat() {
+    cancelOfflineQueue(notify: false);
     _sub?.cancel();
     conversationId = null;
     messages.clear();
@@ -107,6 +138,7 @@ class ChatController extends ChangeNotifier {
 
   Future<void> send(String text, {List<String> images = const [], String? category}) async {
     if (busy || (text.trim().isEmpty && images.isEmpty)) return;
+    cancelOfflineQueue(notify: false);
     _lastText = text;
     final user = ChatMessage(role: 'user', text: text)..images = List.of(images);
     messages.add(user);
@@ -346,6 +378,9 @@ class ChatController extends ChangeNotifier {
         case 'paid_confirmation':
           pending = PendingAction.paid('${ev['name']}', (ev['estimated_cost_usd'] as num?)?.toDouble());
           if (current != null && current!.text.isEmpty) messages.remove(current);
+        case 'error' when ev['offline'] == true:
+          if (current != null && current!.text.isEmpty) messages.remove(current);
+          _queueOffline();
         case 'error':
           if (current != null && current!.text.isEmpty) messages.remove(current);
           messages.add(ChatMessage(role: 'notice', text: 'error|${ev['message']}'));

@@ -618,6 +618,10 @@ def create_app(
         changes = await core_of(request).catalog.refresh(force=True)
         return {"changes": len(changes)}
 
+    @app.get("/tontolo/online")
+    async def online(request: Request) -> dict[str, bool]:
+        return {"online": await core_of(request).router.probe()}
+
     @app.get("/tontolo/health")
     async def model_health(request: Request) -> dict[str, Any]:
         return await core_of(request).router.health()

@@ -117,7 +117,7 @@ Règle : chaque étape est livrée seule (tests verts, rien de cassé), puis pub
 - [x] 1. Écran vide interactif : raccourcis (image, retouche, recherche web, résumer un document, traduire, expliquer)
 - [x] 2. Sélecteur de modèle : « Auto » + pastille de santé (vert/orange/rouge), appui long pour fixer un modèle
 - [x] 3. Réponse rapide d'abord (petit modèle rapide, puis relève par le meilleur si complexe) — option
-- [ ] 4. File d'attente hors ligne : message mis en attente et envoyé au retour du réseau
+- [x] 4. File d'attente hors ligne : message mis en attente et envoyé au retour du réseau
 - [ ] 5. Page « État des modèles » : disponibles / en pause / épuisés, heure de retour
 - [ ] 6. Modèles locaux (Ollama ; GGUF sur Linux) comme dernier recours sans réseau
 - [ ] 7. Documents : PDF / page web → questions avec citations des passages
