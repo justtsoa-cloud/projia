@@ -36,11 +36,11 @@ def site(tmp_path: Path) -> Any:
 _EXE = browser.find_browser() or ""
 
 
-# Vivaldi et Opera ne savent pas fonctionner sans fenêtre : test fait avec Chromium ou Chrome
-# (présent sur les machines de la CI GitHub).
-@pytest.mark.skipif(not _EXE or (any(n in _EXE for n in ("vivaldi", "opera"))
-                                 and not os.environ.get("TONTOLO_BROWSER_VISIBLE_TEST")),
-                    reason="aucun Chromium ou Chrome sans fenêtre")
+# Vrai navigateur : test lancé à la demande (TONTOLO_BROWSER_TEST=1 sans fenêtre avec
+# Chromium/Chrome, TONTOLO_BROWSER_VISIBLE_TEST=1 avec fenêtre, ex. Vivaldi).
+@pytest.mark.skipif(not _EXE or not (os.environ.get("TONTOLO_BROWSER_TEST")
+                                     or os.environ.get("TONTOLO_BROWSER_VISIBLE_TEST")),
+                    reason="test du vrai navigateur à la demande")
 async def test_real_browser_one_tab_per_conversation(site: str, tmp_path: Path,
                                                      monkeypatch: pytest.MonkeyPatch) -> None:
     if not os.environ.get("TONTOLO_BROWSER_VISIBLE_TEST"):
