@@ -19,6 +19,25 @@ Contact de l'auteur : RANIRIAMANJAKA Antsa — antsa.raniriamanjaka@univ-antanan
 
 ## Audits
 
+### 2026-10-11 (v0.3.0)
+Outils : `bandit` (seuls restent des faux positifs déjà justifiés : flux RSS protégé, requêtes
+SQL à fragments constants), `pip-audit` (aucune vulnérabilité connue), revue manuelle des
+nouveautés. Corrigé ou conçu pour :
+- fournisseurs intégrés (dont les serveurs payants) non redéfinissables par une liste
+  distante : leur clé ne part qu'à l'adresse codée en dur ;
+- import de discussions : téléchargement uniquement d'adresses construites à partir d'un
+  identifiant validé (pas de SSRF), taille plafonnée, JSON imbriqué à l'excès refusé, vue web
+  limitée aux pages https (pas d'ouverture d'applications) ;
+- images (Spaces Hugging Face) : URL limitée au domaine du Space, sans redirection, taille
+  plafonnée ;
+- comptes : OAuth PKCE (un code intercepté est inutilisable), jetons dans le stockage
+  sécurisé du système ; synchronisation chiffrée de bout en bout (AES-256-GCM, nonce aléatoire,
+  données associées liant chaque blob à son identifiant, PBKDF2-HMAC-SHA256 310 000
+  itérations) ; base protégée par RLS (chaque utilisateur ne voit que ses lignes), taille des
+  blobs et nombre de lignes plafonnés ;
+- mode Apprendre : blocs quiz/fiches produits par le modèle lus avec des limites de taille,
+  bloc invalide affiché comme texte.
+
 ### 2026-10-11 (v0.2.10)
 Outils : `bandit`, `pip-audit` (aucune vulnérabilité connue dans les dépendances), revue
 manuelle. Corrigé :

@@ -37,6 +37,20 @@ Mesures techniques :
   image : retouche locale, ou refus explicite.
 
 
+## Comptes et synchronisation (facultatifs)
+
+Connexion Google ou GitHub via Supabase Auth (adresse e-mail et identifiant du fournisseur
+conservés par Supabase). Les données synchronisées (discussions, mémoires, clés) sont
+chiffrées sur l'appareil (AES-256-GCM, clé dérivée d'une phrase secrète jamais transmise) :
+ni Supabase ni l'auteur ne peuvent les lire. Suppression des données en ligne depuis
+Réglages ; suppression du compte sur demande à l'auteur. Détails : `docs/ACCOUNTS.md`.
+
+## Import de discussions
+
+Une discussion d'un autre assistant n'est importée qu'à la demande de l'utilisateur, à partir
+d'un lien de partage public qu'il fournit ; le contenu reste sur l'appareil (et dans sa
+synchronisation chiffrée s'il l'a activée).
+
 ## Statistiques anonymes d'utilisation
 
 Voir [`STATS.md`](STATS.md). Activées par défaut, **annoncées** dès l'accueil, **désactivables**

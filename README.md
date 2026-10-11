@@ -47,6 +47,11 @@
 - **Sécurisé** : serveur local protégé (jeton, CSRF, DNS rebinding), anti-SSRF, clés
   épinglées à leur fournisseur, outils sensibles soumis à confirmation.
 - **Compatible OpenAI** : n'importe quel client OpenAI peut pointer sur Tontolo.
+- **Mode Apprendre** pour élèves et étudiants : tuteur pas à pas selon le niveau, quiz
+  interactifs, fiches de révision, plan de révision.
+- **Continuez ici une discussion de Claude, ChatGPT ou Gemini** : collez son lien de partage.
+- **Compte facultatif** (Google, GitHub) et **synchronisation chiffrée de bout en bout**
+  des discussions, mémoires et clés entre vos appareils ([détails](docs/ACCOUNTS.md)).
 
 Aucune liste de modèles, aucun classement et aucun quota n'est codé en dur : tout vient des
 plateformes en ligne.
@@ -77,7 +82,7 @@ chmod +x Tontolo-*-x86_64.AppImage
 
 ### Linux (CLI et serveur)
 ```bash
-pip install "tontolo[linux] @ https://github.com/raantss18/tontolo/releases/latest/download/tontolo-0.2.11-py3-none-any.whl"
+pip install "tontolo[linux] @ https://github.com/raantss18/tontolo/releases/latest/download/tontolo-0.3.0-py3-none-any.whl"
 tontolo catalog list --free --category code
 tontolo chat "Explique-moi les intégrales"
 tontolo serve            # API compatible OpenAI sur http://127.0.0.1:8765/v1
@@ -152,6 +157,7 @@ vérifiés par la CI : une release qui les dépasse est bloquée.
 - [Sources](docs/SOURCES.md) — API consultées et dates de vérification
 - [Attributions](docs/ATTRIBUTIONS.md) · [Conformité](docs/COMPLIANCE.md)
 - [Publier une version](docs/RELEASING.md) · [Maquettes](docs/UI_MOCKUPS.md)
+- [Comptes et synchronisation](docs/ACCOUNTS.md) · [Publier sur les boutiques](docs/DISTRIBUTION.md)
 - [Contribuer](CONTRIBUTING.md) · [Sécurité](SECURITY.md) · [Journal](CHANGELOG.md)
 
 ## Auteur

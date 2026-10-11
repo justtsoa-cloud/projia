@@ -96,6 +96,9 @@ def test_parse_message_list_and_empty() -> None:
         importer.parse_any('{"chat_messages": []}')
     with pytest.raises(ConversationImportError):
         importer.parse_any("x" * (importer.MAX_DATA + 1))
+    # JSON imbriqué à l'excès : traité comme du texte, sans planter le serveur.
+    deep = importer.parse_any("[" * 100_000 + "]" * 100_000)[0]
+    assert deep.source == "text"
 
 
 async def test_fetch_private_and_browser(monkeypatch: pytest.MonkeyPatch) -> None:

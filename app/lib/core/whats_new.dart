@@ -14,6 +14,24 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.3.0': [
+    NewsItem(Icons.school_outlined, 'Mode Apprendre',
+        'Touchez « Apprendre » en haut : un tuteur qui guide pas à pas selon votre niveau, sans faire les devoirs à votre place, avec quiz interactifs et fiches de révision.',
+        'Learn mode', 'Tap “Learn” at the top: a tutor that guides you step by step for your level, without doing your homework, with interactive quizzes and flashcards.',
+        mg: 'Fomba Mianatra', mgText: 'Tsindrio ny « Mianatra » eo ambony: mpanoro manoro lalana dingana tsirairay araka ny ambaratonganao, tsy manao ny entimodinao, misy quiz sy karatra famerenana.'),
+    NewsItem(Icons.move_to_inbox_outlined, 'Continuez une discussion de Claude ou ChatGPT',
+        'Collez le lien de partage (claude.ai/share/…, chatgpt.com/share/…) dans le chat : la discussion est importée et vous la continuez ici.',
+        'Continue a Claude or ChatGPT chat', 'Paste the share link (claude.ai/share/…, chatgpt.com/share/…) into the chat: it is imported and you continue it here.',
+        mg: 'Tohizo ny resaka avy amin\'ny Claude na ChatGPT', mgText: 'Apetaho ao amin\'ny resaka ny rohy fizarana (claude.ai/share/…, chatgpt.com/share/…): tafiditra ny resaka ary tohizanao eto.'),
+    NewsItem(Icons.sync_lock_outlined, 'Compte et synchronisation chiffrée',
+        'Facultatif : connectez-vous avec Google ou GitHub pour retrouver discussions, mémoires et clés sur tous vos appareils. Chiffré avec votre phrase secrète.',
+        'Account and encrypted sync', 'Optional: sign in with Google or GitHub to get chats, memories and keys on all your devices. Encrypted with your secret phrase.',
+        mg: 'Kaonty sy fampifanarahana voaaro', mgText: 'Tsy voatery: midira amin\'ny Google na GitHub mba hahitana ny resaka, ny fahatsiarovana ary ny fanalahidy amin\'ny fitaovanao rehetra. Voaaro amin\'ny fehezanteny miafinao.'),
+    NewsItem(Icons.auto_awesome_outlined, 'Meilleurs choix automatiques',
+        'Images avec FLUX et Stable Diffusion en plus de Pollinations, modèle choisi selon le sujet de la discussion, aide pas à pas pour chaque clé, modèles payants simples avec plafond.',
+        'Smarter automatic choices', 'Images with FLUX and Stable Diffusion besides Pollinations, model chosen from the chat topic, step-by-step help for every key, simple paid models with a cap.',
+        mg: 'Safidy ho azy tsara kokoa', mgText: 'Sary amin\'ny FLUX sy Stable Diffusion ankoatra ny Pollinations, modely voafidy araka ny lohahevitry ny resaka, torolalana ho an\'ny fanalahidy tsirairay, modely mandoa tsotra misy fetra.'),
+  ],
   '0.2.11': [
     NewsItem(Icons.description_outlined, 'Questions sur vos documents',
         'Joignez un PDF ou un texte (bouton +) : Tontolo répond en citant les pages.',

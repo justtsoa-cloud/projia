@@ -147,7 +147,7 @@ def parse_chatgpt_html(page: str) -> Imported:
     for chunk in chunks:
         try:
             flat = json.loads(json.loads(chunk))
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, RecursionError):
             continue
         if not isinstance(flat, list) or "linear_conversation" not in flat:
             continue
@@ -229,7 +229,7 @@ def parse_any(data: str) -> list[Imported]:
     if stripped[:1] in "[{":
         try:
             obj = json.loads(stripped)
-        except ValueError:
+        except (ValueError, RecursionError):  # JSON invalide ou imbriqué à l'excès
             obj = None
         if obj is not None:
             return _parse_json(obj)

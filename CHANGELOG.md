@@ -5,6 +5,39 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.3.0] - 2026-10-11
+
+### Ajouté
+- **Mode Apprendre** (élèves et étudiants) : bascule Général / Apprendre bien visible en haut,
+  niveau scolaire et matière, tuteur qui guide pas à pas sans donner la réponse (indices
+  progressifs, correction ciblée, solution seulement sur demande), **quiz interactifs** et
+  **fiches de révision** à retourner, plan de révision, actions rapides (« Un indice », « Je ne
+  comprends pas », « Montre la solution »…). Le mode est mémorisé par discussion.
+- **Importer une discussion** de Claude, ChatGPT ou Gemini (lien de partage collé dans le chat
+  ou « Importer une discussion » dans le volet), d'un texte collé ou d'un fichier d'export,
+  pour la continuer dans Tontolo. Lien Claude privé : explication pour créer un lien de partage.
+- **Comptes Google / GitHub et synchronisation chiffrée de bout en bout** (facultatifs) :
+  discussions, mémoires et clés d'API sur tous les appareils ; phrase secrète jamais transmise,
+  AES-256-GCM (voir docs/ACCOUNTS.md).
+- **Aide pas à pas pour chaque clé d'API** (où cliquer, à quoi ressemble la clé, coût).
+- **Modèles payants en version simple** dans les Réglages : OpenRouter, OpenAI, Anthropic,
+  DeepSeek, xAI ; utilisés en secours, plafond mensuel en un geste, dépense du mois affichée.
+- **Images** : FLUX.1 schnell/dev et Stable Diffusion 3.5 Turbo (Spaces Hugging Face gratuits)
+  avant Pollinations, avec repli automatique.
+- Guide de publication (Play Store, F-Droid/IzzyOnDroid, AUR, Flathub, Snap, PyPI) et fichiers
+  d'empaquetage (`packaging/`, `fastlane/`).
+
+### Modifié
+- Choix du modèle réévalué à chaque message selon le **sujet de la discussion** : une relance
+  courte (« et pourquoi ? ») garde un modèle adapté au code ou aux maths.
+- Quota GPU gratuit de Hugging Face épuisé : tous les Spaces sont mis en pause d'un coup.
+
+### Sécurité
+- Les fournisseurs intégrés ne peuvent plus être redéfinis par une liste distante (la clé
+  n'est envoyée qu'à l'adresse codée en dur).
+- Import : JSON imbriqué à l'excès refusé proprement ; seules des adresses construites à
+  partir d'un identifiant validé sont téléchargées ; vue web limitée aux pages https.
+
 ## [0.2.11] - 2026-10-11
 
 ### Ajouté

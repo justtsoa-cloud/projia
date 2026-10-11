@@ -13,6 +13,7 @@ visibles dans l'application (Réglages › À propos).
 - **awesome-free-llm-apis** — liste des fournisseurs gratuits,
   [mnfst/awesome-free-llm-apis](https://github.com/mnfst/awesome-free-llm-apis) (CC0 1.0).
 - **Pollinations** — génération de texte et d'images sans clé ([pollinations.ai](https://pollinations.ai/)).
+- **FLUX.1 [schnell] / [dev]** (Black Forest Labs) et **Stable Diffusion 3.5 Large Turbo** (Stability AI) — images, via leurs Spaces publics Hugging Face ; chaque modèle reste soumis à sa licence (FLUX.1 schnell : Apache-2.0 ; FLUX.1 dev : licence non commerciale FLUX.1 [dev] ; SD 3.5 : Stability AI Community License).
 
 Les noms et marques cités appartiennent à leurs propriétaires respectifs ; Tontolo n'est
 affilié à aucun d'eux.
