@@ -10,6 +10,7 @@ import '../main.dart';
 import 'about_screen.dart';
 import 'personalization.dart';
 import 'message_view.dart' show openSafeLink;
+import 'status_screen.dart';
 import 'update_sheet.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -94,6 +95,12 @@ class _Simple extends StatelessWidget {
             subtitle: Text(context.t('see_changes')),
             onTap: () => showUpdateSheet(context),
           ),
+        ListTile(
+          leading: const Icon(Icons.monitor_heart_outlined),
+          title: Text(context.t('model_status')),
+          subtitle: Text(context.t('model_status_sub')),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StatusScreen())),
+        ),
         ListTile(
           leading: const Icon(Icons.refresh),
           title: Text(context.t('check_updates')),

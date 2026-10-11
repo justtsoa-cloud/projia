@@ -109,6 +109,16 @@ class QuotaManager:
         anticip = self._anticipated(model, now)
         return max(until, anticip)
 
+    def status_of(self, model: ModelInfo, now: float | None = None) -> QuotaState:
+        """État le plus contraignant du modèle et de ses groupes (fournisseur, quota partagé)."""
+        now = now or time.time()
+        worst = QuotaState()
+        for k in self.group_keys(model):
+            st = self.state(k, now)
+            if st.status != "available" and st.until > worst.until:
+                worst = st
+        return worst
+
     def available(self, model: ModelInfo, now: float | None = None) -> bool:
         return self.available_at(model, now) == 0.0
 

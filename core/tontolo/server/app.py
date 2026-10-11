@@ -595,7 +595,14 @@ def create_app(
             "rate_limit": m.rate_limit, "created": m.created,
             "price_in": m.price_in, "price_out": m.price_out,
             "available_at": quota.available_at(m) if quota is not None else 0.0,
+            **_quota_json(m, quota),
         }
+
+    def _quota_json(m: ModelInfo, quota: QuotaManager | None) -> dict[str, Any]:
+        if quota is None:
+            return {"status": "available"}
+        st = quota.status_of(m)
+        return {"status": st.status, "wait_reason": st.reason}
 
     @app.get("/tontolo/catalog")
     async def catalog(request: Request, category: str | None = None, free: bool = True,

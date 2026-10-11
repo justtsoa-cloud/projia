@@ -10,6 +10,7 @@ import '../core/backend.dart';
 
 import '../core/chat_controller.dart';
 import '../main.dart';
+import 'status_screen.dart';
 
 /// État global des modèles gratuits (pastille) : vert, orange ou rouge.
 class ModelHealth {
@@ -306,13 +307,18 @@ class _ModelPickerState extends State<ModelPicker> {
             ),
           ]),
           if (widget.health != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Row(children: [
-                Icon(Icons.circle, size: 10, color: widget.health!.color(Theme.of(context).colorScheme)),
-                const SizedBox(width: 8),
-                Expanded(child: Text(widget.health!.describe(context), style: Theme.of(context).textTheme.bodySmall)),
-              ]),
+            InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StatusScreen())),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(children: [
+                  Icon(Icons.circle, size: 10, color: widget.health!.color(Theme.of(context).colorScheme)),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(widget.health!.describe(context), style: Theme.of(context).textTheme.bodySmall)),
+                  const Icon(Icons.chevron_right, size: 18),
+                ]),
+              ),
             ),
           const SizedBox(height: 8),
           TextField(

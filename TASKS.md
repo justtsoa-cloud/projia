@@ -108,6 +108,12 @@ Légende : `[x]` fait · `[~]` en cours · `[ ]` à faire
 - [x] Interface : bascules regroupées sur une ligne, statut « en attente du réseau »
 - [x] Tests (3) et publication
 
+## Priorités immédiates (retours utilisateur du 2026-10-11) — avant la suite de la feuille de route
+- [ ] P1. Bug : « Manaova sary tilikambo jiro » → « Aucune source gratuite disponible pour ce type de média » (création d'image en malgache / source d'images indisponible)
+- [ ] P2. Bouton « Régénérer / Réessayer » sur toute réponse en échec (média ou texte), comme sur la capture
+- [ ] P3. Langues : anglais et malgache complets dans l'application (aucune chaîne française restante, messages du cœur traduits), questions à l'utilisateur pour les termes malgaches difficiles
+- [ ] P4. Notification quand un modèle (ou la création d'image/vidéo) redevient disponible après une pause ou un quota épuisé
+
 ## Feuille de route 2026-10 (validée par l'utilisateur, dans l'ordre, étape par étape)
 Règle : chaque étape est livrée seule (tests verts, rien de cassé), puis publiée.
 
@@ -118,7 +124,7 @@ Règle : chaque étape est livrée seule (tests verts, rien de cassé), puis pub
 - [x] 2. Sélecteur de modèle : « Auto » + pastille de santé (vert/orange/rouge), appui long pour fixer un modèle
 - [x] 3. Réponse rapide d'abord (petit modèle rapide, puis relève par le meilleur si complexe) — option
 - [x] 4. File d'attente hors ligne : message mis en attente et envoyé au retour du réseau
-- [ ] 5. Page « État des modèles » : disponibles / en pause / épuisés, heure de retour
+- [x] 5. Page « État des modèles » : disponibles / en pause / épuisés, heure de retour
 - [ ] 6. Modèles locaux (Ollama ; GGUF sur Linux) comme dernier recours sans réseau
 - [ ] 7. Documents : PDF / page web → questions avec citations des passages
 - [ ] 8. Dossiers de discussions + recherche plein texte
