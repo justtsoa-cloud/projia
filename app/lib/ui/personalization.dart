@@ -17,6 +17,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
   List<Map<String, dynamic>> memories = [];
   bool enabled = true;
   bool speedFirst = false;
+  bool teamReview = true;
   bool loaded = false;
 
   @override
@@ -42,6 +43,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
       instructions.text = '${s['custom_instructions'] ?? ''}';
       enabled = m['enabled'] == true;
       speedFirst = s['speed_first'] == true;
+      teamReview = s['team_review'] != false; // absent (ancien cœur) : affiché actif
       memories = (m['items'] as List).cast<Map<String, dynamic>>();
     });
   }
@@ -79,6 +81,16 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
         onChanged: (v) {
           setState(() => speedFirst = v);
           _call('PUT', '/tontolo/settings', {'speed_first': v});
+        },
+      ),
+      SwitchListTile(
+        secondary: const Icon(Icons.groups_outlined),
+        title: Text(context.t('team_review')),
+        subtitle: Text(context.t('team_review_help'), style: small),
+        value: teamReview,
+        onChanged: (v) {
+          setState(() => teamReview = v);
+          _call('PUT', '/tontolo/settings', {'team_review': v});
         },
       ),
       SwitchListTile(

@@ -83,6 +83,9 @@ class Settings(BaseModel):
     # « Réponse rapide d'abord » : pour les demandes simples, le modèle le plus rapide passe
     # devant ; les demandes complexes (raisonnement, code, maths…) gardent le meilleur.
     speed_first: bool = False
+    # Équipe de modèles : un second modèle (autre famille) vérifie les réponses de maths,
+    # code et raisonnement, et signale une erreur éventuelle.
+    team_review: bool = True
 
     @property
     def data_dir(self) -> Path:

@@ -412,6 +412,14 @@ class ChatController extends ChangeNotifier {
           lastUser.seq = ev['seq'] as int?;
         case 'memory_saved':
           messages.add(ChatMessage(role: 'notice', text: 'memory|${ev['text']}'));
+        case 'step':
+          // Création de fichier : rédaction, construction, relecture, corrections.
+          status = '${ev['step']}' == 'doc_done' ? null : '${ev['step']}';
+        case 'review':
+          // Équipe de modèles : verdict du second modèle sur la réponse qui vient d'arriver.
+          status = null;
+          final issues = ((ev['issues'] as List?) ?? const []).join('\u0001');
+          messages.add(ChatMessage(role: 'notice', text: 'review|${ev['ok'] == true ? 1 : 0}|${ev['name'] ?? ''}|$issues'));
         case 'waiting':
           status = 'waiting|${ev['seconds']}';
         case 'route':

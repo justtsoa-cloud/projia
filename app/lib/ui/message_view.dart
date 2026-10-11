@@ -16,6 +16,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../core/chat_controller.dart';
 import '../core/speech.dart';
 import '../main.dart';
+import 'file_card.dart';
 import 'learn.dart';
 import 'video_view.dart';
 
@@ -538,7 +539,11 @@ class _MediaResultState extends State<MediaResult> {
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
           const SizedBox(width: 10),
-          Text(context.t(job['kind'] == 'video_gen' ? 'generating_video' : 'generating')),
+          Text(context.t(job['kind'] == 'video_gen'
+              ? 'generating_video'
+              : job['kind'] == 'file_gen'
+                  ? 'generating_file'
+                  : 'generating')),
         ],
       );
     }
@@ -572,10 +577,18 @@ class _MediaResultState extends State<MediaResult> {
         ),
       ),
     );
+    if (job['kind'] == 'file_gen' && !mime.startsWith('image/')) {
+      return FileCard(bytes: bytes!, params: params);
+    }
     if (mime.startsWith('image/')) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (job['kind'] == 'file_gen')
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(teamLine(context, params), style: Theme.of(context).textTheme.bodySmall),
+            ),
           if (warning != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 6),
@@ -610,13 +623,13 @@ class _MediaResultState extends State<MediaResult> {
               borderRadius: BorderRadius.circular(12),
               child: Image.memory(
                 bytes!,
-                width: 320,
-                cacheWidth: 640,
-                fit: BoxFit.cover,
+                width: job['kind'] == 'file_gen' ? 520 : 320, // carte mentale : plus grande
+                cacheWidth: job['kind'] == 'file_gen' ? 1400 : 640,
+                fit: job['kind'] == 'file_gen' ? BoxFit.contain : BoxFit.cover,
               ),
             ),
           ),
-          share,
+          if (job['kind'] == 'file_gen') FileCard(bytes: bytes!, params: params) else share,
         ],
       );
     }
@@ -673,6 +686,7 @@ String mediaError(BuildContext context, Map<String, dynamic> job) {
     'video_quota' => context.t('err_video_quota'),
     'sources_failed' => context.t('err_sources_failed'),
     'no_source' => context.t(kind == 'video_gen' ? 'err_no_video' : 'err_no_source'),
+    'file_failed' => context.t('err_file'),
     _ => null,
   };
   if (msg == null) return '${job['error'] ?? context.t('error_generic')}';

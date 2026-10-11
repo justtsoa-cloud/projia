@@ -39,6 +39,7 @@ from tontolo.update import check_update, download_update
 
 LOOPBACK = {"127.0.0.1", "::1", "localhost"}
 MEDIA_TURN_KINDS = {"image_gen", "image_edit", "tts", "music_sfx", "video_gen"}
+REVIEWED_TOPICS = {"math", "code", "reasoning"}  # réponses vérifiées par un second modèle
 
 
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
@@ -500,8 +501,14 @@ def create_app(
         text = _text_of(body.content)
         user_seq = 0
         switch = False
+        topic = ""
+        final: dict[str, Any] | None = None
         async for ev in core.chat.send(cid, body.content, model=body.model, forced=category,
                                        strict=body.strict, use_tools=body.use_tools):
+            if ev["type"] == "route":
+                topic = str((ev.get("profile") or {}).get("category") or "")
+            if ev["type"] == "done":
+                final = ev
             if ev["type"] == "user_saved":
                 user_seq = int(ev.get("seq") or 0)
             if (ev["type"] == "done" and _wants_image(text)
@@ -509,6 +516,15 @@ def create_app(
                 switch = True
                 break                     # on ne montre pas le refus
             yield ev
+        answer = str(((final or {}).get("message") or {}).get("content") or "")
+        if (not switch and final is not None and core.settings.team_review
+                and topic in REVIEWED_TOPICS and len(answer) > 80
+                and not (final.get("message") or {}).get("tool_calls")):
+            # Équipe de modèles : un second modèle d'une autre famille vérifie la réponse.
+            yield {"type": "step", "step": "answer_reviewing"}
+            verdict = await core.creator.review_answer(text, answer, str(final.get("model")))
+            yield {"type": "review", **verdict} if verdict else {"type": "step",
+                                                                 "step": "doc_done"}
         if switch and user_seq:
             await core.db.truncate_after(cid, user_seq)
             yield {"type": "media_switch"}

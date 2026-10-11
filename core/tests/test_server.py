@@ -650,3 +650,27 @@ def test_file_request_creates_downloadable_docx(client: TestClient,
     assert r.status_code == 200 and r.content[:2] == b"PK"
     assert client.post("/tontolo/chat", json={"content": "x", "category": "file:../x"}
                        ).status_code == 400
+
+
+def test_math_answer_cross_checked_by_second_model(client: TestClient,
+                                                   monkeypatch: pytest.MonkeyPatch) -> None:
+    from tontolo.creator.service import CreatorService
+
+    seen: dict[str, str] = {}
+
+    async def review(self: Any, question: str, answer: str, writer: str) -> dict[str, Any]:
+        seen.update(question=question, writer=writer)
+        return {"ok": False, "issues": ["erreur de signe"], "model": "fake:b", "name": "B"}
+
+    monkeypatch.setattr(CreatorService, "review_answer", review)
+    question = "Résous l'équation $x^2 - 4 = 0$ et détaille chaque étape du calcul, merci beaucoup"
+    with client.stream("POST", "/tontolo/chat", json={"content": question}) as s:
+        events = [json.loads(x[5:]) for x in s.iter_lines() if x.startswith("data:")]
+    kinds = [e["type"] for e in events]
+    assert kinds.index("done") < kinds.index("review")
+    rev = next(e for e in events if e["type"] == "review")
+    assert rev["ok"] is False and rev["issues"] == ["erreur de signe"]
+    assert seen["question"] == question
+    # Conversation courante (« salut ») : pas de vérification.
+    with client.stream("POST", "/tontolo/chat", json={"content": "salut"}) as s:
+        assert not any('"review"' in x for x in s.iter_lines())

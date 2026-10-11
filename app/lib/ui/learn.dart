@@ -81,10 +81,14 @@ class _LearnShortcut {
   final bool photo;
 }
 
-const _learnShortcuts = [
-  _LearnShortcut(Icons.lightbulb_outline, 'ls_explain'),
+/// Quatre façons d'étudier, visibles tout de suite ; le reste est replié dans « Plus ».
+const _mainShortcuts = [
   _LearnShortcut(Icons.photo_camera_outlined, 'ls_exercise', photo: true),
+  _LearnShortcut(Icons.lightbulb_outline, 'ls_explain'),
   _LearnShortcut(Icons.quiz_outlined, 'ls_quiz'),
+  _LearnShortcut(Icons.account_tree_outlined, 'ls_mindmap'),
+];
+const _moreShortcuts = [
   _LearnShortcut(Icons.style_outlined, 'ls_cards'),
   _LearnShortcut(Icons.event_note_outlined, 'ls_plan'),
   _LearnShortcut(Icons.fact_check_outlined, 'ls_check'),
@@ -92,9 +96,7 @@ const _learnShortcuts = [
   _LearnShortcut(Icons.record_voice_over_outlined, 'ls_oral'),
 ];
 
-const _subjects = ['sub_math', 'sub_physics', 'sub_svt', 'sub_french', 'sub_english', 'sub_history', 'sub_philo', 'sub_cs', 'sub_malagasy'];
-
-/// Accueil du mode Apprendre : niveau, matière, façons d'étudier.
+/// Accueil du mode Apprendre : une question, le niveau en un geste, quatre grandes actions.
 class LearnEmptyState extends StatefulWidget {
   const LearnEmptyState({super.key, required this.onPrefill});
   final void Function(String text, {bool photo}) onPrefill;
@@ -104,90 +106,94 @@ class LearnEmptyState extends StatefulWidget {
 }
 
 class _LearnEmptyStateState extends State<LearnEmptyState> {
-  String? subject;
+  bool more = false;
+
+  Widget _tile(BuildContext context, _LearnShortcut s, {bool big = false}) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.tertiaryContainer.withValues(alpha: big ? 0.7 : 0.45),
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () {
+          HapticFeedback.selectionClick();
+          widget.onPrefill(context.t('${s.key}_p', {'subject': ''}), photo: s.photo);
+        },
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: big ? 14 : 8),
+          child: Row(children: [
+            CircleAvatar(radius: big ? 22 : 17, backgroundColor: scheme.tertiaryContainer, child: Icon(s.icon, size: big ? 24 : 19, color: scheme.onTertiaryContainer)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(context.t(s.key), maxLines: 2, overflow: TextOverflow.ellipsis, style: (big ? Theme.of(context).textTheme.titleMedium : Theme.of(context).textTheme.titleSmall)?.copyWith(height: 1.15)),
+                const SizedBox(height: 2),
+                Text(context.t('${s.key}_sub'),
+                    maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant, height: 1.15)),
+              ]),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final scope = AppScope.of(context);
-    final chat = scope.chat;
+    final chat = AppScope.of(context).chat;
     final scheme = Theme.of(context).colorScheme;
-    final width = MediaQuery.sizeOf(context).width;
-    final cols = width >= 1100 ? 4 : (width >= 600 ? 3 : 2);
-    final subj = subject == null ? '' : context.t(subject!);
+    final wide = MediaQuery.sizeOf(context).width >= 600;
     return Center(
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900),
+          constraints: const BoxConstraints(maxWidth: 760),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             CircleAvatar(radius: 28, backgroundColor: scheme.tertiaryContainer, child: Icon(Icons.school, size: 30, color: scheme.onTertiaryContainer)),
             const SizedBox(height: 10),
             Text(context.t('learn_hello'), style: Theme.of(context).textTheme.titleLarge, textAlign: TextAlign.center),
             const SizedBox(height: 4),
             Text(context.t('learn_promise'), style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant), textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            Text(context.t('learn_level'), style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 6),
-            Wrap(spacing: 6, runSpacing: 6, children: [
-              for (final l in learnLevels)
-                ChoiceChip(
-                  label: Text(context.t('lvl_$l')),
-                  selected: chat.level == l,
-                  onSelected: (_) => chat.setLevel(l),
-                ),
-            ]),
             const SizedBox(height: 12),
-            Text(context.t('learn_subject'), style: Theme.of(context).textTheme.labelLarge),
-            const SizedBox(height: 6),
-            Wrap(spacing: 6, runSpacing: 6, children: [
-              for (final s in _subjects)
-                FilterChip(
-                  label: Text(context.t(s)),
-                  selected: subject == s,
-                  onSelected: (v) => setState(() => subject = v ? s : null),
+            Center(
+              child: PopupMenuButton<String>(
+                tooltip: context.t('learn_level'),
+                onSelected: chat.setLevel,
+                itemBuilder: (context) => [
+                  for (final l in learnLevels) CheckedPopupMenuItem(value: l, checked: chat.level == l, child: Text(context.t('lvl_$l'))),
+                ],
+                child: Chip(
+                  avatar: const Icon(Icons.stairs_outlined, size: 18),
+                  label: Text('${context.t('learn_level')} : ${context.t('lvl_${chat.level}')}  ▾'),
                 ),
-            ]),
-            const SizedBox(height: 16),
+              ),
+            ),
+            const SizedBox(height: 14),
             GridView.count(
-              crossAxisCount: cols,
+              crossAxisCount: wide ? 2 : 1,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               mainAxisSpacing: 10,
               crossAxisSpacing: 10,
-              childAspectRatio: cols == 2 ? 2.15 : 2.6,
-              children: [
-                for (final s in _learnShortcuts)
-                  Material(
-                    color: scheme.tertiaryContainer.withValues(alpha: 0.55),
-                    borderRadius: BorderRadius.circular(18),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(18),
-                      onTap: () {
-                        HapticFeedback.selectionClick();
-                        final text = context.t('${s.key}_p', {'subject': subj.isEmpty ? '' : ' ($subj)'});
-                        widget.onPrefill(text, photo: s.photo);
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        child: Row(children: [
-                          CircleAvatar(radius: 17, backgroundColor: scheme.tertiaryContainer, child: Icon(s.icon, size: 19, color: scheme.onTertiaryContainer)),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text(context.t(s.key), maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.titleSmall?.copyWith(height: 1.15)),
-                              const SizedBox(height: 2),
-                              Text(context.t('${s.key}_sub'),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant, height: 1.15)),
-                            ]),
-                          ),
-                        ]),
-                      ),
-                    ),
-                  ),
-              ],
+              childAspectRatio: wide ? 3.6 : 4.6,
+              children: [for (final s in _mainShortcuts) _tile(context, s, big: true)],
             ),
+            const SizedBox(height: 6),
+            TextButton.icon(
+              icon: Icon(more ? Icons.expand_less : Icons.expand_more),
+              label: Text(context.t(more ? 'learn_less' : 'learn_more')),
+              onPressed: () => setState(() => more = !more),
+            ),
+            if (more)
+              GridView.count(
+                crossAxisCount: wide ? 3 : 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+                childAspectRatio: wide ? 2.6 : 2.15,
+                children: [for (final s in _moreShortcuts) _tile(context, s)],
+              ),
           ]),
         ),
       ),
@@ -201,7 +207,7 @@ class LearnActions extends StatelessWidget {
   final ValueChanged<String> onSend;
   final ValueChanged<String> onPrefill;
 
-  static const _send = ['la_hint', 'la_lost', 'la_quiz', 'la_cards', 'la_solution'];
+  static const _send = ['la_hint', 'la_lost', 'la_next', 'la_quiz'];
 
   @override
   Widget build(BuildContext context) {
@@ -209,8 +215,7 @@ class LearnActions extends StatelessWidget {
       'la_hint': Icons.lightbulb_outline,
       'la_lost': Icons.help_outline,
       'la_quiz': Icons.quiz_outlined,
-      'la_cards': Icons.style_outlined,
-      'la_solution': Icons.visibility_outlined,
+      'la_next': Icons.arrow_forward,
     };
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 12, 6),

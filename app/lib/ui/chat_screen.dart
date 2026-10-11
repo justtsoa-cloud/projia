@@ -554,7 +554,7 @@ const _shortcuts = [
   _Shortcut(Icons.translate, 'sc_translate', 'sc_translate_p', tone: 2),
   _Shortcut(Icons.school_outlined, 'sc_explain', 'sc_explain_p', tone: 1),
   _Shortcut(Icons.summarize_outlined, 'sc_summary', 'sc_summary_p', tone: 0),
-  _Shortcut(Icons.photo_camera_back_outlined, 'sc_animate', 'sc_animate_p', photo: true, tone: 2),
+  _Shortcut(Icons.note_add_outlined, 'sc_file', 'sc_file_p', tone: 2),
 ];
 
 const _examples = ['sugg1', 'sugg2', 'sugg3', 'sugg4', 'sugg5', 'sugg6', 'sugg7', 'sugg8', 'sugg9'];
@@ -710,6 +710,13 @@ class _Notice extends StatelessWidget {
       'media' => (Icons.auto_awesome, context.t('media_switch'), scheme.tertiary, false),
       'errorc' => (Icons.error_outline, _errorText(context, parts), scheme.error, true),
       'document' => (Icons.description_outlined, context.t('doc_attached', {'name': parts.length > 1 ? parts[1] : '', 'n': parts.length > 2 ? parts[2] : '?'}), scheme.secondary, false),
+      'review' => (
+          parts.length > 1 && parts[1] == '1' ? Icons.verified_outlined : Icons.report_outlined,
+          parts.length > 1 && parts[1] == '1'
+              ? context.t('review_ok', {'m': parts.length > 2 ? parts[2] : ''})
+              : context.t('review_issues', {'m': parts.length > 2 ? parts[2] : '', 'issues': parts.skip(3).join('|').split('\u0001').join(' ; ')}),
+          parts.length > 1 && parts[1] == '1' ? scheme.secondary : scheme.tertiary,
+          false),
       'imported' => (Icons.download_done, context.t(parts.length > 3 && parts[3] != '1' ? 'imported_many' : 'imported', {'n': parts.length > 1 ? parts[1] : '?', 'src': _sourceName(context, parts.length > 2 ? parts[2] : ''), 'k': parts.length > 3 ? parts[3] : '1'}), scheme.secondary, false),
       'offline_queued' => (Icons.cloud_upload_outlined, context.t('offline_queued'), scheme.tertiary, false),
       'memory' => (Icons.bookmark_added_outlined, context.t('memory_saved', {'text': parts.skip(1).join('|')}), scheme.secondary, false),
@@ -722,6 +729,13 @@ class _Notice extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(child: Text(text, style: Theme.of(context).textTheme.bodySmall?.copyWith(color: color))),
         if (action) TextButton(onPressed: onRetry, child: Text(context.t('retry'))),
+        if (parts.first == 'review' && parts.length > 1 && parts[1] == '0')
+          TextButton(
+            onPressed: () => AppScope.of(context).chat.send(context.t('review_fix_p', {
+              'issues': parts.skip(3).join('|').split('\u0001').join(' ; '),
+            })),
+            child: Text(context.t('review_fix')),
+          ),
         if (parts.first == 'offline_queued')
           TextButton(
             onPressed: () => AppScope.of(context).chat.cancelOfflineQueue(),
