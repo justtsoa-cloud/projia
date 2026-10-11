@@ -1,0 +1,15 @@
+Tontolo choisit pour chaque message le meilleur modèle d'intelligence artificielle gratuit, et bascule automatiquement vers un autre quand un quota est atteint : vous continuez sans payer et sans configurer.
+
+• Discussion, code et mathématiques (formules LaTeX), recherche sur le web avec les sources
+• Images, courtes vidéos et voix, gratuitement
+• Documents PDF ou texte : réponses avec citation des pages
+• Mode Apprendre pour les élèves et étudiants : un tuteur qui guide pas à pas sans faire les devoirs à votre place, quiz interactifs, fiches de révision, plan de révision
+• Importez une discussion commencée dans Claude, ChatGPT ou Gemini et continuez-la ici
+• Dossiers, recherche plein texte, partage en page web
+• Compte facultatif (Google ou GitHub) et synchronisation chiffrée de bout en bout entre vos appareils
+• Retouche de photos sur l'appareil, mémoire à long terme, modèles locaux hors ligne
+• Français, anglais et malgache
+
+Vie privée : pas de publicité ; statistiques anonymes désactivables ; vos clés restent sur l'appareil.
+
+Logiciel libre (Apache-2.0) créé par RANIRIAMANJAKA Antsa.

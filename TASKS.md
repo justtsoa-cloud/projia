@@ -154,7 +154,7 @@ Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cass�
 - [x] F1. Aide par fournisseur d'API : étapes simples et lien direct pour obtenir la clé (fr/en/mg)
 - [x] F2. Réglages simplifiés : proposer les serveurs d'API payants avec plafond de dépense (simple)
 - [ ] F3. Mode Apprendre (élèves / étudiants), inspiré de Khanmigo, MagicSchool, MIA Seconde, Dinobot : bascule Général / Apprendre bien visible, niveau scolaire, guidage pas à pas sans donner la réponse, indices, quiz interactifs, fiches, correction d'exercice en photo, plan de révision
-- [ ] F4. Comptes (Google / GitHub) et synchronisation entre appareils : discussions, mémoires, clés d'API (chiffrées de bout en bout)
-- [ ] F5. Guide de publication : Play Store, F-Droid, dépôts Linux (Flathub, AUR, Snap, .deb)
+- [~] F4. Comptes (Google / GitHub) et synchronisation entre appareils : discussions, mémoires, clés d'API (chiffrées de bout en bout)
+- [x] F5. Guide de publication : Play Store, F-Droid, dépôts Linux (Flathub, AUR, Snap, .deb)
 - [ ] F6. Audit de vulnérabilités + compatibilité de saut de mise à jour (0.2.0 → 0.3.0) sur émulateur
 - [ ] F7. Publier la 0.3.0

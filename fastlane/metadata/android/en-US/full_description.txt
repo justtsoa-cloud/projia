@@ -1,0 +1,15 @@
+Tontolo picks the best free AI model for every message and automatically switches to another one when a quota is reached: you keep going without paying or configuring anything.
+
+• Chat, code and maths (LaTeX formulas), web search with sources
+• Free images, short videos and voice
+• PDF or text documents: answers that cite the pages
+• Learn mode for pupils and students: a tutor that guides you step by step without doing your homework, interactive quizzes, flashcards, study plans
+• Import a chat started in Claude, ChatGPT or Gemini and continue it here
+• Folders, full-text search, share as a web page
+• Optional account (Google or GitHub) with end-to-end encrypted sync between your devices
+• On-device photo retouching, long-term memory, offline local models
+• French, English and Malagasy
+
+Privacy: no ads; anonymous statistics you can turn off; your keys stay on your device.
+
+Free software (Apache-2.0) created by RANIRIAMANJAKA Antsa.

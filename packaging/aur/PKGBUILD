@@ -1,0 +1,27 @@
+# Maintainer: RANIRIAMANJAKA Antsa <antsa.raniriamanjaka@univ-antananarivo.mg>
+pkgname=tontolo-bin
+pkgver=0.3.0
+pkgrel=1
+pkgdesc="Assistant IA gratuit qui choisit le meilleur modèle gratuit et bascule quand un quota est atteint"
+arch=('x86_64')
+url="https://github.com/raantss18/tontolo"
+license=('Apache-2.0')
+depends=('fuse2' 'gtk3' 'libsecret')
+provides=('tontolo')
+conflicts=('tontolo')
+options=('!strip' '!debug')
+source=("Tontolo-${pkgver}-x86_64.AppImage::${url}/releases/download/v${pkgver}/Tontolo-${pkgver}-x86_64.AppImage"
+        "tontolo.desktop::https://raw.githubusercontent.com/raantss18/tontolo/v${pkgver}/packaging/flatpak/io.github.raantss18.tontolo.desktop"
+        "tontolo.png::https://raw.githubusercontent.com/raantss18/tontolo/v${pkgver}/docs/brand/tontolo-icon-512.png")
+noextract=("Tontolo-${pkgver}-x86_64.AppImage")
+# Sommes à recopier depuis SHA256SUMS de la release (makepkg -g pour les autres).
+sha256sums=('SKIP' 'SKIP' 'SKIP')
+
+package() {
+  install -Dm755 "Tontolo-${pkgver}-x86_64.AppImage" "${pkgdir}/opt/tontolo/Tontolo.AppImage"
+  install -dm755 "${pkgdir}/usr/bin"
+  ln -s /opt/tontolo/Tontolo.AppImage "${pkgdir}/usr/bin/tontolo"
+  sed 's|^Exec=.*|Exec=tontolo|; s|^Icon=.*|Icon=tontolo|' tontolo.desktop > tontolo.fixed.desktop
+  install -Dm644 tontolo.fixed.desktop "${pkgdir}/usr/share/applications/tontolo.desktop"
+  install -Dm644 tontolo.png "${pkgdir}/usr/share/icons/hicolor/512x512/apps/tontolo.png"
+}
