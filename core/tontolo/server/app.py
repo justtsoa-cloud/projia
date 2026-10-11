@@ -964,6 +964,26 @@ def create_app(
                 "month": await db.spend_since(now - 31 * 86400),
                 "entries": await db.list_spend()}
 
+    @app.get("/tontolo/cloud/export")
+    async def cloud_export(request: Request, since: float = 0) -> dict[str, Any]:
+        """Conversations modifiées depuis `since` (entières) pour la synchronisation par
+        compte ; l'application les chiffre avant de les envoyer."""
+        db = core_of(request).db
+        until = time.time()
+        return {"conversations": await db.export_conversations(since), "until": until}
+
+    @app.post("/tontolo/cloud/import")
+    async def cloud_import(request: Request) -> dict[str, int]:
+        body = await request.json()
+        db = core_of(request).db
+        applied = 0
+        for conv in (body.get("conversations") or [])[:5000]:
+            try:
+                applied += await db.replace_conversation(conv)
+            except (KeyError, TypeError, ValueError):
+                continue  # élément illisible : ignoré, les autres sont appliqués
+        return {"applied": applied}
+
     @app.get("/tontolo/sync")
     async def sync_export(request: Request, since: float = 0) -> dict[str, Any]:
         return await core_of(request).db.export_since(since)

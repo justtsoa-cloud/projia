@@ -603,3 +603,24 @@ def test_learn_mode_is_kept_per_conversation(client: TestClient, fake: FakeProvi
         list(s.iter_lines())
     assert "mode Apprendre" not in fake.last_messages[0]["content"]
     assert client.post("/tontolo/chat", json={"content": "x", "mode": "hack"}).status_code == 422
+
+
+def test_cloud_sync_whole_conversations(client: TestClient, tmp_path: Any) -> None:
+    with client.stream("POST", "/tontolo/chat", json={"content": "Bonjour"}) as s:
+        list(s.iter_lines())
+    exported = client.get("/tontolo/cloud/export", params={"since": 0}).json()
+    conv = exported["conversations"][0]
+    assert [m["role"] for m in conv["messages"]] == ["user", "assistant"]
+    # Même conversation, modifiée « ailleurs » : plus récente → remplace (sans doublons).
+    newer = {**conv, "title": "Depuis le téléphone", "updated_at": conv["updated_at"] + 10,
+             "messages": conv["messages"][:1]}
+    assert client.post("/tontolo/cloud/import", json={"conversations": [newer]}).json() == {
+        "applied": 1}
+    got = client.get(f"/tontolo/conversations/{conv['id']}").json()["messages"]
+    assert len(got) == 1
+    # Version plus ancienne : ignorée ; élément illisible : ignoré.
+    old = {**conv, "updated_at": conv["updated_at"] - 100}
+    assert client.post("/tontolo/cloud/import", json={"conversations": [old, {"x": 1}]}
+                       ).json() == {"applied": 0}
+    assert client.get("/tontolo/cloud/export",
+                      params={"since": exported["until"] + 20}).json()["conversations"] == []

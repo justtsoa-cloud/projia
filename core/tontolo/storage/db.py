@@ -309,6 +309,8 @@ class Database:
         await self.conn.execute(
             "UPDATE messages SET body = ?, updated_at = ? WHERE conversation_id = ? AND seq = ?",
             (json.dumps(message, ensure_ascii=False), now(), cid, seq))
+        await self.conn.execute("UPDATE conversations SET updated_at = ? WHERE id = ?",
+                                (now(), cid))
         await self.conn.commit()
 
     async def delete_conversation(self, cid: str) -> None:
@@ -643,6 +645,57 @@ class Database:
             applied += cur.rowcount
         await self.conn.commit()
         return applied
+
+
+    # --- Synchronisation par compte (0.3.0) : une conversation = un élément ---------------
+    # Le dernier qui écrit gagne, conversation entière : suppressions, régénérations et
+    # modifications se propagent sans doublons de messages.
+
+    _CONV_SYNC_COLS = ("id", "title", "created_at", "updated_at", "deleted", "pinned", "folder",
+                       "mode")
+
+    async def export_conversations(self, since: float) -> list[dict[str, Any]]:
+        cols = ", ".join(self._CONV_SYNC_COLS)
+        convs = await self._fetchall(
+            f"SELECT {cols} FROM conversations WHERE updated_at > ? ORDER BY updated_at",
+            (since,))
+        out = []
+        for c in convs:
+            d = dict(c)
+            rows = [] if d["deleted"] else await self._fetchall(
+                "SELECT uid, seq, role, body, model, created_at, updated_at FROM messages "
+                "WHERE conversation_id = ? ORDER BY seq", (d["id"],))
+            d["messages"] = [dict(r) for r in rows]
+            out.append(d)
+        return out
+
+    async def replace_conversation(self, conv: dict[str, Any]) -> bool:
+        """Applique une conversation venue d'un autre appareil si elle est plus récente."""
+        cid = str(conv["id"])
+        row = await self._fetchone("SELECT updated_at FROM conversations WHERE id = ?", (cid,))
+        if row is not None and float(row["updated_at"]) >= float(conv["updated_at"]):
+            return False
+        values = {k: conv.get(k) for k in self._CONV_SYNC_COLS}
+        values.update(title=str(values["title"] or "")[:200], deleted=int(values["deleted"] or 0),
+                      pinned=int(values["pinned"] or 0), folder=str(values["folder"] or "")[:60],
+                      mode=str(values["mode"] or "")[:40])
+        await self.conn.execute(
+            """INSERT INTO conversations(id, title, created_at, updated_at, deleted, pinned,
+               folder, mode) VALUES (:id, :title, :created_at, :updated_at, :deleted, :pinned,
+               :folder, :mode)
+               ON CONFLICT(id) DO UPDATE SET title = excluded.title,
+               updated_at = excluded.updated_at, deleted = excluded.deleted,
+               pinned = excluded.pinned, folder = excluded.folder, mode = excluded.mode,
+               summary = NULL, summary_upto = 0""", values)
+        await self.conn.execute("DELETE FROM messages WHERE conversation_id = ?", (cid,))
+        for m in conv.get("messages") or []:
+            await self.conn.execute(
+                """INSERT OR REPLACE INTO messages(uid, conversation_id, seq, role, body, model,
+                   created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (str(m["uid"]), cid, int(m["seq"]), str(m["role"]), str(m["body"]),
+                 m.get("model"), float(m["created_at"]), float(m["updated_at"])))
+        await self.conn.commit()
+        return True
 
 
 def _job_row(row: aiosqlite.Row) -> dict[str, Any]:
