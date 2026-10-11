@@ -131,6 +131,9 @@ class ChatBody(BaseModel):
     category: str | None = None
     strict: bool = False
     use_tools: bool = True
+    # « general » ou « learn » (mode Apprendre) ; `level` : primaire, college, lycee…
+    mode: str | None = Field(default=None, pattern="^(general|learn)$")
+    level: str | None = Field(default=None, pattern="^[a-z]{1,20}$")
 
 
 class LocalMediaBody(BaseModel):
@@ -472,6 +475,9 @@ def create_app(
             cid = await core.db.create_conversation(text[:60].strip(), cid)
             first.append({"type": "conversation", "id": cid})
         body.conversation_id = cid
+        if body.mode is not None:
+            await core.db.set_mode(cid, f"learn:{body.level or 'lycee'}" if body.mode == "learn"
+                                   else "")
         if category is not None and category.value in MEDIA_TURN_KINDS:
             return _turn(core, cid, _media_turn(core, body, category), first)
         return _turn(core, cid, _text_turn(core, body, cid, category), first)
@@ -637,6 +643,7 @@ def create_app(
         if not await db.conversation_exists(cid):
             raise HTTPException(404, "Conversation introuvable")
         return {"id": cid, "messages": await db.get_messages(cid, after, limit),
+                "mode": await db.get_mode(cid),
                 "active": core_of(request).turns.active(cid) is not None}
 
 

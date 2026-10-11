@@ -184,6 +184,9 @@ class Database:
         if "folder" not in cols:
             await self.conn.execute(
                 "ALTER TABLE conversations ADD COLUMN folder TEXT NOT NULL DEFAULT ''")
+        if "mode" not in cols:  # 0.3.0 : « » (général) ou « learn:<niveau> » (mode Apprendre)
+            await self.conn.execute(
+                "ALTER TABLE conversations ADD COLUMN mode TEXT NOT NULL DEFAULT ''")
 
     async def close(self) -> None:
         if self._conn is not None:
@@ -235,7 +238,7 @@ class Database:
         if query:
             like = "%" + query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
             rows = await self._fetchall(
-                f"""SELECT c.id, c.title, c.created_at, c.updated_at, c.pinned, c.folder,
+                f"""SELECT c.id, c.title, c.created_at, c.updated_at, c.pinned, c.folder, c.mode,
                           (SELECT m.body FROM messages m WHERE m.conversation_id = c.id
                              AND m.body LIKE ? ESCAPE '\\' ORDER BY m.seq DESC LIMIT 1) AS hit
                    FROM conversations c
@@ -252,12 +255,22 @@ class Database:
                 out.append(d)
             return out
         rows = await self._fetchall(
-            f"""SELECT c.id, c.title, c.created_at, c.updated_at, c.pinned, c.folder
+            f"""SELECT c.id, c.title, c.created_at, c.updated_at, c.pinned, c.folder, c.mode
                FROM conversations c WHERE {where}
                ORDER BY c.pinned DESC, c.updated_at DESC LIMIT ? OFFSET ?""",
             (*args, limit, offset),
         )
         return [dict(r) for r in rows]
+
+    async def get_mode(self, cid: str) -> str:
+        row = await self._fetchone("SELECT mode FROM conversations WHERE id = ?", (cid,))
+        return str(row["mode"]) if row else ""
+
+    async def set_mode(self, cid: str, mode: str) -> None:
+        await self.conn.execute(
+            "UPDATE conversations SET mode = ?, updated_at = ? WHERE id = ?",
+            (mode[:40], now(), cid))
+        await self.conn.commit()
 
     async def set_folder(self, cid: str, folder: str) -> None:
         await self.conn.execute(
@@ -601,13 +614,18 @@ class Database:
         """Fusionne un lot distant (dernier écrit gagne). Renvoie le nombre de lignes appliquées."""
         applied = 0
         for c in payload.get("conversations", []):
+            # Lots d'anciennes versions : sans épingle, dossier ni mode.
+            c = {"pinned": 0, "folder": "", "mode": "", "summary": None, "summary_upto": 0,
+                 "deleted": 0, **c}
             cur = await self.conn.execute(
                 """INSERT INTO conversations(id, title, created_at, updated_at, summary,
-                   summary_upto, deleted) VALUES (:id, :title, :created_at, :updated_at,
-                   :summary, :summary_upto, :deleted)
+                   summary_upto, deleted, pinned, folder, mode) VALUES (:id, :title,
+                   :created_at, :updated_at, :summary, :summary_upto, :deleted, :pinned,
+                   :folder, :mode)
                    ON CONFLICT(id) DO UPDATE SET title = excluded.title,
                    updated_at = excluded.updated_at, summary = excluded.summary,
-                   summary_upto = excluded.summary_upto, deleted = excluded.deleted
+                   summary_upto = excluded.summary_upto, deleted = excluded.deleted,
+                   pinned = excluded.pinned, folder = excluded.folder, mode = excluded.mode
                    WHERE excluded.updated_at > conversations.updated_at""",
                 c,
             )

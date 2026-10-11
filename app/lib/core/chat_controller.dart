@@ -56,6 +56,24 @@ class ChatController extends ChangeNotifier {
 
   void refresh() => notifyListeners();
 
+  // Mode Apprendre (tuteur) : propre à chaque discussion, mémorisé par le cœur.
+  late bool learn = backend.prefs.learnMode;
+  String get level => backend.prefs.learnLevel;
+  bool _modeChanged = false; // à transmettre avec le prochain message
+
+  void setLearn(bool value) {
+    learn = value;
+    backend.prefs.learnMode = value;
+    _modeChanged = true;
+    notifyListeners();
+  }
+
+  void setLevel(String value) {
+    backend.prefs.learnLevel = value;
+    _modeChanged = true;
+    notifyListeners();
+  }
+
   /// Bandeau d'information dans la discussion courante (ex. « discussion importée »).
   void addNotice(String raw) {
     messages.add(ChatMessage(role: 'notice', text: raw));
@@ -169,6 +187,8 @@ class ChatController extends ChangeNotifier {
     cancelOfflineQueue(notify: false);
     _sub?.cancel();
     conversationId = null;
+    learn = backend.prefs.learnMode;
+    _modeChanged = false;
     messages.clear();
     busy = false;
     pending = null;
@@ -181,6 +201,7 @@ class ChatController extends ChangeNotifier {
     conversationId = id;
     try {
       final data = await backend.getJson('/tontolo/conversations/$id') as Map<String, dynamic>;
+      if (data.containsKey('mode')) learn = '${data['mode']}'.startsWith('learn');
       await _loadMessages((data['messages'] as List).cast<Map<String, dynamic>>());
       await _loadDocuments();
       notifyListeners();
@@ -234,11 +255,17 @@ class ChatController extends ChangeNotifier {
             if (text.isNotEmpty) {'type': 'text', 'text': text},
             for (final img in images) {'type': 'image_url', 'image_url': {'url': img}},
           ];
+    // Le mode n'est envoyé que s'il compte : nouvelle discussion, bascule, ou mode Apprendre
+    // (un ancien serveur distant ignore simplement ces champs).
+    final sendMode = conversationId == null || _modeChanged || learn;
+    _modeChanged = false;
     _run(backend.sse('/tontolo/chat', {
       'conversation_id': conversationId,
       'content': content,
       'model': modelOverride,
       'category': category,
+      if (sendMode) 'mode': learn ? 'learn' : 'general',
+      if (sendMode && learn) 'level': level,
     }));
   }
 

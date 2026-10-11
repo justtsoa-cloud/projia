@@ -582,3 +582,24 @@ def test_import_conversation_then_continue(client: TestClient) -> None:
     r = client.post("/tontolo/import", json={
         "url": "https://claude.ai/chat/04393426-e2c1-4fce-a779-ad538512da66"})
     assert r.status_code == 422 and r.json()["detail"]["code"] == "import_private"
+
+
+def test_learn_mode_is_kept_per_conversation(client: TestClient, fake: FakeProvider) -> None:
+    with client.stream("POST", "/tontolo/chat", json={
+            "content": "Explique-moi les fractions", "mode": "learn", "level": "college"}) as s:
+        lines = list(s.iter_lines())
+    cid = next(json.loads(x[5:])["id"] for x in lines if '"conversation"' in x)
+    conv = client.get(f"/tontolo/conversations/{cid}").json()
+    assert conv["mode"] == "learn:college"
+    system = fake.last_messages[0]["content"]
+    assert "mode Apprendre" in system and "collège" in system
+    # Message suivant sans « mode » : le mode de la discussion est conservé.
+    with client.stream("POST", "/tontolo/chat", json={
+            "conversation_id": cid, "content": "et 1/2 + 1/3 ?"}) as s:
+        list(s.iter_lines())
+    assert "mode Apprendre" in fake.last_messages[0]["content"]
+    with client.stream("POST", "/tontolo/chat", json={
+            "conversation_id": cid, "content": "merci", "mode": "general"}) as s:
+        list(s.iter_lines())
+    assert "mode Apprendre" not in fake.last_messages[0]["content"]
+    assert client.post("/tontolo/chat", json={"content": "x", "mode": "hack"}).status_code == 422

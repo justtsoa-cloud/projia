@@ -21,12 +21,14 @@ class FakeProvider:
     calls: list[tuple[str, int]] = field(default_factory=list)
     fail_mid_stream: set[str] = field(default_factory=set)
     chunk_delay: float = 0.0  # simule une génération lente
+    last_messages: list[dict[str, Any]] = field(default_factory=list)
 
     def fail(self, model_id: str, *errors: ProviderError) -> None:
         self.errors.setdefault(model_id, []).extend(errors)
 
     def _answer(self, model: ModelInfo, messages: list[dict[str, Any]]) -> dict[str, Any]:
         self.calls.append((model.model_id, len(messages)))
+        self.last_messages = messages
         queue = self.errors.get(model.model_id)
         if queue:
             raise queue.pop(0)

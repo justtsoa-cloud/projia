@@ -16,6 +16,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../core/chat_controller.dart';
 import '../core/speech.dart';
 import '../main.dart';
+import 'learn.dart';
 import 'video_view.dart';
 
 class MessageView extends StatelessWidget {
@@ -75,7 +76,7 @@ class MessageView extends StatelessWidget {
               else if (message.text.isNotEmpty)
                 isUser
                     ? SelectableText(message.text)
-                    : RichMarkdown(message.text),
+                    : LearnBody(message.text),
               if (message.job != null) MediaResult(job: message.job!, onRetry: onRegenerate),
               if (message.sources.isNotEmpty && !message.streaming)
                 _Sources(message.sources),
@@ -305,15 +306,16 @@ class _Sources extends StatelessWidget {
 
 /// Markdown avec mathématiques LaTeX et blocs de code copiables.
 class RichMarkdown extends StatelessWidget {
-  const RichMarkdown(this.data, {super.key});
+  const RichMarkdown(this.data, {super.key, this.selectable = true});
   final String data;
+  final bool selectable; // false dans les éléments à toucher (choix d'un quiz)
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return MarkdownBody(
       data: data,
-      selectable: true,
+      selectable: selectable,
       softLineBreak: true,
       onTapLink: (text, href, title) => openSafeLink(href),
       extensionSet: md.ExtensionSet(

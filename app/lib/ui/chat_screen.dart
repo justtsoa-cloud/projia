@@ -21,6 +21,7 @@ import '../main.dart';
 import 'message_view.dart';
 import 'model_picker.dart';
 import 'import_flow.dart';
+import 'learn.dart';
 import 'search_dialog.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -286,7 +287,8 @@ class _ChatScreenState extends State<ChatScreen> {
         _scrollToEnd();
         return Scaffold(
           appBar: AppBar(
-            title: Text(context.t('app')),
+            titleSpacing: 8,
+            title: ModeToggle(chat: chat),
             actions: [
               IconButton(icon: const Icon(Icons.search), tooltip: context.t('search'), onPressed: () => showSearchDialog(context)),
               IconButton(icon: const Icon(Icons.edit_square), tooltip: context.t('new_chat'), onPressed: chat.newChat),
@@ -316,7 +318,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   actions: [TextButton(onPressed: backend.start, child: Text(context.t('retry')))],
                 ),
               Expanded(
-                child: chat.messages.isEmpty
+                child: chat.messages.isEmpty && chat.learn
+                    ? LearnEmptyState(onPrefill: (text, {photo = false}) => _prefill(text, photo: photo))
+                    : chat.messages.isEmpty
                     ? _EmptyState(
                         onPick: (s) {
                           input.text = s;
@@ -341,12 +345,23 @@ class _ChatScreenState extends State<ChatScreen> {
                           final m = chat.messages[i];
                           if (m.role == 'notice') return _Notice(m.text, onRetry: chat.retry);
                           final isLast = i == chat.messages.length - 1;
-                          return MessageView(
+                          final view = MessageView(
                             message: m,
                             onWhy: () => _showWhy(m),
                             onRegenerate: isLast && m.role == 'assistant' && chat.canRegenerate ? chat.regenerate : null,
                             onEdit: m.role == 'user' && m.seq != null && !chat.busy ? () => _editMessage(chat, m) : null,
                           );
+                          if (!(isLast && chat.learn && m.role == 'assistant' && !chat.busy && m.text.isNotEmpty)) return view;
+                          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            view,
+                            LearnActions(
+                              onSend: (t) {
+                                stickToBottom = true;
+                                chat.send(t);
+                              },
+                              onPrefill: (t) => _prefill(t),
+                            ),
+                          ]);
                         },
                       ))),
               ),
@@ -929,7 +944,11 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
           ),
         for (final c in items)
           ListTile(
-            leading: c['pinned'] == 1 ? const Icon(Icons.push_pin, size: 18) : null,
+            leading: c['pinned'] == 1
+                ? const Icon(Icons.push_pin, size: 18)
+                : '${c['mode'] ?? ''}'.startsWith('learn')
+                    ? Icon(Icons.school_outlined, size: 18, color: Theme.of(context).colorScheme.tertiary)
+                    : null,
             title: Text('${c['title']}'.isEmpty ? '…' : '${c['title']}', maxLines: 1, overflow: TextOverflow.ellipsis),
             selected: c['id'] == scope.chat.conversationId,
             onTap: () {

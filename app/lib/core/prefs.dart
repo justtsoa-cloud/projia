@@ -74,6 +74,12 @@ class Prefs extends ChangeNotifier {
   double get lastSync => _sp.getDouble('lastSync') ?? 0;
   set lastSync(double v) => _sp.setDouble('lastSync', v);
 
+  /// Mode Apprendre pour les nouvelles discussions, et niveau scolaire choisi.
+  bool get learnMode => _sp.getBool('learnMode') ?? false;
+  set learnMode(bool v) => _set(() => _sp.setBool('learnMode', v));
+  String get learnLevel => _sp.getString('learnLevel') ?? 'lycee';
+  set learnLevel(String v) => _set(() => _sp.setString('learnLevel', v));
+
   int get lastUpdateCheck => _sp.getInt('lastUpdateCheck') ?? 0;
   set lastUpdateCheck(int v) => _sp.setInt('lastUpdateCheck', v);
 
