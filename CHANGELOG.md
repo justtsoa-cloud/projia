@@ -5,6 +5,22 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.5.2] - 2026-10-12
+
+### Ajouté
+- Accueil d’une nouvelle discussion vivant : salutation selon l’heure suivie du prénom de
+  l’utilisateur (réglage « Votre prénom », compte Google/GitHub, ou prénom donné dans une
+  discussion), écrite lettre par lettre ; quatre suggestions qui changent selon l’heure, le
+  jour, le mode et la dernière discussion (« Reprendre … »). Animations coupées avec
+  « Réduire les animations ».
+- Réglages › Avancé › Stockage : place occupée par type de données et bouton « Vider » le
+  cache (aucune donnée effacée).
+
+### Amélioré
+- Espace disque : tous les caches dans un seul dossier, sans doublons. Une seule mise à jour
+  téléchargée est gardée (les anciennes, jusqu’à 55 Mo chacune, étaient conservées en double),
+  fichiers temporaires effacés après un jour, cache du navigateur de l’agent plafonné.
+
 ## [0.5.1] - 2026-10-11
 
 ### Ajouté

@@ -1660,7 +1660,7 @@ const Map<String, Map<String, String>> _t = {
     'agent_paid_off': 'Maimaim-poana ihany',
     'agent_paid_ask': 'Anontanio aloha',
     'agent_paid_auto': 'Mandeha ho azy',
-    'agent_paid_help': 'Maimaim-poana ihany: tsy misy sarany mihitsy. Anontanio aloha: tsy ampiasaina ny modely mandoa vola raha tsy ekenao. Mandeha ho azy: ao anatin\'ny fetra voafaritra ao amin\'ny Kirakira › Fanampiny. Ny modely nofidianao no laharam-pahamehana.',
+    'agent_paid_help': 'Maimaim-poana ihany: tsy misy sarany mihitsy. Anontanio aloha: tsy ampiasaina ny modely mandoa vola raha tsy ekenao. Mandeha ho azy: ao anatin\'ny fetra voafaritra ao amin\'ny Kirakira › Mandroso. Ny modely nofidianao no laharam-pahamehana.',
     'compact': 'Fintinina ny resaka',
     'compacting': 'Mamintina…',
     'compact_nothing': 'Mbola fohy ny resaka: tsy misy hofintinina.',

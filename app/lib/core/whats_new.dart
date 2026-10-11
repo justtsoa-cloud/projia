@@ -14,6 +14,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.5.2': [
+    NewsItem(Icons.waving_hand_outlined, 'Un accueil qui vous salue',
+        'Chaque nouvelle discussion vous accueille selon l\'heure, avec votre prénom (Réglages › Personnalisation), et propose des idées qui changent, dont la reprise de votre dernière discussion.',
+        'A welcome that greets you', 'Each new chat greets you according to the time of day, with your first name (Settings › Personalization), and suggests changing ideas, including resuming your last chat.',
+        mg: 'Fandraisana miarahaba anao', mgText: 'Miarahaba anao araka ny ora ny resaka vaovao tsirairay, miaraka amin\'ny anaranao (Kirakira › Fanamboarana manokana), ary manolotra hevitra miova, anisan\'izany ny fanohizana ny resaka farany.'),
+    NewsItem(Icons.cleaning_services_outlined, 'Moins de place utilisée',
+        'Les caches sont regroupés et nettoyés tout seuls ; les anciennes mises à jour ne s\'accumulent plus. Réglages › Avancé › Stockage montre la place occupée.',
+        'Less storage used', 'Caches are grouped and cleaned automatically; old updates no longer pile up. Settings › Advanced › Storage shows what uses space.',
+        mg: 'Toerana kely kokoa', mgText: 'Ampivondronina sy diovina ho azy ny cache; tsy miangona intsony ny fanavaozana taloha. Ny Kirakira › Mandroso › Fitahirizana no mampiseho ny toerana ampiasaina.'),
+  ],
   '0.5.1': [
     NewsItem(Icons.smart_toy_outlined, 'Mode Agent et tâches complexes',
         'Nouvel onglet Agent avec Chercheur, Développeur, Rédacteur et Analyste, gratuits par défaut. Une grande tâche est découpée en étapes : plusieurs modèles travaillent en même temps, ou Tontolo avance pas à pas avec « Continuer ».',
