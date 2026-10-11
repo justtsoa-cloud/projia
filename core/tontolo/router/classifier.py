@@ -220,12 +220,21 @@ def _is_followup(text: str) -> bool:
 
 
 def _previous_media_category(messages: list[dict[str, Any]]) -> Category | None:
-    users = [m for m in messages if m.get("role") == "user"][:-1][-2:]
-    for m in reversed(users):
+    last = next((i for i in range(len(messages) - 1, -1, -1)
+                 if messages[i].get("role") == "user"), len(messages))
+    for m in reversed(messages[:last]):
+        if m.get("_media_kind") in {c.value for c in _MEDIA_KINDS}:
+            return Category(m["_media_kind"])
+        if m.get("role") != "user":
+            continue
         t, p = _text_and_parts(m)
+        if "image" in p and _ANIMATE.search(t):
+            return Category.VIDEO_GEN
         for cat in _MEDIA_KINDS:
             if any(rx.search(t) for rx, _ in _COMPILED.get(cat, [])):
                 return cat if "image" not in p else Category.IMAGE_EDIT
+        if "image" in p:
+            return Category.IMAGE_EDIT
     return None
 
 
@@ -264,9 +273,9 @@ def classify(
     if "image" in parts and _EDIT_VERBS.search(text) and not content_task:
         # Une photo jointe + un verbe de retouche = édition (et non une simple question).
         scores[Category.IMAGE_EDIT] = scores.get(Category.IMAGE_EDIT, 0) + 4
-    if "image" in parts and scores.get(Category.VIDEO_GEN):
+    if "image" in parts and (scores.get(Category.VIDEO_GEN) or _ANIMATE.search(text)):
         # Photo jointe + « anime-la / fais-en une vidéo » = image → vidéo.
-        scores[Category.VIDEO_GEN] += 6
+        scores[Category.VIDEO_GEN] = scores.get(Category.VIDEO_GEN, 0) + 6
         scores.pop(Category.IMAGE_EDIT, None)
         scores.pop(Category.IMAGE_GEN, None)
     elif "image" in parts and content_task:
@@ -287,7 +296,8 @@ def classify(
 
     if not scores.get(Category.VIDEO_GEN) and not parts and len(text) < 120 \
             and _ANIMATE.search(text) \
-            and _previous_media_category(messages) in (Category.IMAGE_GEN, Category.IMAGE_EDIT):
+            and (_previous_media_category(messages) in (Category.IMAGE_GEN, Category.IMAGE_EDIT)
+                 or re.search(r"anime-(?:la|le)\b|animate it\b|ampihetsiho\b", text, re.I)):
         scores[Category.VIDEO_GEN] = 5.0
     if not scores.get(Category.IMAGE_GEN) and not parts and _is_followup(text):
         # « vas-y », « refais », « oui » après une demande d'image : on hérite de la demande.

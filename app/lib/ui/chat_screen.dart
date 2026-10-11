@@ -680,6 +680,7 @@ String _errorText(BuildContext context, List<String> parts) {
   final code = parts.length > 1 ? parts[1] : '';
   final at = parts.length > 2 ? double.tryParse(parts[2]) : null;
   var msg = switch (code) {
+    'media_reference_missing' => context.t('err_image_reference'),
     'offline' => context.t('err_offline'),
     'all_failed' => context.t('err_all_failed'),
     'no_model' => context.t('err_no_model'),

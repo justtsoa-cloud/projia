@@ -59,18 +59,49 @@ def _text_of(content: Any) -> str:
                     and p.get("type") == "text")
 
 
+def _references_image(text: str) -> bool:
+    """Une référence explicite, pas une nouvelle scène texte → vidéo."""
+    return bool(re.search(
+        r"\b(anime[- ](?:la|le|les)|animate (?:it|this)|bring it to life|make it move|"
+        r"ampihetsiho|ampihetseho|(?:cette|cet|la|l['’]|this|that|the)\s*"
+        r"(?:image|photo|picture)|(?:transforme|convertis|mets)[- ](?:la|le)|"
+        r"fais[- ](?:la|le|les)[- ]bouger|donne[- ]lui vie)\b", text, re.I))
+
+
+async def _media_history(core: Core, cid: str,
+                         history: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
+    """Modalité réelle des résultats du fil ; les marqueurs étrangers sont ignorés."""
+    out = []
+    for message in history if history is not None else await core.db.get_messages(cid):
+        item = dict(message)
+        match = re.fullmatch(r"\[média:([0-9a-f]+)\]", str(item.get("content", "")))
+        if item.get("role") == "assistant" and match:
+            job = await core.db.get_job(match.group(1))
+            if job and job.get("conversation_id") == cid:
+                item["_media_kind"] = job["kind"]
+        out.append(item)
+    return out
+
+
 async def _media_prompt(core: Core, cid: str, text: str) -> str:
-    """Pour une demande de suite (« vas-y », « crée la photo »), reprend la description de la
-    demande d'image précédente pour que le générateur sache quoi créer."""
-    words = text.split()
-    if len(words) >= 6 and not _is_followup(text):
+    """Hérite uniquement pour une relance ou une référence explicite à l'image."""
+    if not (_is_followup(text) or _references_image(text)):
         return text
-    previous = [_text_of(m["content"]) for m in await core.db.get_messages(cid)
-                if m["role"] == "user"]
-    previous = [t for t in previous if t and t != text]
-    for t in reversed(previous[-3:]):
-        if len(t.split()) >= 3 and (mentions_image(t) or not _is_followup(t)):
-            return f"{t} — {text}" if len(words) < 6 else f"{t}. {text}"
+    history = await core.db.get_messages(cid)
+    # Le message courant est déjà enregistré, y compris lors d'une régénération.
+    for message in reversed(history[:-1]):
+        match = re.fullmatch(r"\[média:([0-9a-f]+)\]", str(message.get("content", "")))
+        if message.get("role") == "assistant" and match:
+            job = await core.db.get_job(match.group(1))
+            if job and job.get("conversation_id") == cid and job["kind"] in (
+                    "image_gen", "image_edit", "video_gen"):
+                return f"{job['prompt']}. {text}"
+        if message.get("role") == "user":
+            prior = _text_of(message["content"])
+            if classify([message]).category.value in MEDIA_TURN_KINDS:
+                return f"{prior}. {text}"
+            if not _is_followup(prior):
+                break
     return text
 
 
@@ -80,7 +111,8 @@ _NON_ENGLISH = re.compile(
 
 ENGLISH_PROMPT = (
     "Rewrite the user's request as one concise English prompt for an image or video "
-    "generator: describe only the subject, scene, style and mood. Translate from any "
+    "generator: preserve the subject, scene, style, mood, requested motion, camera movement, "
+    "duration and constraints on changes to the input image. Translate from any "
     "language (French, Malagasy…), keeping compound nouns whole (Malagasy « tilikambo jiro » "
     "is a lighthouse, « sambo » a boat, « vorona » a bird). Output only the prompt, nothing "
     "else.")
@@ -104,7 +136,11 @@ async def _english_prompt(core: Core, text: str) -> str:
     except Exception:  # délai dépassé ou erreur : la traduction ne bloque jamais la création
         out = None
     if not out:
-        out = await core.router.quick(messages)
+        try:
+            async with asyncio.timeout(10):
+                out = await core.router.quick(messages)
+        except Exception:
+            out = None
     out = (out or "").strip().strip('"').strip()
     return out[:900] if 3 <= len(out.split()) <= 160 else text
 
@@ -118,7 +154,8 @@ async def _last_file(core: Core, cid: str) -> tuple[str, str] | None:
         return None
     job = await core.db.get_job(mt.group(1))
     params = (job or {}).get("params") or {}
-    if not job or job.get("kind") != "file_gen" or job.get("status") != "done":
+    if (not job or job.get("conversation_id") != cid
+            or job.get("kind") != "file_gen" or job.get("status") != "done"):
         return None
     src = params.get("source_path") or job.get("result_path")
     path = Path(str(src or ""))
@@ -130,21 +167,34 @@ async def _last_file(core: Core, cid: str) -> tuple[str, str] | None:
     return str(params.get("format") or ""), text
 
 
-async def _last_image(core: Core, cid: str) -> bytes | None:
-    """Image (créée ou retouchée) la plus récente de la conversation, ou None."""
+async def _image_source(core: Core, cid: str) -> tuple[bytes | None, str | None]:
+    """Dernière image du fil. Une image échouée interdit le retour à une ancienne."""
     for m in reversed(await core.db.get_messages(cid)):
-        mt = re.match(r"^\[média:([0-9a-f]+)\]$", str(m.get("content") or "").strip())
+        if m.get("role") == "user":
+            image = _first_image(m.get("content"))
+            if image is not None:
+                return image, None
+        mt = re.fullmatch(r"\[média:([0-9a-f]+)\]", str(m.get("content", "")).strip())
         if m.get("role") != "assistant" or not mt:
             continue
         job = await core.db.get_job(mt.group(1))
-        if not job or job.get("status") != "done" or not job.get("result_path"):
+        if not job or job.get("conversation_id") != cid:
             continue
-        if job["kind"] in ("image_gen", "image_edit") or str(
-                (job.get("params") or {}).get("mime", "")).startswith("image/"):
-            path = Path(job["result_path"])
-            if path.is_file() and path.resolve().is_relative_to(core.media.dir.resolve()):
-                return path.read_bytes()
-    return None
+        if job["kind"] not in ("image_gen", "image_edit"):
+            continue
+        if job.get("status") != "done" or not job.get("result_path"):
+            return None, None
+        path = Path(job["result_path"])
+        if (path.is_file() and path.resolve().is_relative_to(core.media.dir.resolve())
+                and path.stat().st_size <= MAX_UPLOAD_BYTES):
+            return path.read_bytes(), job["id"]
+        return None, None
+    return None, None
+
+
+async def _last_image(core: Core, cid: str) -> bytes | None:
+    image, _ = await _image_source(core, cid)
+    return image
 
 
 def _wants_image(text: str) -> bool:
@@ -160,7 +210,16 @@ def _first_image(content: Any) -> bytes | None:
     for part in content:
         url = (part.get("image_url") or {}).get("url", "") if isinstance(part, dict) else ""
         if url.startswith("data:") and "," in url:
-            return base64.b64decode(url.split(",", 1)[1])
+            encoded = url.split(",", 1)[1]
+            if len(encoded) > (MAX_UPLOAD_BYTES + 2) // 3 * 4:
+                raise HTTPException(413, "Image trop volumineuse (25 Mo maximum)")
+            try:
+                data = base64.b64decode(encoded, validate=True)
+            except ValueError as exc:
+                raise HTTPException(400, "Image jointe invalide") from exc
+            if len(data) > MAX_UPLOAD_BYTES:
+                raise HTTPException(413, "Image trop volumineuse (25 Mo maximum)")
+            return data
     return None
 
 
@@ -492,6 +551,7 @@ def create_app(
     @app.post("/tontolo/chat")
     async def chat(request: Request, body: ChatBody) -> StreamingResponse:
         core = core_of(request)
+        _first_image(body.content)  # valider avant de démarrer un tour détaché
         if body.conversation_id is None:
             core.catalog.refresh_in_background()  # veille « à chaque utilisation »
         file_kind = (body.category[5:] if body.category and body.category.startswith("file:")
@@ -516,9 +576,7 @@ def create_app(
             # après une demande d'image…) : aucun mode à choisir pour l'utilisateur.
             prior: list[dict[str, Any]] = []
             if body.conversation_id and await core.db.conversation_exists(body.conversation_id):
-                prior = [{"role": "user", "content": m["content"]}
-                         for m in await core.db.get_messages(body.conversation_id)
-                         if m["role"] == "user"][-3:]
+                prior = await _media_history(core, body.conversation_id)
             detected = classify([*prior, {"role": "user", "content": body.content}]).category
             if detected.value in MEDIA_TURN_KINDS:
                 category = detected
@@ -618,14 +676,23 @@ def create_app(
         if add_user:
             await core.db.add_message(cid, {"role": "user", "content": body.content})
         image = _first_image(body.content)
-        if image is None and category in (Category.VIDEO_GEN, Category.IMAGE_EDIT):
-            # « Anime-la », « mets-la sur une place… » : on part de la dernière image créée.
-            image = await _last_image(core, cid)
+        source_job_id = None
+        needs_image = category == Category.IMAGE_EDIT or (
+            category == Category.VIDEO_GEN and _references_image(text))
+        if image is None and needs_image:
+            image, source_job_id = await _image_source(core, cid)
+            if image is None:
+                yield {"type": "error", "code": "media_reference_missing",
+                       "message": "Aucune image disponible dans cette discussion. "
+                                  "Joignez une image ou régénérez la création échouée."}
+                return
         prompt = await _media_prompt(core, cid, text)
         if category in (Category.IMAGE_GEN, Category.VIDEO_GEN, Category.IMAGE_EDIT):
             prompt = await _english_prompt(core, prompt)
         job = await core.media.submit(category.value, prompt, conversation_id=cid,
                                       model=body.model, input_bytes=image,
+                                      params={"source_job_id": source_job_id,
+                                              "input_mode": "image" if image else "text"},
                                       input_name="image.png")
         yield {"type": "job", **job}
         done = await core.media.wait(job["id"]) or job
@@ -648,11 +715,12 @@ def create_app(
     async def regenerate(request: Request, cid: str, body: ResumeBody | None = None
                          ) -> StreamingResponse:
         core = core_of(request)
+        if core.turns.active(cid) is not None:
+            raise HTTPException(409, "Une réponse est déjà en cours dans cette conversation")
         history = await core.db.get_messages(cid)
         last_user = next((m for m in reversed(history) if m["role"] == "user"), None)
         if last_user is not None:
-            earlier = [{"role": "user", "content": m["content"]} for m in history
-                       if m["role"] == "user" and m is not last_user][-3:]
+            earlier = await _media_history(core, cid, history[:history.index(last_user)])
             kind = classify([*earlier, {"role": "user", "content": last_user["content"]}]).category
             if kind.value in MEDIA_TURN_KINDS:
                 # Une demande d'image/voix se relance comme un média, pas comme du texte.
@@ -665,11 +733,13 @@ def create_app(
     @app.post("/tontolo/chat/{cid}/edit")
     async def edit_message(request: Request, cid: str, body: EditBody) -> StreamingResponse:
         core = core_of(request)
+        if core.turns.active(cid) is not None:
+            raise HTTPException(409, "Une réponse est déjà en cours dans cette conversation")
         history = await core.db.get_messages(cid)
         target = next((m for m in history if m["_meta"]["seq"] == body.seq), None)
         if target is not None and target["role"] == "user":
-            earlier = [{"role": "user", "content": m["content"]} for m in history
-                       if m["role"] == "user" and m["_meta"]["seq"] < body.seq][-3:]
+            earlier = await _media_history(core, cid,
+                                          [m for m in history if m["_meta"]["seq"] < body.seq])
             kind = classify([*earlier, {"role": "user", "content": body.content}]).category
             if kind.value in MEDIA_TURN_KINDS:
                 # Message modifié en demande d'image/vidéo/voix : média, pas texte.
@@ -1049,12 +1119,12 @@ def create_app(
 
     @app.delete("/tontolo/memory/{mem_id}")
     async def memory_delete(request: Request, mem_id: int) -> dict[str, bool]:
-        await core_of(request).db.delete_memory(mem_id)
+        await core_of(request).chat.memory.delete(mem_id)
         return {"ok": True}
 
     @app.delete("/tontolo/memory")
     async def memory_clear(request: Request) -> dict[str, bool]:
-        await core_of(request).db.delete_memory(None)
+        await core_of(request).chat.memory.delete(None)
         return {"ok": True}
 
     @app.post("/tontolo/memory/compact")

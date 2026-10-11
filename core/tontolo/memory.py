@@ -16,6 +16,7 @@ Inspirée de la « mémoire » des assistants grand public, mais entièrement lo
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import re
@@ -83,7 +84,7 @@ def similarity(a: str, b: str) -> float:
     ta, tb = tokens(a), tokens(b)
     if not ta or not tb:
         return 0.0
-    return len(ta & tb) / min(len(ta), len(tb))
+    return len(ta & tb) / max(len(ta), len(tb))
 
 
 def explicit_memory(text: str) -> str | None:
@@ -118,6 +119,11 @@ class MemoryService:
         self.db = db
         self.quick = quick
         self._counts: dict[str, int] = {}
+        self._mutation = asyncio.Lock()
+
+    async def delete(self, mem_id: int | None = None) -> None:
+        async with self._mutation:
+            await self.db.delete_memory(mem_id)
 
     @property
     def enabled(self) -> bool:
@@ -125,16 +131,21 @@ class MemoryService:
 
     async def remember(self, text: str, kind: str = "fact", source: str | None = None) -> bool:
         """Ajoute ou fusionne un souvenir. Refuse les secrets. Vrai si enregistré."""
+        async with self._mutation:
+            return await self._remember(text, kind, source)
+
+    async def _remember(self, text: str, kind: str, source: str | None) -> bool:
         text = text.strip()
         if not text or not is_safe(text):
             return False
         for mem in await self.db.list_memories():
-            if similarity(mem["text"], text) >= SIMILAR:
+            if (mem["kind"] == kind and mem.get("source") == source
+                    and similarity(mem["text"], text) >= SIMILAR):
                 # Le plus récent l'emporte (mise à jour d'une préférence).
                 await self.db.update_memory(int(mem["id"]), text)
                 return True
         await self.db.add_memory(text, kind, source)
-        await self.maybe_compact()
+        await self._compact()
         return True
 
     async def recall(self, query: str, exclude_source: str | None = None
@@ -145,7 +156,8 @@ class MemoryService:
         if not self.enabled:
             return []
         mems = [m for m in await self.db.list_memories()
-                if not exclude_source or m.get("source") != exclude_source]
+                if (m.get("source") in (None, "manuel") or m["kind"] == "explicit")
+                and (not exclude_source or m.get("source") != exclude_source)]
         if not mems:
             return []
         q = tokens(query)
@@ -198,6 +210,10 @@ class MemoryService:
             await self.remember(item, source=conversation_id)
 
     async def maybe_compact(self, force: bool = False) -> int:
+        async with self._mutation:
+            return await self._compact(force)
+
+    async def _compact(self, force: bool = False) -> int:
         """Compactage automatique. Renvoie le nombre de souvenirs après compactage."""
         mems = await self.db.list_memories()
         limit = max(10, self.settings.memory_max_items)
@@ -206,12 +222,14 @@ class MemoryService:
         # 1. Fusion locale des doublons (sans réseau).
         kept: list[dict[str, Any]] = []
         for m in sorted(mems, key=lambda x: float(x["updated_at"]), reverse=True):
-            if any(similarity(m["text"], k["text"]) >= SIMILAR for k in kept):
+            if any(m["kind"] == k["kind"] and m.get("source") == k.get("source")
+                   and similarity(m["text"], k["text"]) >= SIMILAR for k in kept):
                 continue
             kept.append(m)
         target = limit // 2 if (force or len(kept) > limit) else len(kept)
         # 2. Regroupement par un petit modèle gratuit.
-        if len(kept) > target and self.quick is not None:
+        if (len(kept) > target and self.quick is not None
+                and all(m.get("source") is None for m in kept)):
             out = await self.quick([
                 {"role": "system", "content": COMPACT_PROMPT.format(n=target)},
                 {"role": "user", "content": "\n".join(f"- {m['text']}" for m in kept)},

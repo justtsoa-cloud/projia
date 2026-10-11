@@ -89,10 +89,19 @@ def test_long_mixed_discussion_keeps_its_thread(client: TestClient, fake: FakePr
     assert "Priorités du contexte" in system
     text = json.dumps(sent, ensure_ascii=False)
     assert "Résumé du début de CETTE discussion" in text
-    assert "dossier « Maths »" in text and "Moyenne et variance" in text
+    assert "Moyenne et variance" not in text  # aucun contexte provenant du dossier
     assert text.count("image_url") <= 2  # seules les photos récentes sont envoyées
     assert sent[-1]["role"] == "user" and sent[-1]["content"] == "et la loi binomiale ?"
-    # Ordre : mémoire/dossier/documents avant le fil, le fil juste avant la question.
-    roles = [m["role"] for m in sent]
-    assert roles.index("user") > max(i for i, r in enumerate(roles) if r == "system"
-                                     and "dossier" in str(sent[i]["content"]))
+
+
+async def test_summary_cannot_return_after_edit_or_delete(db: Database) -> None:
+    cid = await db.create_conversation("Fil")
+    await db.add_message(cid, {"role": "user", "content": "ancien sujet"})
+    revision = await db.conversation_revision(cid)
+    await db.edit_message(cid, 1, {"role": "user", "content": "nouveau sujet"})
+    await db.set_summary(cid, "Résumé de l'ancien sujet", 1, revision)
+    assert await db.get_summary(cid) == (None, 0)
+    revision = await db.conversation_revision(cid)
+    await db.delete_conversation(cid)
+    await db.set_summary(cid, "Résumé du fil supprimé", 1, revision)
+    assert await db.get_summary(cid) == (None, 0)

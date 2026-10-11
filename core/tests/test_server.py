@@ -711,6 +711,17 @@ def test_animate_reuses_last_generated_image(client: TestClient, catalog_service
         events = [json.loads(x[5:]) for x in s.iter_lines() if x.startswith("data:")]
     job = next(e for e in events if e["type"] == "done")["job"]
     assert job["kind"] == "video_gen" and seen["image"] == png
+    source_id = job["params"]["source_job_id"]
+    assert source_id and job["params"]["input_mode"] == "image"
+    # Régénérer garde la même source, même après une réponse vidéo.
+    with client.stream("POST", f"/tontolo/chat/{cid}/regenerate", json={"approved": True}) as s:
+        replay = [json.loads(x[5:]) for x in s.iter_lines() if x.startswith("data:")]
+    retry_job = _last_done(replay)["job"]
+    assert retry_job["params"]["source_job_id"] == source_id and seen["image"] == png
+    # Une nouvelle scène vidéo ne doit pas reprendre le baobab.
+    events = _chat_events(client, cid, "Create a video of a whale swimming in the ocean")
+    assert _last_done(events)["job"]["params"]["input_mode"] == "text"
+    assert seen["image"] is None
 
 
 def test_revision_of_last_file_keeps_format_and_previous_version(
@@ -811,3 +822,17 @@ def test_photo_plus_pdf_request_reads_the_photo_first(client: TestClient,
     job = next(e for e in events if e["type"] == "done")["job"]
     assert job["kind"] == "file_gen" and job["params"]["mime"] == "application/pdf"
     assert "Laplace" in str(prompts[1])  # le rédacteur travaille sur la transcription
+
+
+
+def test_animation_without_image_reports_missing_reference(client: TestClient) -> None:
+    events = _chat_events(client, "missing-image", "anime-la")
+    assert any(e.get("code") == "media_reference_missing" for e in events)
+    assert not any(e["type"] == "job" for e in events)
+
+
+def test_invalid_attached_image_rejected_before_detached_turn(client: TestClient) -> None:
+    r = client.post('/tontolo/chat', json={"category": "video_gen", "content": [
+        {"type": "text", "text": "anime-la"},
+        {"type": "image_url", "image_url": {"url": "data:image/png;base64,???"}}]})
+    assert r.status_code == 400

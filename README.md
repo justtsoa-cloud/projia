@@ -82,7 +82,7 @@ chmod +x Tontolo-*-x86_64.AppImage
 
 ### Linux (CLI et serveur)
 ```bash
-pip install "tontolo[linux] @ https://github.com/raantss18/tontolo/releases/latest/download/tontolo-0.4.7-py3-none-any.whl"
+pip install "tontolo[linux] @ https://github.com/raantss18/tontolo/releases/latest/download/tontolo-0.5.0-py3-none-any.whl"
 tontolo catalog list --free --category code
 tontolo chat "Explique-moi les intégrales"
 tontolo serve            # API compatible OpenAI sur http://127.0.0.1:8765/v1

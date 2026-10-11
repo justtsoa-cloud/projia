@@ -203,3 +203,11 @@ Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cass�
 - [x] Trois APK signés construits ; installation par-dessus sur émulateur réussie (0.4.7, versionCode 4022), lien natif rouvre MainActivity à chaud et à froid.
 - [x] Publication GitHub v0.4.7 (workflow 38162162769 réussi), fichiers présents et téléchargements en tête des notes ; SHA-256 de l’APK officiel x86_64 vérifié et installation par-dessus réussie.
 - [ ] Essai Google réel par le propriétaire : configuration Google en mode Testing à vérifier si accès refusé.
+
+
+## v0.5.0 — isolation du contexte et continuité des médias (Codex)
+- [x] R1. Dossiers : organiser sans injecter les réponses des autres fils.
+- [x] R2. Mémoire : séparer capture explicite globale et capture automatique du fil ; préserver la provenance et sérialiser le compactage.
+- [x] R3. Médias : référence dans le fil courant, sans réutiliser une ancienne image après un échec ; animation avec photo jointe et consignes de mouvement.
+- [x] R4. Tests de frontières et de régénération, résumés et conservation des données.
+- [ ] R5. Tests complets, mise à jour signée et publication v0.5.0 après validation.

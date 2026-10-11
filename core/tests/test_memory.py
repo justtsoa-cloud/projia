@@ -89,3 +89,42 @@ async def test_regenerate_and_edit(router: Router, db: Database, settings: Setti
     _ = [e async for e in chat.edit_and_resend(cid, 1, "Salut")]
     msgs = await db.get_messages(cid)
     assert msgs[0]["content"] == "Salut" and msgs[1]["content"].endswith("Salut")
+
+
+async def test_provenance_survives_merge_compaction_and_recall(
+        db: Database, settings: Settings) -> None:
+    mem = MemoryService(settings, db)
+    await mem.remember("Le projet utilise Python", source="fil-a")
+    await mem.remember("Le projet utilise Python", source="fil-b")
+    await mem.remember("Je préfère Python", kind="explicit", source="fil-a")
+    before_ids = {m["id"] for m in await db.list_memories()}
+    await mem.maybe_compact(force=True)
+    items = await db.list_memories()
+    assert len(items) == 3
+    assert {m["id"] for m in items} == before_ids
+    assert {m["source"] for m in items} == {"fil-a", "fil-b"}
+    got = await mem.recall("Python", exclude_source="fil-c")
+    assert len(got) == 1 and got[0]["kind"] == "explicit"
+
+
+async def test_compaction_does_not_lose_concurrent_capture(
+        db: Database, settings: Settings) -> None:
+    import asyncio
+
+    settings.memory_max_items = 10
+    started, release = asyncio.Event(), asyncio.Event()
+
+    async def quick(messages: list[dict[str, Any]]) -> str:
+        started.set()
+        await release.wait()
+        return '{"memories": ["Résumé ancien"]}'
+
+    for i in range(11):
+        await db.add_memory(f"élément{i} sujet{i * 13} thème{i * 31}")
+    mem = MemoryService(settings, db, quick)
+    compact = asyncio.create_task(mem.maybe_compact(force=True))
+    await asyncio.wait_for(started.wait(), 2)
+    capture = asyncio.create_task(mem.remember("Nouvelle préférence importante", source="fil"))
+    release.set()
+    await asyncio.gather(compact, capture)
+    assert any(m["source"] == "fil" for m in await db.list_memories())

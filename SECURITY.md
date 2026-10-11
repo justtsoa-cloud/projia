@@ -55,3 +55,19 @@ Vérifié sans changement nécessaire : jeton comparé à temps constant sur tou
 (sauf `/health`), contrôles Origin/Host (CSRF, DNS rebinding), clés en stockage chiffré,
 HTTPS obligatoire pour les clés, mises à jour vérifiées par SHA-256 et origine GitHub,
 liens ouverts limités à http(s), récepteurs Android non exportés, sauvegarde Android désactivée.
+
+### 2026-10-11 (v0.5.0)
+- Revue des frontières : dossiers sans partage implicite, souvenirs automatiques confinés
+  à leur fil, référence d'image validée par conversation, chemin média limité au répertoire
+  prévu, pièces jointes base64 validées et plafonnées à 25 Mo.
+- Tests de concurrence : compactage sérialisé, changement d'écran pendant le chargement,
+  résumé périmé après modification/suppression, modification refusée pendant génération.
+- `pip-audit` sur les dépendances installées : aucune vulnérabilité connue (distribution
+  Tontolo éditable exclue ; son code est relu et testé).
+- Bandit : 16 alertes, aucune de sévérité haute. Revue : RSS borné et DTD/entités rejetées ;
+  SVG/XML sans DTD/entités ; vérification XML de DOCX produit en interne avec texte échappé ;
+  import d'échappement XML utilisé pour écrire et non parser ; SQL composé de fragments
+  constants avec valeurs liées ; assertions et exceptions de repli sans contournement
+  d'authentification. Les alertes restent visibles, sans suppression globale.
+- Cette revue ne garantit pas l'absence de toute vulnérabilité ; elle couvre ces changements
+  et les contrôles indiqués, sans audit des services tiers de génération.

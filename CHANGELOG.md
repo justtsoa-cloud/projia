@@ -5,6 +5,33 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.5.0] - 2026-10-11
+
+### Corrigé
+- Discussions isolées : les dossiers organisent les fils sans injecter les résumés d’autres
+  discussions. Les chargements tardifs de messages, documents et retouches sont ignorés
+  après un changement de discussion.
+- Mémoire : les souvenirs explicitement enregistrés restent disponibles entre discussions ;
+  les captures automatiques restent rattachées à leur fil. Fusion par origine et catégorie,
+  compactage sérialisé avec les captures et suppressions, provenance et identifiants conservés.
+  Les anciens souvenirs dont le compactage avait perdu la provenance restent consultables,
+  mais ne sont plus injectés automatiquement dans d’autres fils.
+- Image → vidéo : les animations de photos jointes sont reconnues ; les créations réelles du
+  fil servent à comprendre les relances. L’image source doit appartenir au même fil ; une
+  image échouée ne provoque plus le retour silencieux à une ancienne réussite.
+- Une demande de nouvelle vidéo depuis du texte ne reprend plus une ancienne image.
+  Les consignes de mouvement sont conservées pendant la traduction, avec délai borné.
+- Image manquante : message explicite en français, anglais et malagasy ; aucune vidéo lancée
+  depuis du texte à la place de l’image demandée. Régénération testée avec la même source.
+- Les résumés terminés après une modification ou suppression du fil ne sont plus appliqués.
+  Les modifications et régénérations sont refusées pendant une réponse en cours.
+
+### Compatibilité
+- Même signature, paquet Android, schéma de stockage et noms de téléchargements.
+- Les quotas du fournisseur vidéo gratuit restent applicables : aucune garantie de GPU
+  disponible ni de résultat fidèle à 100 % ; les échecs et délais de retour restent affichés.
+
+
 ## [0.4.7] - 2026-10-11
 
 ### Corrigé

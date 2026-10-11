@@ -52,7 +52,18 @@ class ChatController extends ChangeNotifier {
   PendingAction? pending;
   StreamSubscription<Map<String, dynamic>>? _sub;
   String? _lastText;
+  int _epoch = 0; // invalide les lectures de la discussion quittée
+  int _streamEpoch = 0;
   Timer? _offlineTimer; // message en attente du retour du réseau
+
+  @override
+  void dispose() {
+    _epoch++;
+    _streamEpoch++;
+    _sub?.cancel();
+    _offlineTimer?.cancel();
+    super.dispose();
+  }
 
   void refresh() => notifyListeners();
 
@@ -145,6 +156,7 @@ class ChatController extends ChangeNotifier {
   /// Joint un document (PDF, texte…) : le cœur en extrait le texte et s'en sert pour répondre
   /// en citant les pages. Renvoie un message d'erreur (traduit) ou null.
   Future<String?> attachDocument(String name, Uint8List bytes) async {
+    final epoch = _epoch;
     final req = http.MultipartRequest('POST', backend.uri('/tontolo/documents'))
       ..headers.addAll(backend.headers)
       ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: name));
@@ -156,6 +168,7 @@ class ChatController extends ChangeNotifier {
         return (body is Map && body['detail'] is String) ? body['detail'] as String : tr(backend.prefs.locale, 'error_generic');
       }
       final doc = (body as Map).cast<String, dynamic>();
+      if (epoch != _epoch) return null;
       conversationId = doc['conversation_id'] as String;
       documents.add(doc);
       messages.add(ChatMessage(role: 'notice', text: 'document|${doc['name']}|${doc['pages']}'));
@@ -168,21 +181,30 @@ class ChatController extends ChangeNotifier {
 
   Future<void> _loadDocuments() async {
     documents.clear();
-    if (conversationId == null) return;
+    final cid = conversationId;
+    final epoch = _epoch;
+    if (cid == null) return;
     try {
-      final list = await backend.getJson('/tontolo/conversations/$conversationId/documents') as List;
+      final list = await backend.getJson('/tontolo/conversations/$cid/documents') as List;
+      if (epoch != _epoch) return;
       documents.addAll(list.cast<Map<String, dynamic>>());
     } catch (_) {}
   }
 
   Future<void> removeDocument(Map<String, dynamic> doc) async {
     if (conversationId == null) return;
+    final epoch = _epoch;
     await backend.sendJson('DELETE', '/tontolo/conversations/$conversationId/documents/${doc['id']}');
+    if (epoch != _epoch) return;
     documents.remove(doc);
     notifyListeners();
   }
 
   void newChat() {
+    _epoch++;
+    _streamEpoch++;
+    _lastText = null;
+    lastModelName = null;
     documents.clear();
     cancelOfflineQueue(notify: false);
     _sub?.cancel();
@@ -199,21 +221,32 @@ class ChatController extends ChangeNotifier {
   Future<void> open(String id) async {
     newChat();
     conversationId = id;
+    final epoch = _epoch;
+    busy = true;
+    notifyListeners();
     try {
       final data = await backend.getJson('/tontolo/conversations/$id') as Map<String, dynamic>;
+      if (epoch != _epoch) return;
       if (data.containsKey('mode')) learn = '${data['mode']}'.startsWith('learn');
       await _loadMessages((data['messages'] as List).cast<Map<String, dynamic>>());
+      if (epoch != _epoch) return;
       await _loadDocuments();
+      if (epoch != _epoch) return;
+      busy = false;
       notifyListeners();
       // Réponse encore en cours de génération : on s'y rattache (rejeu puis direct).
       if (data['active'] == true && conversationId == id) _run(backend.follow(id), replay: true);
     } catch (e) {
+      if (epoch != _epoch) return;
+      busy = false;
       messages.add(ChatMessage(role: 'notice', text: 'error|$e'));
       notifyListeners();
     }
   }
 
   Future<void> _loadMessages(List<Map<String, dynamic>> items) async {
+    final epoch = _epoch;
+    final loaded = <ChatMessage>[];
     for (final m in items) {
       final role = m['role'] as String? ?? '';
       if (role == 'tool' || role == 'system') continue;
@@ -238,8 +271,10 @@ class ChatController extends ChangeNotifier {
         } catch (_) {}
       }
       if (role == 'assistant' && msg.text.isEmpty && msg.job == null && m['tool_calls'] != null) continue;
-      messages.add(msg);
+      if (epoch != _epoch) return;
+      loaded.add(msg);
     }
+    if (epoch == _epoch) messages.addAll(loaded);
   }
 
   Future<void> send(String text, {List<String> images = const [], String? category}) async {
@@ -275,6 +310,9 @@ class ChatController extends ChangeNotifier {
   Future<void> sendLocalRetouch(String text, Uint8List original, String previewDataUrl,
       EditIntent intent) async {
     if (busy) return;
+    final epoch = _epoch;
+    final streamEpoch = ++_streamEpoch;
+    final cid = conversationId;
     busy = true;
     status = 'retouching';
     final user = ChatMessage(role: 'user', text: text)..images = [previewDataUrl];
@@ -286,11 +324,12 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
     try {
       final jpg = await retouchPhoto(original, intent.plan);
+      if (epoch != _epoch || streamEpoch != _streamEpoch) return;
       final loc = backend.prefs.locale;
       final note = tr(loc, 'local_retouch_note',
           {'steps': intent.plan.steps.map((k) => tr(loc, k)).join(' · ')});
       final res = await backend.sendJson('POST', '/tontolo/chat/local-media', {
-        'conversation_id': conversationId,
+        'conversation_id': cid,
         'content': [
           if (text.isNotEmpty) {'type': 'text', 'text': text},
           {'type': 'image_url', 'image_url': {'url': previewDataUrl}},
@@ -299,12 +338,14 @@ class ChatController extends ChangeNotifier {
         'mime': 'image/jpeg',
         'note': note,
       }) as Map<String, dynamic>;
+      if (epoch != _epoch || streamEpoch != _streamEpoch) return;
       conversationId = res['conversation_id'] as String;
       answer
         ..job = (res['job'] as Map).cast<String, dynamic>()
         ..uid = res['uid'] as String?
         ..streaming = false;
     } catch (e) {
+      if (epoch != _epoch || streamEpoch != _streamEpoch) return;
       messages.remove(answer);
       messages.add(ChatMessage(role: 'notice', text: 'error|$e'));
     }
@@ -371,6 +412,7 @@ class ChatController extends ChangeNotifier {
 
   /// Arrêt demandé par l'utilisateur : interrompt aussi la génération côté cœur.
   void stop() {
+    _streamEpoch++;
     final cid = conversationId;
     if (cid != null) {
       backend.sendJson('POST', '/tontolo/chat/$cid/stop').catchError((_) {});
@@ -386,6 +428,9 @@ class ChatController extends ChangeNotifier {
   }
 
   void _run(Stream<Map<String, dynamic>> events, {bool replay = false}) {
+    final epoch = _epoch;
+    final streamEpoch = ++_streamEpoch;
+    bool currentStream() => epoch == _epoch && streamEpoch == _streamEpoch;
     busy = true;
     status = null;
     notifyListeners();
@@ -403,6 +448,7 @@ class ChatController extends ChangeNotifier {
     }
 
     _sub = events.listen((ev) {
+      if (!currentStream()) return;
       switch (ev['type']) {
         case 'conversation':
           conversationId = ev['id'] as String;
@@ -518,9 +564,12 @@ class ChatController extends ChangeNotifier {
       }
       notifyListeners();
     }, onError: (Object e) {
+      if (!currentStream()) return;
       messages.add(ChatMessage(role: 'notice', text: 'error|$e'));
       _finish();
-    }, onDone: _finish);
+    }, onDone: () {
+      if (currentStream()) _finish();
+    });
   }
 
   void _finish() {

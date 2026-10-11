@@ -324,11 +324,19 @@ class Database:
         )
         await self.conn.commit()
 
-    async def set_summary(self, cid: str, summary: str, upto_seq: int) -> None:
-        await self.conn.execute(
-            "UPDATE conversations SET summary = ?, summary_upto = ? WHERE id = ?",
-            (summary, upto_seq, cid),
-        )
+    async def conversation_revision(self, cid: str) -> float | None:
+        row = await self._fetchone(
+            "SELECT updated_at FROM conversations WHERE id = ? AND deleted = 0", (cid,))
+        return float(row["updated_at"]) if row else None
+
+    async def set_summary(self, cid: str, summary: str, upto_seq: int,
+                          expected_revision: float | None = None) -> None:
+        sql = "UPDATE conversations SET summary = ?, summary_upto = ? WHERE id = ? AND deleted = 0"
+        args: list[Any] = [summary, upto_seq, cid]
+        if expected_revision is not None:
+            sql += " AND updated_at = ?"
+            args.append(expected_revision)
+        await self.conn.execute(sql, args)
         await self.conn.commit()
 
     async def get_summary(self, cid: str) -> tuple[str | None, int]:
@@ -585,10 +593,10 @@ class Database:
         ts = now()
         await self.conn.execute("DELETE FROM memories")
         await self.conn.executemany(
-            "INSERT INTO memories(text, kind, created_at, updated_at, uses, last_used, source) "
-            "VALUES (?, ?, ?, ?, ?, ?, 'compactage')",
-            [(i["text"], i.get("kind", "fact"), i.get("created_at", ts), ts,
-              int(i.get("uses", 0)), float(i.get("last_used", 0))) for i in items])
+            "INSERT INTO memories(id, text, kind, created_at, updated_at, uses, last_used, source) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            [(i.get("id"), i["text"], i.get("kind", "fact"), i.get("created_at", ts), ts,
+              int(i.get("uses", 0)), float(i.get("last_used", 0)), i.get("source")) for i in items])
         await self.conn.commit()
 
     # --- Divers --------------------------------------------------------

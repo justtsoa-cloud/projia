@@ -14,6 +14,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.5.0': [
+    NewsItem(Icons.forum_outlined, 'Des discussions bien séparées',
+        'Les dossiers rangent vos discussions sans mélanger leurs réponses. Les souvenirs explicites restent partagés et leur origine est conservée.',
+        'Separate chat contexts', 'Folders organize chats without mixing their answers. Explicit memories stay shared and keep their origin.',
+        mg: 'Resaka voasaraka tsara', mgText: 'Mandamina ny resaka ny lahatahiry fa tsy mampifangaro ny valiny. Voatahiry ny niavian’ny fahatsiarovana nangatahanao.'),
+    NewsItem(Icons.movie_outlined, 'Animez la bonne image',
+        'Après une image, demandez « anime-la ». Tontolo reprend cette image ; si elle manque ou a échoué, il vous le dit. Une nouvelle vidéo peut aussi partir du texte seul.',
+        'Animate the right image', 'After creating an image, ask “animate it”. Tontolo uses that image or reports that it is missing. New videos can also start from text alone.',
+        mg: 'Ampihetsiho ny sary', mgText: 'Rehefa vita ny sary, angataho hoe « ampihetsiho ». Io sary io no ampiasaina, na ampandrenesina ianao raha tsy misy izany.'),
+  ],
   '0.4.7': [
     NewsItem(Icons.login, 'Connexion Google corrigée',
         'Sur Android, Google et GitHub vous ramènent directement dans Tontolo. Le retour ne passe plus par une page localhost.',

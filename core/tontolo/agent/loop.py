@@ -154,7 +154,7 @@ class ChatService:
         yield {"type": "user_saved", "uid": user["uid"], "seq": user["seq"]}
         fact = explicit_memory(content) if isinstance(content, str) else None
         if fact and self.memory.enabled and await self.memory.remember(
-                fact, source=conversation_id):
+                fact, kind="explicit", source=conversation_id):
             yield {"type": "memory_saved", "text": fact}
         async for ev in self._loop(conversation_id, model=model, forced=forced, strict=strict,
                                    use_tools=use_tools, auto_approve=auto_approve):
@@ -235,6 +235,9 @@ class ChatService:
         """Résume le début du fil quand il s'allonge (texte, images, vidéos, fichiers),
         pour que n'importe quel modèle, même à petit contexte, garde tout le fil."""
         try:
+            revision = await self.db.conversation_revision(cid)
+            if revision is None:
+                return
             history = await self.db.get_messages(cid)
             summary, covered = await self.db.get_summary(cid)
             if len(history) - covered < SUMMARIZE_AFTER:
@@ -250,27 +253,15 @@ class ChatService:
             out = await self.router.quick([
                 {"role": "system", "content": THREAD_SUMMARY_PROMPT},
                 {"role": "user", "content": text[-24000:]}])
-            if out and len(out.strip()) > 40:
-                await self.db.set_summary(cid, out.strip()[:6000], cut)
+            # Une modification/régénération peut avoir eu lieu pendant le résumé.
+            if out and len(out.strip()) > 40 and await self.db.get_messages(cid) == history:
+                await self.db.set_summary(cid, out.strip()[:6000], cut, revision)
         except Exception:  # le résumé ne doit jamais casser une discussion
             return
 
     async def _folder_block(self, cid: str) -> dict[str, Any] | None:
-        """Autres discussions du même dossier (titre et résumé) : contexte secondaire."""
-        folder = await self.db.get_folder(cid)
-        if not folder:
-            return None
-        others = [c for c in await self.db.list_conversations(6, 0, None, folder)
-                  if c["id"] != cid][:3]
-        if not others:
-            return None
-        lines = []
-        for c in others:
-            summary, _ = await self.db.get_summary(c["id"])
-            lines.append(f"- « {c['title'] or '…'} » : {(summary or '').strip()[:400] or '…'}")
-        return {"role": "system", "content": (
-            f"Autres discussions du dossier « {folder} » (contexte secondaire, à n'utiliser que "
-            "si la demande s'y rapporte) :\n" + "\n".join(lines))}
+        """Un dossier est un rangement, jamais une autorisation de partager le contexte."""
+        return None
 
     async def edit_and_resend(
         self, conversation_id: str, seq: int, content: str, *, model: str | None = None,
@@ -328,7 +319,7 @@ class ChatService:
             history = await self.db.get_messages(cid)
             question = _last_user_text(history)
             # Du moins prioritaire au plus prioritaire (le plus proche de la demande compte le
-            # plus) : mémoire → autres discussions du dossier → documents → fil de discussion.
+            # plus) : souvenirs explicites → documents du fil → fil de discussion.
             messages = [self._system(await self.db.get_mode(cid))]
             mem_block = self.memory.system_block(
                 await self.memory.recall(question, exclude_source=cid))
