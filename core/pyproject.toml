@@ -34,6 +34,7 @@ dependencies = [
   "uvicorn>=0.30",
   "websockets>=12",
   "python-multipart>=0.0.9",
+  "pypdf>=5",  # documents PDF (pur Python, BSD)
 ]
 
 [project.optional-dependencies]

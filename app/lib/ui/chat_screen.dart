@@ -102,10 +102,32 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _pickFile() async {
-    final res = await FilePicker.pickFiles(type: FileType.image);
+    final res = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'pdf', 'txt', 'md', 'html', 'htm'],
+    );
     if (res.isEmpty) return;
     final f = res.first;
     final raw = await f.xFile.readAsBytes();
+    final ext = f.name.split('.').last.toLowerCase();
+    if (const ['pdf', 'txt', 'md', 'html', 'htm'].contains(ext)) {
+      // Document : texte extrait par le cœur, utilisé pour répondre en citant les pages.
+      if (!mounted) return;
+      final chat = AppScope.of(context).chat;
+      final messenger = ScaffoldMessenger.of(context);
+      final reading = context.t('doc_reading');
+      messenger.showSnackBar(SnackBar(content: Text(reading)));
+      final err = await chat.attachDocument(f.name, raw);
+      if (!mounted) return;
+      messenger.hideCurrentSnackBar();
+      if (err != null) {
+        messenger.showSnackBar(SnackBar(content: Text(err)));
+      } else if (input.text.trim().isEmpty) {
+        setState(() => input.text = context.t('doc_prefill'));
+        focus.requestFocus();
+      }
+      return;
+    }
     final (bytes, mime) = await prepareImage(raw); // photo réduite : envoi et stockage plus légers
     if (!mounted) return;
     setState(() {
@@ -351,6 +373,22 @@ class _InputBar extends StatelessWidget {
             ),
         ]),
         _SlashTemplates(state.input),
+        if (AppScope.of(context).chat.documents.isNotEmpty)
+          SizedBox(
+            height: 48,
+            child: ListView(scrollDirection: Axis.horizontal, children: [
+              for (final d in AppScope.of(context).chat.documents)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: InputChip(
+                    avatar: const Icon(Icons.description_outlined, size: 18),
+                    label: Text('${d['name']}', overflow: TextOverflow.ellipsis),
+                    tooltip: context.t('doc_remove'),
+                    onDeleted: () => AppScope.of(context).chat.removeDocument(d),
+                  ),
+                ),
+            ]),
+          ),
         if (state.attachments.isNotEmpty)
           SizedBox(
             height: 64,
@@ -621,6 +659,7 @@ class _Notice extends StatelessWidget {
       'stream_reset' => (Icons.refresh, context.t('stream_interrupted'), scheme.tertiary, false),
       'media' => (Icons.auto_awesome, context.t('media_switch'), scheme.tertiary, false),
       'errorc' => (Icons.error_outline, _errorText(context, parts), scheme.error, true),
+      'document' => (Icons.description_outlined, context.t('doc_attached', {'name': parts.length > 1 ? parts[1] : '', 'n': parts.length > 2 ? parts[2] : '?'}), scheme.secondary, false),
       'offline_queued' => (Icons.cloud_upload_outlined, context.t('offline_queued'), scheme.tertiary, false),
       'memory' => (Icons.bookmark_added_outlined, context.t('memory_saved', {'text': parts.skip(1).join('|')}), scheme.secondary, false),
       _ => (Icons.error_outline, parts.skip(1).join('|'), scheme.error, true),

@@ -135,7 +135,7 @@ Règle : chaque étape est livrée seule (tests verts, rien de cassé), puis pub
 - [x] 4. File d'attente hors ligne : message mis en attente et envoyé au retour du réseau
 - [x] 5. Page « État des modèles » : disponibles / en pause / épuisés, heure de retour
 - [x] 6. Modèles locaux (Ollama ; GGUF sur Linux) comme dernier recours sans réseau
-- [ ] 7. Documents : PDF / page web → questions avec citations des passages
+- [x] 7. Documents : PDF / page web → questions avec citations des passages
 - [ ] 8. Dossiers de discussions + recherche plein texte
 - [ ] 9. Partage d'une discussion en image propre ou en page
 - [ ] 10. Dictée vocale + mode conversation mains libres

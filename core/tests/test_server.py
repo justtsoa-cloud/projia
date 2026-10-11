@@ -534,3 +534,19 @@ def test_agent_workdir_not_remotely_changeable(client: TestClient) -> None:
     client.put("/tontolo/settings", json={"agent": {"workdir": "/etc"}, "server": {"token": "x"}})
     after = client.get("/tontolo/settings").json()
     assert after["agent"]["workdir"] == before and "token" not in after["server"]
+
+
+def test_document_upload_api(client: TestClient) -> None:
+    from tests.test_documents import tiny_pdf
+
+    r = client.post("/tontolo/documents",
+                    files={"file": ("cours.pdf", tiny_pdf(["Un", "Deux"]), "application/pdf")})
+    assert r.status_code == 200, r.text
+    doc = r.json()
+    assert doc["pages"] == 2
+    cid = doc["conversation_id"]
+    listed = client.get(f"/tontolo/conversations/{cid}/documents").json()
+    assert [d["name"] for d in listed] == ["cours.pdf"] and "pages" not in listed[0]
+    bad = client.post("/tontolo/documents",
+                      files={"file": ("x.pdf", b"%PDF-xx", "application/pdf")})
+    assert bad.status_code == 422

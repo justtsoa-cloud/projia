@@ -20,6 +20,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from tontolo import documents
 from tontolo.agent.mcp_client import McpManager
 from tontolo.agent.tools import ToolBox, native_tools, search_raw, untrusted
 from tontolo.catalog.models import Category
@@ -130,6 +131,22 @@ class ChatService:
         async for ev in self._loop(conversation_id, model=model):
             yield ev
 
+    async def _documents_block(self, cid: str, question: str) -> dict[str, Any] | None:
+        """Extraits des documents joints utiles à la question, à citer « [nom, p. N] »."""
+        docs = await self.db.list_documents(cid, with_pages=True)
+        if not docs:
+            return None
+        per_doc = max(2, documents.TOP_CHUNKS // len(docs))
+        picked = [(d["name"], documents.select(documents.chunk_pages(d["pages"]), question,
+                                               k=per_doc)) for d in docs[-4:]]
+        block = documents.context_block(picked)
+        if not block:
+            return None
+        return {"role": "system", "content": (
+            "Documents joints par l'utilisateur (extraits). Réponds à partir de ces extraits "
+            "et cite tes sources sous la forme [nom du document, p. N]. Si la réponse n'y est "
+            "pas, dis-le.\n" + untrusted(block))}
+
     async def edit_and_resend(
         self, conversation_id: str, seq: int, content: str, *, model: str | None = None,
     ) -> AsyncIterator[dict[str, Any]]:
@@ -183,6 +200,9 @@ class ChatService:
                 await self.memory.recall(_last_user_text(history)))
             if mem_block is not None:
                 messages.insert(1, mem_block)
+            doc_block = await self._documents_block(cid, _last_user_text(history))
+            if doc_block is not None:
+                messages.insert(1, doc_block)
             # Recherche web forcée pour l'actualité : résultats injectés comme données,
             # utile même si le modèle choisi ne sait pas appeler d'outils.
             if not searched and use_tools:

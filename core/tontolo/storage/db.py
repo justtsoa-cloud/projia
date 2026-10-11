@@ -114,6 +114,16 @@ CREATE TABLE IF NOT EXISTS kv (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS documents (
+    id TEXT PRIMARY KEY,
+    conversation_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    pages TEXT NOT NULL,
+    chars INTEGER NOT NULL DEFAULT 0,
+    created_at REAL NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_documents_conv ON documents(conversation_id);
 """
 
 
@@ -435,6 +445,33 @@ class Database:
         await self.conn.commit()
 
     # --- Mémoire à long terme -----------------------------------------
+
+    # --- Documents joints ------------------------------------------------
+
+    async def add_document(self, cid: str, doc_id: str, name: str, pages: list[str]) -> None:
+        await self.conn.execute(
+            "INSERT INTO documents(id, conversation_id, name, pages, chars, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?)",
+            (doc_id, cid, name, json.dumps(pages, ensure_ascii=False),
+             sum(len(p) for p in pages), now()))
+        await self.conn.commit()
+
+    async def list_documents(self, cid: str, with_pages: bool = False) -> list[dict[str, Any]]:
+        rows = await self._fetchall(
+            "SELECT * FROM documents WHERE conversation_id = ? ORDER BY created_at", (cid,))
+        out = []
+        for r in rows:
+            d = dict(r)
+            pages = d.pop("pages")
+            if with_pages:
+                d["pages"] = json.loads(pages)
+            out.append(d)
+        return out
+
+    async def delete_document(self, cid: str, doc_id: str) -> None:
+        await self.conn.execute(
+            "DELETE FROM documents WHERE id = ? AND conversation_id = ?", (doc_id, cid))
+        await self.conn.commit()
 
     async def list_memories(self) -> list[dict[str, Any]]:
         rows = await self._fetchall("SELECT * FROM memories ORDER BY updated_at DESC")

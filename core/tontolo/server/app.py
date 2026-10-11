@@ -23,7 +23,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, Web
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
 
-from tontolo import __version__, secrets
+from tontolo import __version__, documents, secrets
 from tontolo.agent.loop import dumps
 from tontolo.agent.mcp_client import load_config, save_config
 from tontolo.app_state import Core
@@ -350,6 +350,36 @@ def create_app(
         return {"created": int(time.time()), "model": done["model"],
                 "data": [{"b64_json": base64.b64encode(data).decode(),
                           "media_type": done["params"].get("mime")}]}
+
+    # --- Documents joints ---------------------------------------------------
+
+    @app.post("/tontolo/documents")
+    async def upload_document(request: Request, file: UploadFile = File(...),
+                              conversation_id: str | None = Form(None)) -> dict[str, Any]:
+        """Joint un document (PDF, texte, Markdown, HTML) à une conversation (créée si besoin)."""
+        core = core_of(request)
+        data = await _read_limited(file)
+        name = Path(file.filename or "document").name[:120] or "document"
+        try:
+            pages = await asyncio.to_thread(documents.extract_pages, name, data)
+        except documents.DocumentError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        cid = conversation_id
+        if not cid or not await core.db.conversation_exists(cid):
+            cid = await core.db.create_conversation(name[:60])
+        doc_id = uuid.uuid4().hex
+        await core.db.add_document(cid, doc_id, name, pages)
+        return {"id": doc_id, "conversation_id": cid, "name": name, "pages": len(pages),
+                "chars": sum(len(p) for p in pages)}
+
+    @app.get("/tontolo/conversations/{cid}/documents")
+    async def list_documents(request: Request, cid: str) -> list[dict[str, Any]]:
+        return await core_of(request).db.list_documents(cid)
+
+    @app.delete("/tontolo/conversations/{cid}/documents/{doc_id}")
+    async def delete_document(request: Request, cid: str, doc_id: str) -> dict[str, bool]:
+        await core_of(request).db.delete_document(cid, doc_id)
+        return {"ok": True}
 
     @app.post("/v1/audio/transcriptions")
     async def v1_transcribe(request: Request, file: UploadFile = File(...),

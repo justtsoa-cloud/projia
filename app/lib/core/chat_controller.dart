@@ -5,6 +5,7 @@ import 'dart:convert';
 
 
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 
 import '../l10n/strings.dart';
 import 'backend.dart';
@@ -114,7 +115,51 @@ class ChatController extends ChangeNotifier {
     return t == key ? '${ev['reason'] ?? ''}' : t;
   }
 
+  /// Documents joints à la conversation (noms et pages), affichés au-dessus de la saisie.
+  final List<Map<String, dynamic>> documents = [];
+
+  /// Joint un document (PDF, texte…) : le cœur en extrait le texte et s'en sert pour répondre
+  /// en citant les pages. Renvoie un message d'erreur (traduit) ou null.
+  Future<String?> attachDocument(String name, Uint8List bytes) async {
+    final req = http.MultipartRequest('POST', backend.uri('/tontolo/documents'))
+      ..headers.addAll(backend.headers)
+      ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: name));
+    if (conversationId != null) req.fields['conversation_id'] = conversationId!;
+    try {
+      final resp = await http.Response.fromStream(await req.send()).timeout(const Duration(minutes: 2));
+      final body = jsonDecode(utf8.decode(resp.bodyBytes));
+      if (resp.statusCode != 200) {
+        return (body is Map && body['detail'] is String) ? body['detail'] as String : tr(backend.prefs.locale, 'error_generic');
+      }
+      final doc = (body as Map).cast<String, dynamic>();
+      conversationId = doc['conversation_id'] as String;
+      documents.add(doc);
+      messages.add(ChatMessage(role: 'notice', text: 'document|${doc['name']}|${doc['pages']}'));
+      notifyListeners();
+      return null;
+    } catch (_) {
+      return tr(backend.prefs.locale, 'error_generic');
+    }
+  }
+
+  Future<void> _loadDocuments() async {
+    documents.clear();
+    if (conversationId == null) return;
+    try {
+      final list = await backend.getJson('/tontolo/conversations/$conversationId/documents') as List;
+      documents.addAll(list.cast<Map<String, dynamic>>());
+    } catch (_) {}
+  }
+
+  Future<void> removeDocument(Map<String, dynamic> doc) async {
+    if (conversationId == null) return;
+    await backend.sendJson('DELETE', '/tontolo/conversations/$conversationId/documents/${doc['id']}');
+    documents.remove(doc);
+    notifyListeners();
+  }
+
   void newChat() {
+    documents.clear();
     cancelOfflineQueue(notify: false);
     _sub?.cancel();
     conversationId = null;
@@ -131,6 +176,7 @@ class ChatController extends ChangeNotifier {
     try {
       final data = await backend.getJson('/tontolo/conversations/$id') as Map<String, dynamic>;
       await _loadMessages((data['messages'] as List).cast<Map<String, dynamic>>());
+      await _loadDocuments();
       notifyListeners();
       // Réponse encore en cours de génération : on s'y rattache (rejeu puis direct).
       if (data['active'] == true && conversationId == id) _run(backend.follow(id), replay: true);
