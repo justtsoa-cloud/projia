@@ -95,6 +95,9 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Résultat d'un outil (ex. commande du terminal lancée par l'agent), pour l'interface.
+  void Function(Map<String, dynamic> event)? onToolResult;
+
   /// Plan d'une tâche complexe (mode « parallel » ou « steps ») et état de ses étapes.
   Map<String, dynamic>? plan;
   final Map<int, Map<String, dynamic>> planSteps = {};
@@ -581,6 +584,7 @@ class ChatController extends ChangeNotifier {
           status = 'tool|${ev['name']}';
         case 'tool_result':
           status = null;
+          onToolResult?.call(ev);
         case 'plan':
           plan = (ev['plan'] as Map?)?.cast<String, dynamic>();
           if (plan?['status'] != 'active') planSteps.clear();

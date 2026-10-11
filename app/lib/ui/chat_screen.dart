@@ -24,6 +24,7 @@ import 'model_picker.dart';
 import 'import_flow.dart';
 import 'learn.dart';
 import 'search_dialog.dart';
+import 'workbench.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -42,9 +43,58 @@ class _ChatScreenState extends State<ChatScreen> {
   bool recording = false;
   // Suivi automatique du bas : désactivé dès que l'utilisateur remonte le fil.
   bool stickToBottom = true;
+  // Plan de travail (terminal du bureau, navigateur de la tablette) à côté de la discussion.
+  bool bench = false;
+  ChatController? _chat;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final scope = AppScope.of(context);
+      _chat = scope.chat..onToolResult = _onToolResult;
+      if (browserPanelSupported(context)) {
+        BrowserBridge.instance
+          ..start(scope.backend)
+          ..addListener(_onBridge);
+      }
+    });
+  }
+
+  /// Une commande de l'agent arrive pour le navigateur : le panneau s'affiche.
+  void _onBridge() {
+    final bridge = BrowserBridge.instance;
+    if (!bridge.wantsPanel || !mounted) return;
+    bridge.wantsPanel = false;
+    if (!bench) setState(() => bench = true);
+  }
+
+  /// Commande du terminal lancée par l'agent : affichée dans la session de la discussion.
+  void _onToolResult(Map<String, dynamic> ev) {
+    if (!terminalSupported || ev['name'] != 'run_command' || ev['output'] == null) return;
+    String command = '';
+    try {
+      command = '${(jsonDecode('${ev['arguments'] ?? '{}'}') as Map)['command'] ?? ''}';
+    } catch (_) {}
+    Terminals.instance.agentCommand(_chat?.conversationId ?? '_', null, command, '${ev['output']}');
+  }
+
+  void _toggleBench(bool wide) {
+    if (wide) {
+      setState(() => bench = !bench);
+      return;
+    }
+    final chat = AppScope.of(context).chat;
+    Navigator.push(context, MaterialPageRoute<void>(
+      builder: (context) => Scaffold(body: SafeArea(child: Workbench(chat: chat, onClose: () => Navigator.pop(context)))),
+    ));
+  }
 
   @override
   void dispose() {
+    BrowserBridge.instance.removeListener(_onBridge);
+    if (_chat?.onToolResult == _onToolResult) _chat?.onToolResult = null;
     input.dispose();
     scroll.dispose();
     focus.dispose();
@@ -258,6 +308,20 @@ class _ChatScreenState extends State<ChatScreen> {
     return false;
   }
 
+  /// Discussion seule, ou discussion + plan de travail côte à côte (écran large).
+  Widget _withBench(BuildContext context, Widget chatColumn) {
+    final width = MediaQuery.sizeOf(context).width;
+    if (!bench || width < 840) return chatColumn;
+    return Row(children: [
+      Expanded(child: chatColumn),
+      const VerticalDivider(width: 1),
+      SizedBox(
+        width: (width * 0.45).clamp(360.0, 900.0),
+        child: Workbench(chat: AppScope.of(context).chat, onClose: () => setState(() => bench = false)),
+      ),
+    ]);
+  }
+
   /// Compactage manuel : fiche structurée du début du fil (les messages restent intacts).
   Future<void> _compact(ChatController chat) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -338,6 +402,12 @@ class _ChatScreenState extends State<ChatScreen> {
             titleSpacing: 8,
             title: ModeToggle(chat: chat),
             actions: [
+              if (terminalSupported || browserPanelSupported(context))
+                IconButton(
+                  icon: Icon(bench ? Icons.view_sidebar : Icons.view_sidebar_outlined),
+                  tooltip: context.t('workbench'),
+                  onPressed: () => _toggleBench(MediaQuery.sizeOf(context).width >= 840),
+                ),
               IconButton(icon: const Icon(Icons.search), tooltip: context.t('search'), onPressed: () => showSearchDialog(context)),
               IconButton(icon: const Icon(Icons.edit_square), tooltip: context.t('new_chat'), onPressed: chat.newChat),
               if (chat.conversationId != null)
@@ -359,7 +429,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           drawer: const HistoryDrawer(),
           body: SafeArea(
-            child: Column(children: [
+            child: _withBench(context, Column(children: [
               _UpdateBanner(),
               for (final t in scope.cloud.liveTasks) _RemoteTaskBar(t, current: t.conversationId == chat.conversationId),
               if (backend.state == BackendState.starting) const LinearProgressIndicator(minHeight: 2),
@@ -436,7 +506,7 @@ class _ChatScreenState extends State<ChatScreen> {
               if (chat.status != null) _StatusLine(chat.status!),
               if (chat.pending != null) _PendingBar(chat),
               _InputBar(this, chat, backend),
-            ]),
+            ])),
           ),
         );
       },

@@ -22,7 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from tontolo import documents
-from tontolo.agent import planner
+from tontolo.agent import browser, planner
 from tontolo.agent.mcp_client import McpManager
 from tontolo.agent.tools import ToolBox, native_tools, search_raw, untrusted
 from tontolo.agent.workspace import Workspace, check_workdir, is_desktop
@@ -155,6 +155,11 @@ class ChatService:
             with contextlib.suppress(ValueError):
                 self.set_workdir(settings.agent.workdir)
         self.mcp = mcp
+        # Navigateur intégré : bureau (Chromium & co. piloté) ou panneau WebView (tablette).
+        self.browser_cdp = (browser.CdpBrowser(settings.data_dir / "browser-profile")
+                            if is_desktop() else None)
+        self.browser_bridge = browser.AppBridge()
+        self._conversation = ""  # discussion dont l'agent utilise l'onglet
         # Confirmations en attente : appels du modèle et l'appel unique à confirmer.
         self._pending: dict[str, tuple[list[dict[str, Any]], str]] = {}
 
@@ -172,10 +177,23 @@ class ChatService:
         self.toolbox = native_tools(None, self.workspace, commands=is_desktop())
         return root
 
+    def browser_backend(self) -> browser.CdpBrowser | browser.AppBridge | None:
+        if self.browser_cdp is not None and self.browser_cdp.available:
+            return self.browser_cdp
+        return self.browser_bridge if self.browser_bridge.available else None
+
     async def toolbox_with_mcp(self) -> ToolBox:
         if self.mcp is not None:
             await self.mcp.connect()
             self.mcp.merge_into(self.toolbox)
+        # Outils du navigateur seulement s'il y en a un (sinon ils encombreraient la liste).
+        names = [t.name for t in browser.browser_tools(None, None)]
+        if self.browser_backend() is not None:
+            for t in browser.browser_tools(self.browser_backend, lambda: self._conversation):
+                self.toolbox.add(t)
+        else:
+            for n in names:
+                self.toolbox.tools.pop(n, None)
         return self.toolbox
 
     def _system(self, mode: str = "") -> dict[str, Any]:
@@ -511,6 +529,7 @@ class ChatService:
     ) -> AsyncIterator[dict[str, Any]]:
         """Reprend après une demande de confirmation d'outil."""
         calls, confirm_id = self._pending.pop(conversation_id, ([], ""))
+        self._conversation = conversation_id
         for call in calls:
             fn = call["function"]
             tool = self.toolbox.tools.get(fn["name"])
@@ -524,8 +543,7 @@ class ChatService:
             await self.db.add_message(conversation_id, {
                 "role": "tool", "tool_call_id": call["id"], "name": fn["name"],
                 "content": result})
-            yield {"type": "tool_result", "name": fn["name"], "approved": approved,
-                   "preview": result[:300]}
+            yield {**_tool_event(fn, result), "approved": approved}
         async for ev in self._loop(conversation_id, model=model):
             yield ev
 
@@ -534,6 +552,7 @@ class ChatService:
         strict: bool = False, use_tools: bool = True, auto_approve: bool = False,
     ) -> AsyncIterator[dict[str, Any]]:
         started = time.monotonic()
+        self._conversation = cid
         box = await self.toolbox_with_mcp() if use_tools else ToolBox()
         tools = box.schemas() or None
         searched = False
@@ -657,9 +676,18 @@ class ChatService:
                     done_calls[sig] = result
                 await self.db.add_message(cid, {"role": "tool", "tool_call_id": call["id"],
                                                 "name": fn["name"], "content": result})
-                yield {"type": "tool_result", "name": fn["name"], "preview": result[:300]}
+                yield _tool_event(fn, result)
         yield {"type": "error", "code": "agent_steps",
                "message": "Nombre maximal d'étapes de l'agent atteint."}
+
+
+def _tool_event(fn: dict[str, Any], result: str) -> dict[str, Any]:
+    """Résultat d'outil pour l'application ; une commande du terminal est envoyée en entier
+    (affichée dans le terminal de la discussion sur le bureau)."""
+    ev: dict[str, Any] = {"type": "tool_result", "name": fn["name"], "preview": result[:300]}
+    if fn["name"] == "run_command":
+        ev.update(arguments=fn.get("arguments") or "", output=result[:8000])
+    return ev
 
 
 def _last_user_text(history: list[dict[str, Any]]) -> str:

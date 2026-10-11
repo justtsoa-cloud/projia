@@ -59,5 +59,7 @@ class Core:
         for cid in list(self.turns.turns):
             await self.turns.stop(cid)
         await self.mcp.close()
+        if self.chat.browser_cdp is not None:
+            await self.chat.browser_cdp.close()
         await self.db.close()
         await http.aclose()
