@@ -128,3 +128,111 @@ def test_folder_context_only_when_shared(client: TestClient, fake: FakeProvider)
     text = json.dumps(fake.last_messages, ensure_ascii=False)
     assert "dossier partagé « Maths »" in text and "Moyenne et variance" in text
     assert fake.last_messages[-1]["content"] == "et la médiane ?"  # le fil reste au plus près
+
+
+def _behave_all(fake: FakeProvider, fn: Any) -> None:
+    for mid in ("coder-pro", "chatty", "small", "vision-x", "paid-genius"):
+        fake.behaviors[mid] = fn
+
+
+def test_cut_answer_continues_automatically(client: TestClient, fake: FakeProvider) -> None:
+    parts = iter(["Début de la réponse", " suite 1", " fin."])
+
+    def cut(model: Any, messages: list[dict[str, Any]]) -> dict[str, Any]:
+        piece = next(parts)
+        return {"role": "assistant", "content": piece,
+                "_finish": "stop" if piece == " fin." else "length"}
+
+    _behave_all(fake, cut)
+    events = _chat(client, {"content": "écris un long texte"})
+    assert sum(e["type"] == "continuing" for e in events) == 2
+    done = next(e for e in events if e["type"] == "done")
+    assert done["message"]["content"] == "Début de la réponse suite 1 fin."
+    cid = next(e["id"] for e in events if e["type"] == "conversation")
+    msgs = client.get(f"/tontolo/conversations/{cid}").json()["messages"]
+    assert [m["role"] for m in msgs] == ["user", "assistant"]  # un seul message fusionné
+
+
+def test_continue_stops_without_progress(client: TestClient, fake: FakeProvider) -> None:
+    def always_cut(model: Any, messages: list[dict[str, Any]]) -> dict[str, Any]:
+        return {"role": "assistant", "content": "même texte", "_finish": "length"}
+
+    _behave_all(fake, always_cut)
+    events = _chat(client, {"content": "boucle ?"})
+    assert sum(e["type"] == "continuing" for e in events) == 1  # aucune boucle infinie
+    assert next(e for e in events if e["type"] == "done")["message"]["content"] == "même texte"
+
+
+def test_continue_is_bounded(client: TestClient, fake: FakeProvider) -> None:
+    counter = iter(range(100))
+
+    def endless(model: Any, messages: list[dict[str, Any]]) -> dict[str, Any]:
+        return {"role": "assistant", "content": f" morceau {next(counter)}", "_finish": "length"}
+
+    _behave_all(fake, endless)
+    events = _chat(client, {"content": "sans fin"})
+    assert sum(e["type"] == "continuing" for e in events) == 3
+
+
+def test_agent_mode_prompt_and_tools(client: TestClient, fake: FakeProvider) -> None:
+    events = _chat(client, {"content": "compare deux sources", "mode": "agent",
+                            "agent": "researcher"})
+    cid = next(e["id"] for e in events if e["type"] == "conversation")
+    assert client.get(f"/tontolo/conversations/{cid}").json()["mode"] == "agent:researcher"
+    system = fake.last_messages[0]["content"]
+    assert "agent Chercheur" in system
+    route = next(e for e in events if e["type"] == "route")
+    assert route["model"] != "fake:small"  # le seul modèle sans outils est écarté
+    _chat(client, {"conversation_id": cid, "content": "merci", "mode": "general"})
+    assert "Mode agent" not in fake.last_messages[0]["content"]
+
+
+def test_manual_compaction(client: TestClient, fake: FakeProvider) -> None:
+    core = client.app.state.core  # type: ignore[attr-defined]
+    first = _chat(client, {"content": "Projet de rapport"})
+    cid = next(e["id"] for e in first if e["type"] == "conversation")
+    small = client.post(f"/tontolo/conversations/{cid}/compact").json()
+    assert small["ok"] is False  # trop court : rien à compacter
+
+    async def build() -> None:
+        for i in range(10):
+            await core.db.add_message(cid, {"role": "user", "content": f"point {i}"})
+            await core.db.add_message(cid, {"role": "assistant", "content": f"noté {i}"})
+
+    client.portal.call(build)  # type: ignore[attr-defined]
+
+    async def quick(messages: list[dict[str, Any]], **kw: Any) -> str:
+        assert "## Tâches en cours" in messages[0]["content"]
+        return "## Sujets\n- rapport, points 0 à 3\n## Tâches en cours\n- finir le rapport"
+
+    core.chat.router.quick = quick
+    out = client.post(f"/tontolo/conversations/{cid}/compact").json()
+    assert out["ok"] is True and "## Sujets" in out["summary"] and out["summary_covered"] > 0
+    data = client.get(f"/tontolo/conversations/{cid}").json()
+    assert len(data["messages"]) == 22 and data["summary"] == out["summary"]  # rien d'effacé
+
+
+def test_auto_compaction_can_be_disabled(client: TestClient) -> None:
+    core = client.app.state.core  # type: ignore[attr-defined]
+    client.put("/tontolo/settings", json={"auto_compact": False})
+    assert core.settings.auto_compact is False
+    first = _chat(client, {"content": "x"})
+    cid = next(e["id"] for e in first if e["type"] == "conversation")
+
+    async def build() -> bool:
+        for i in range(40):
+            await core.db.add_message(cid, {"role": "user", "content": f"q{i}"})
+            await core.db.add_message(cid, {"role": "assistant", "content": f"r{i}"})
+        return await core.chat._summarize_thread(cid)
+
+    assert client.portal.call(build) is False  # type: ignore[attr-defined]
+
+
+def test_generators_and_model_details(client: TestClient) -> None:
+    kinds = client.get("/tontolo/generators").json()["kinds"]
+    assert [m["key"] for m in kinds["image_gen"]] == ["fake:img-1"]
+    assert kinds["video_gen"] == []
+    models = client.get("/tontolo/catalog", params={"free": False}).json()["models"]
+    by = {m["key"]: m for m in models}
+    assert by["fake:coder-pro"]["agentic"] is True and by["fake:small"]["agentic"] is False
+    assert by["fake:img-1"]["agentic"] is False and "inputs" in by["fake:vision-x"]

@@ -26,6 +26,7 @@ from pydantic import BaseModel, Field
 from tontolo import __version__, documents, importer, secrets
 from tontolo.agent.loop import dumps
 from tontolo.agent.mcp_client import load_config, save_config
+from tontolo.agent.workspace import is_desktop
 from tontolo.app_state import Core
 from tontolo.catalog.models import Category, ModelInfo
 from tontolo.config import Settings, load_settings, save_settings
@@ -231,8 +232,14 @@ class ChatBody(BaseModel):
     strict: bool = False
     use_tools: bool = True
     # « general » ou « learn » (mode Apprendre) ; `level` : primaire, college, lycee…
-    mode: str | None = Field(default=None, pattern="^(general|learn)$")
+    mode: str | None = Field(default=None, pattern="^(general|learn|agent)$")
     level: str | None = Field(default=None, pattern="^[a-z]{1,20}$")
+    # Mode agent : « auto », « researcher », « developer », « writer », « analyst ».
+    agent: str | None = Field(default=None, pattern="^[a-z]{1,20}$")
+
+
+class WorkspaceBody(BaseModel):
+    path: str | None = Field(default=None, max_length=1024)
 
 
 class LocalMediaBody(BaseModel):
@@ -596,6 +603,7 @@ def create_app(
         body.conversation_id = cid
         if body.mode is not None:
             await core.db.set_mode(cid, f"learn:{body.level or 'lycee'}" if body.mode == "learn"
+                                   else f"agent:{body.agent or 'auto'}" if body.mode == "agent"
                                    else "")
         if file_kind is not None:
             return _turn(core, cid, _file_turn(core, body, file_kind, base_source), first)
@@ -822,9 +830,20 @@ def create_app(
         db = core_of(request).db
         if not await db.conversation_exists(cid):
             raise HTTPException(404, "Conversation introuvable")
+        summary, covered = await db.get_summary(cid)
         return {"id": cid, "messages": await db.get_messages(cid, after, limit),
-                "mode": await db.get_mode(cid),
+                "mode": await db.get_mode(cid), "summary": summary, "summary_covered": covered,
                 "active": core_of(request).turns.active(cid) is not None}
+
+    @app.post("/tontolo/conversations/{cid}/compact")
+    async def compact_conversation(request: Request, cid: str) -> dict[str, Any]:
+        """Compactage manuel : fiche structurée du début du fil (messages conservés)."""
+        core = core_of(request)
+        if not await core.db.conversation_exists(cid):
+            raise HTTPException(404, "Conversation introuvable")
+        ok = await core.chat.compact(cid)
+        summary, covered = await core.db.get_summary(cid)
+        return {"ok": ok, "summary": summary, "summary_covered": covered}
 
 
     @app.patch("/tontolo/conversations/{cid}")
@@ -919,6 +938,10 @@ def create_app(
                     quota: QuotaManager | None = None) -> dict[str, Any]:
         return {
             "key": m.key, "id": m.model_id, "provider": m.provider, "name": m.name,
+            "family": m.family, "max_output": m.max_output,
+            "inputs": m.input_modalities, "outputs": m.output_modalities,
+            # Agentique : sait appeler des outils (recherche, fichiers, calcul…).
+            "agentic": m.supports_tools and m.is_text,
             "free": m.is_free, "usable": m.provider in usable, "tools": m.supports_tools,
             "vision": m.supports_vision, "context": m.context_length, "media": m.media,
             "quality": m.quality, "speed": m.speed, "provisional": m.provisional,
@@ -949,6 +972,19 @@ def create_app(
                 "sources": core.catalog.catalog.sources,
                 "models": [_model_json(m, usable_set, core.router.quota)
                            for m in models[:limit]]}
+
+    @app.get("/tontolo/generators")
+    async def generators(request: Request) -> dict[str, Any]:
+        """Générateurs d'images, de vidéos et de sons, par type : prêts d'abord (gratuits
+        puis payants), puis ceux qui demandent une clé."""
+        core = core_of(request)
+        usable_set = core.catalog.usable_providers()
+        out: dict[str, list[dict[str, Any]]] = {}
+        for kind in ("image_gen", "image_edit", "video_gen", "tts", "stt", "music_sfx"):
+            models = core.catalog.catalog.filter(category=kind)
+            models.sort(key=lambda m: (m.provider not in usable_set, not m.is_free))
+            out[kind] = [_model_json(m, usable_set, core.router.quota) for m in models[:40]]
+        return {"kinds": out}
 
     @app.post("/tontolo/catalog/refresh")
     async def refresh_catalog(request: Request) -> dict[str, Any]:
@@ -1208,6 +1244,44 @@ def create_app(
         save_config(core.mcp.config_path, servers)
         await core.mcp.close()
         return {"ok": True}
+
+    # --- Espace de travail du bureau (fichiers et commandes, avec garde-fous) ---------
+
+    def _local_only(request: Request, core: Core) -> None:
+        if not (request.client is not None and request.client.host in ("127.0.0.1", "::1")
+                and core.settings.server.host in LOOPBACK):
+            raise HTTPException(403, "Espace de travail : configuration locale uniquement")
+
+    def _workspace_json(core: Core) -> dict[str, Any]:
+        ws = core.chat.workspace
+        return {"path": str(ws.root) if ws else None, "desktop": is_desktop(),
+                "commands": bool(ws) and is_desktop(),
+                "history": [{k: e.get(k) for k in ("rel", "action", "at")}
+                            for e in (ws.journal() if ws else [])][-20:][::-1]}
+
+    @app.get("/tontolo/workspace")
+    async def workspace_get(request: Request) -> dict[str, Any]:
+        return _workspace_json(core_of(request))
+
+    @app.put("/tontolo/workspace")
+    async def workspace_put(request: Request, body: WorkspaceBody) -> dict[str, Any]:
+        core = core_of(request)
+        _local_only(request, core)
+        try:
+            root = core.chat.set_workdir(body.path)
+        except ValueError as exc:
+            raise HTTPException(400, str(exc)) from exc
+        core.settings.agent.workdir = str(root) if root else None
+        save_settings(core.settings)
+        return _workspace_json(core)
+
+    @app.post("/tontolo/workspace/undo")
+    async def workspace_undo(request: Request) -> dict[str, Any]:
+        core = core_of(request)
+        _local_only(request, core)
+        if core.chat.workspace is None:
+            raise HTTPException(400, "Aucun dossier de travail choisi")
+        return {"message": core.chat.workspace.undo(), **_workspace_json(core)}
 
     @app.get("/tontolo/update")
     async def update(request: Request, target: str | None = None,

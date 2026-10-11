@@ -22,26 +22,29 @@ class ModeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final learn = chat.learn;
+    final mode = chat.mode;
     final scheme = Theme.of(context).colorScheme;
-    Widget seg(bool value, IconData icon, String label) {
-      final selected = learn == value;
+    Widget seg(String value, IconData icon, String label, VoidCallback onTap) {
+      final selected = mode == value;
+      final bg = switch (value) { 'learn' => scheme.tertiary, 'agent' => scheme.secondary, _ => scheme.primary };
+      final fg = switch (value) { 'learn' => scheme.onTertiary, 'agent' => scheme.onSecondary, _ => scheme.onPrimary };
       return Expanded(
         child: Material(
-          color: selected ? (value ? scheme.tertiary : scheme.primary) : Colors.transparent,
+          color: selected ? bg : Colors.transparent,
           borderRadius: BorderRadius.circular(20),
           child: InkWell(
             borderRadius: BorderRadius.circular(20),
-            onTap: selected
+            // L'agent sélectionné se rechoisit d'un nouvel appui (Chercheur, Développeur…).
+            onTap: selected && value != 'agent'
                 ? null
                 : () {
                     HapticFeedback.selectionClick();
-                    chat.setLearn(value);
+                    onTap();
                   },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
               child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(icon, size: 17, color: selected ? (value ? scheme.onTertiary : scheme.onPrimary) : scheme.onSurfaceVariant),
+                Icon(icon, size: 17, color: selected ? fg : scheme.onSurfaceVariant),
                 const SizedBox(width: 5),
                 Flexible(
                   // Réduit plutôt que tronqué quand la barre est étroite (menu ⋮ affiché).
@@ -49,7 +52,7 @@ class ModeToggle extends StatelessWidget {
                     fit: BoxFit.scaleDown,
                     child: Text(label,
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: selected ? (value ? scheme.onTertiary : scheme.onPrimary) : scheme.onSurfaceVariant)),
+                          color: selected ? fg : scheme.onSurfaceVariant)),
                   ),
                 ),
               ]),
@@ -62,12 +65,123 @@ class ModeToggle extends StatelessWidget {
     return Semantics(
       label: context.t('mode_toggle'),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 280),
+        constraints: const BoxConstraints(maxWidth: 340),
         padding: const EdgeInsets.all(3),
         decoration: BoxDecoration(color: scheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(23)),
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          seg(false, Icons.chat_bubble_outline, context.t('mode_general')),
-          seg(true, Icons.school_outlined, context.t('mode_learn')),
+          seg('general', Icons.chat_bubble_outline, context.t('mode_general'), () => chat.setLearn(false)),
+          seg('learn', Icons.school_outlined, context.t('mode_learn'), () => chat.setLearn(true)),
+          seg('agent', Icons.smart_toy_outlined, context.t('mode_agent'), () => showAgentSheet(context, chat)),
+        ]),
+      ),
+    );
+  }
+}
+
+/// Agents prêts à l'emploi et choix gratuit / payant (gratuit par défaut).
+const agentKinds = [
+  ('auto', Icons.auto_awesome),
+  ('researcher', Icons.travel_explore),
+  ('developer', Icons.code),
+  ('writer', Icons.edit_note),
+  ('analyst', Icons.query_stats),
+];
+
+Future<void> showAgentSheet(BuildContext context, ChatController chat) => showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => _AgentSheet(chat: chat),
+    );
+
+class _AgentSheet extends StatefulWidget {
+  const _AgentSheet({required this.chat});
+  final ChatController chat;
+
+  @override
+  State<_AgentSheet> createState() => _AgentSheetState();
+}
+
+class _AgentSheetState extends State<_AgentSheet> {
+  String? paid; // off | ask | auto
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (paid == null) _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final s = await AppScope.of(context).backend.getJson('/tontolo/settings') as Map<String, dynamic>;
+      if (mounted) setState(() => paid = '${(s['paid'] as Map?)?['fallback'] ?? 'off'}');
+    } catch (_) {
+      if (mounted) setState(() => paid = 'off');
+    }
+  }
+
+  Future<void> _setPaid(String v) async {
+    setState(() => paid = v);
+    await AppScope.of(context).backend.sendJson('PUT', '/tontolo/settings', {'paid': {'fallback': v}});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final chat = widget.chat;
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: Text(context.t('agent_title'), style: Theme.of(context).textTheme.titleLarge),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Text(context.t('agent_help'), style: Theme.of(context).textTheme.bodySmall),
+          ),
+          for (final (k, icon) in agentKinds)
+            ListTile(
+              leading: Icon(icon),
+              title: Text(context.t('agent_$k')),
+              subtitle: Text(context.t('agent_${k}_sub')),
+              selected: chat.agent == k,
+              onTap: () {
+                chat.setAgent(k);
+                Navigator.pop(context);
+              },
+            ),
+          if (chat.agent != null)
+            ListTile(
+              leading: const Icon(Icons.close),
+              title: Text(context.t('agent_off')),
+              onTap: () {
+                chat.setAgent(null);
+                Navigator.pop(context);
+              },
+            ),
+          const Divider(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Text(context.t('agent_paid'), style: Theme.of(context).textTheme.titleSmall),
+          ),
+          if (paid != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: SegmentedButton<String>(
+                segments: [
+                  ButtonSegment(value: 'off', label: Text(context.t('agent_paid_off'))),
+                  ButtonSegment(value: 'ask', label: Text(context.t('agent_paid_ask'))),
+                  ButtonSegment(value: 'auto', label: Text(context.t('agent_paid_auto'))),
+                ],
+                selected: {paid!},
+                onSelectionChanged: (s) => _setPaid(s.first),
+              ),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Text(context.t('agent_paid_help'), style: Theme.of(context).textTheme.bodySmall),
+          ),
         ]),
       ),
     );

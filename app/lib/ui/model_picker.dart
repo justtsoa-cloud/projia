@@ -10,6 +10,7 @@ import '../core/backend.dart';
 
 import '../core/chat_controller.dart';
 import '../main.dart';
+import 'model_details.dart';
 import 'status_screen.dart';
 
 /// État global des modèles gratuits (pastille) : vert, orange ou rouge.
@@ -264,7 +265,7 @@ class _ModelPickerState extends State<ModelPicker> {
         if (query.isNotEmpty) 'q': query,
       }) as Map<String, dynamic>;
       models = (data['models'] as List).cast<Map<String, dynamic>>();
-      if (tools) models = models.where((m) => m['tools'] == true).toList();
+      if (tools) models = models.where((m) => m['agentic'] == true).toList();
     } catch (_) {
       models = [];
     }
@@ -320,7 +321,14 @@ class _ModelPickerState extends State<ModelPicker> {
                 ]),
               ),
             ),
-          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              icon: const Icon(Icons.palette_outlined, size: 18),
+              label: Text(context.t('generators')),
+              onPressed: () => GeneratorsSheet.show(context),
+            ),
+          ),
           TextField(
             decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: context.t('search')),
             onChanged: (v) {
@@ -340,7 +348,7 @@ class _ModelPickerState extends State<ModelPicker> {
                   child: FilterChip(label: Text(context.t(key)), selected: category == cat,
                       onSelected: (v) { category = v ? cat : 'chat'; _load(); }),
                 ),
-              FilterChip(label: Text(context.t('filter_tools')), selected: tools, onSelected: (v) { tools = v; _load(); }),
+              FilterChip(avatar: const Icon(Icons.smart_toy_outlined, size: 16), label: Text(context.t('filter_agentic')), selected: tools, onSelected: (v) { tools = v; _load(); }),
             ]),
           ),
           const SizedBox(height: 8),
@@ -370,19 +378,29 @@ class _ModelPickerState extends State<ModelPicker> {
                             leading: Icon(Icons.circle, size: 10,
                                 color: waiting ? const Color(0xFFE59A1F) : const Color(0xFF2E9E6B)),
                             minLeadingWidth: 10,
-                            title: Text('${m['name']}', maxLines: 1, overflow: TextOverflow.ellipsis),
+                            title: Row(children: [
+                              Flexible(child: Text('${m['name']}', maxLines: 1, overflow: TextOverflow.ellipsis)),
+                              if (m['agentic'] == true) ...[const SizedBox(width: 6), const AgentBadge()],
+                            ]),
                             subtitle: Text([
                               '${m['provider']}',
-                              if (m['free'] == true) context.t('tag_free'),
-                              if (m['tools'] == true) context.t('tag_tools'),
+                              m['free'] == true ? context.t('tag_free') : context.t('tag_paid'),
                               if (m['vision'] == true) context.t('tag_vision'),
                               if ((m['context'] as num? ?? 0) > 0) '${((m['context'] as num) / 1000).round()}k',
                               if (m['provisional'] == true) context.t('tag_provisional'),
                               if (waiting) context.t('model_waiting'),
                             ].join(' · ')),
-                            trailing: Text(q.toStringAsFixed(2)),
+                            trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                              Text('${(q * 100).round()}'),
+                              IconButton(
+                                icon: const Icon(Icons.info_outline, size: 20),
+                                tooltip: context.t('md_title'),
+                                onPressed: () => showModelDetails(context, m, onUse: () => _choose('${m['key']}')),
+                              ),
+                            ]),
                             selected: widget.chat.modelOverride == m['key'],
                             onTap: () => _choose('${m['key']}'),
+                            onLongPress: () => showModelDetails(context, m, onUse: () => _choose('${m['key']}')),
                           );
                         },
                       ),

@@ -89,6 +89,8 @@ class Settings(BaseModel):
     # Dossiers dont les discussions partagent leur contexte (titres et résumés), en priorité
     # secondaire après le fil. Par défaut un dossier ne sert qu'au rangement.
     shared_folders: list[str] = Field(default_factory=list)
+    # Compactage automatique des longues discussions (fiche structurée du début du fil).
+    auto_compact: bool = True
 
     @property
     def data_dir(self) -> Path:

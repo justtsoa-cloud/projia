@@ -217,14 +217,16 @@ Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cass�
 ## v0.5.1 — demandes du 2026-10-11 (soir), après relecture du travail de Codex
 Décisions du propriétaire : dossiers isolés par défaut avec partage activable par dossier ; mode Agent ET agents prêts à
 l'emploi ; bureau Linux = fichiers + commandes confirmées dans un dossier choisi ; synchro = texte + créations ≤ 1 Mo + suivi en direct.
-- [ ] A0. Relecture Codex (0.4.7, 0.5.0) : tests verts, Supabase OK (retours Android/Linux, GitHub et Google actifs ; Google encore en « Testing ») ; incohérence : souvenirs automatiques extraits mais jamais rappelés → rappel limité à leur propre discussion
-- [ ] A1. Dossiers : interrupteur « Partager le contexte de ce dossier » (désactivé par défaut) ; priorité fil > dossier partagé > mémoire
-- [ ] A2. Modèles : liste plus claire, fiche détaillée (fournisseur, gratuit/payant, contexte, vision, outils, scores, vitesse, état), badge « Agent » pour les modèles agentiques
-- [ ] A3. Générateurs : liste simple des générateurs d'image, de vidéo et de son disponibles (état, quota)
-- [ ] A4. Mode Agent visible + agents prêts (Chercheur, Développeur, Rédacteur, Analyste) ; gratuit par défaut, payant possible, choix automatique sauf choix de l'utilisateur
-- [ ] A5. Compactage de la discussion automatique (désactivable) et manuel : fil structuré (sujets, faits, décisions, créations, tâches ouvertes) ; messages d'origine conservés
-- [ ] A6. Réponse coupée (limite de longueur) : relance « continue » automatique, 3 fois maximum, arrêt si rien de nouveau
-- [ ] A7. Bureau Linux : dossier de travail choisi, lecture/recherche/création/modification avec différences, sauvegarde et annulation, commandes du terminal confirmées une à une, dossiers sensibles bloqués
+- [x] A0. Relecture Codex (0.4.7, 0.5.0) : tests verts, Supabase OK (retours Android/Linux, GitHub et Google actifs ; Google encore en « Testing ») ; incohérence : souvenirs automatiques extraits mais jamais rappelés → rappel limité à leur propre discussion
+- [x] A1. Dossiers : interrupteur « Partager le contexte de ce dossier » (désactivé par défaut) ; priorité fil > dossier partagé > mémoire
+- [x] A2. Modèles : liste plus claire, fiche détaillée (fournisseur, gratuit/payant, contexte, vision, outils, scores, vitesse, état), badge « Agent » pour les modèles agentiques
+- [x] A3. Générateurs : liste simple des générateurs d'image, de vidéo et de son disponibles (état, quota)
+- [x] A4. Mode Agent visible + agents prêts (Chercheur, Développeur, Rédacteur, Analyste) ; gratuit par défaut, payant possible, choix automatique sauf choix de l'utilisateur
+- [x] A5. Compactage de la discussion automatique (désactivable) et manuel : fil structuré (sujets, faits, décisions, créations, tâches ouvertes) ; messages d'origine conservés
+- [x] A6. Réponse coupée (limite de longueur) : relance « continue » automatique, 3 fois maximum, arrêt si rien de nouveau
+- [x] A7. Bureau Linux : dossier de travail choisi, lecture/recherche/création/modification avec différences, sauvegarde et annulation, commandes du terminal confirmées une à une, dossiers sensibles bloqués
 - [ ] A8. Synchronisation : créations ≤ 1 Mo chiffrées, tâche en cours visible sur les autres appareils, synchro toutes les ~20 s quand l'application est ouverte
 - [ ] A9. Règle de version : x.y.9 → x.(y+1).0 ; x.9.9 → (x+1).0.0 ; script de montée de version + vérification CI
+- [ ] A11. Plusieurs fichiers demandés (ou nécessaires, ex. livre LaTeX en chapitres) : livrés ensemble dans une archive .zip (zipfile de Python, gratuit et local), avec la liste des fichiers
+- [ ] A12. Tâche complexe : découpage précis en étapes (plan visible) ; étapes indépendantes confiées à plusieurs modèles en simultané, ou livraison pas à pas avec un bouton « Continuer » ; le plan et l'avancement restent dans le fil
 - [ ] A10. Tests, émulateur, publication 0.5.1

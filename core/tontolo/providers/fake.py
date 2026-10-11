@@ -45,8 +45,9 @@ class FakeProvider:
         self, model: ModelInfo, messages: list[dict[str, Any]], *,
         tools: list[dict[str, Any]] | None = None, **params: Any,
     ) -> ChatResult:
-        msg = self._answer(model, messages)
-        return ChatResult(msg, {"prompt_tokens": 10, "completion_tokens": 5}, "stop")
+        msg = dict(self._answer(model, messages))
+        finish = msg.pop("_finish", "stop")  # « length » : réponse coupée (tests)
+        return ChatResult(msg, {"prompt_tokens": 10, "completion_tokens": 5}, finish)
 
     async def stream(
         self, model: ModelInfo, messages: list[dict[str, Any]], *,
@@ -58,7 +59,8 @@ class FakeProvider:
             from tontolo.providers.base import ErrorKind
 
             raise ProviderError("coupure", ErrorKind.RATE_LIMIT, status=429, retry_after=30)
-        msg = self._answer(model, messages)
+        msg = dict(self._answer(model, messages))
+        finish = msg.pop("_finish", "stop")
         text = msg.get("content") or ""
         for i in range(0, len(text), 8):
             if self.chunk_delay:
@@ -70,4 +72,4 @@ class FakeProvider:
             yield {"delta": {"tool_calls": [dict(tc, index=i)
                                             for i, tc in enumerate(msg["tool_calls"])]}}
         yield {"_result": ChatResult(msg, {"prompt_tokens": 10, "completion_tokens": 5},
-                                     "stop")}
+                                     finish)}

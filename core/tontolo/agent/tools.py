@@ -38,6 +38,8 @@ class Tool:
     func: ToolFunc
     side_effect: bool = False   # exige la confirmation de l'utilisateur
     source: str = "native"
+    # Aperçu montré dans la demande de confirmation (différence d'un fichier, commande…).
+    preview: Callable[[dict[str, Any]], str] | None = None
 
     def schema(self) -> dict[str, Any]:
         return {"type": "function",
@@ -54,6 +56,17 @@ class ToolBox:
 
     def schemas(self) -> list[dict[str, Any]]:
         return [t.schema() for t in self.tools.values()]
+
+    def preview(self, name: str, arguments: str | dict[str, Any]) -> str | None:
+        tool = self.tools.get(name)
+        if tool is None or tool.preview is None:
+            return None
+        try:
+            args = json.loads(arguments) if isinstance(arguments, str) and arguments else (
+                arguments if isinstance(arguments, dict) else {})
+            return tool.preview(args)
+        except Exception:
+            return None
 
     async def call(self, name: str, arguments: str | dict[str, Any]) -> str:
         tool = self.tools.get(name)
@@ -359,7 +372,8 @@ def file_tools(workdir: Path) -> list[Tool]:
     ]
 
 
-def native_tools(workdir: Path | None = None) -> ToolBox:
+def native_tools(workdir: Path | None = None, workspace: Any = None,
+                 commands: bool = False) -> ToolBox:
     box = ToolBox()
     box.add(Tool(
         "web_search",
@@ -373,7 +387,10 @@ def native_tools(workdir: Path | None = None) -> ToolBox:
     box.add(Tool("calculator", "Calcule une expression mathématique exacte ou numérique.",
                  {"type": "object", "properties": {"expression": {"type": "string"}},
                   "required": ["expression"]}, calculator))
-    if workdir is not None:
+    if workspace is not None:  # dossier choisi par l'utilisateur (bureau) : outils complets
+        for t in workspace.tools(commands):
+            box.add(t)
+    elif workdir is not None:
         for t in file_tools(workdir):
             box.add(t)
     return box

@@ -257,6 +257,45 @@ class _ChatScreenState extends State<ChatScreen> {
     return false;
   }
 
+  /// Compactage manuel : fiche structurée du début du fil (les messages restent intacts).
+  Future<void> _compact(ChatController chat) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final notFound = context.t('compact_nothing');
+    messenger.showSnackBar(SnackBar(content: Text(context.t('compacting'))));
+    String? summary;
+    try {
+      summary = await chat.compact() ?? chat.summary;
+    } catch (_) {
+      summary = null;
+    }
+    messenger.hideCurrentSnackBar();
+    if (!mounted) return;
+    if (summary == null || summary.isEmpty) {
+      messenger.showSnackBar(SnackBar(content: Text(notFound)));
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.7,
+        builder: (context, controller) => ListView(
+          controller: controller,
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          children: [
+            Text(context.t('compact_title'), style: Theme.of(context).textTheme.titleLarge),
+            const SizedBox(height: 4),
+            Text(context.t('compact_help'), style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 12),
+            RichMarkdown(summary!),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _showWhy(ChatMessage m) async {
     final r = m.reason;
     await showModalBottomSheet<void>(
@@ -305,12 +344,14 @@ class _ChatScreenState extends State<ChatScreen> {
                   onSelected: (v) => switch (v) {
                     'export' => _export(chat),
                     'export_html' => _exportHtml(chat),
+                    'compact' => _compact(chat),
                     _ => _pin(chat),
                   },
                   itemBuilder: (context) => [
                     PopupMenuItem(value: 'pin', child: ListTile(leading: const Icon(Icons.push_pin_outlined), title: Text(context.t('pin')))),
                     PopupMenuItem(value: 'export_html', child: ListTile(leading: const Icon(Icons.web_outlined), title: Text(context.t('export_html')))),
                     PopupMenuItem(value: 'export', child: ListTile(leading: const Icon(Icons.ios_share), title: Text(context.t('export')))),
+                    PopupMenuItem(value: 'compact', child: ListTile(leading: const Icon(Icons.compress), title: Text(context.t('compact')))),
                   ],
                 ),
             ],
@@ -790,9 +831,39 @@ class _PendingBar extends StatelessWidget {
     final p = chat.pending!;
     final text = p.kind == 'paid'
         ? context.t('paid_confirm', {'model': p.model ?? '', 'cost': (p.cost ?? 0).toStringAsFixed(4)})
-        : context.t('tool_confirm', {'name': p.tools.map((t) => t['name']).join(', ')});
+        : context.t('tool_confirm', {'name': p.tools.map((t) {
+          final label = context.t('tool_${t['name']}');
+          return label == 'tool_${t['name']}' ? '${t['name']}' : label;
+        }).join(', ')});
+    // Aperçu de l'action (différence du fichier, commande du terminal) avant d'accepter.
+    final preview = p.tools.map((t) => t['preview']).whereType<String>().join('\n');
     return MaterialBanner(
-      content: Text(text),
+      content: preview.isEmpty
+          ? Text(text)
+          : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(text),
+              const SizedBox(height: 6),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 220),
+                child: SingleChildScrollView(
+                  child: SelectableText.rich(TextSpan(children: [
+                    for (final line in preview.split('\n'))
+                      TextSpan(
+                        text: '$line\n',
+                        style: TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 12,
+                          color: line.startsWith('+') && !line.startsWith('+++')
+                              ? const Color(0xFF2E9E6B)
+                              : line.startsWith('-') && !line.startsWith('---')
+                                  ? Theme.of(context).colorScheme.error
+                                  : null,
+                        ),
+                      ),
+                  ])),
+                ),
+              ),
+            ]),
       actions: [
         TextButton(onPressed: () => p.kind == 'paid' ? chat.resolvePaid(false) : chat.resolveTools(false), child: Text(context.t('decline'))),
         FilledButton(onPressed: () => p.kind == 'paid' ? chat.resolvePaid(true) : chat.resolveTools(true), child: Text(context.t('accept'))),

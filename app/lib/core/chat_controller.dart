@@ -74,10 +74,40 @@ class ChatController extends ChangeNotifier {
 
   void setLearn(bool value) {
     learn = value;
+    agent = null;
     backend.prefs.learnMode = value;
     _modeChanged = true;
     notifyListeners();
   }
+
+  // Mode Agent : null = désactivé ; sinon « auto », « researcher », « developer »,
+  // « writer » ou « analyst ». Propre à chaque discussion (mémorisé par le cœur).
+  String? agent;
+
+  void setAgent(String? value) {
+    agent = value;
+    if (value != null) {
+      learn = false;
+      backend.prefs.learnMode = false;
+    }
+    _modeChanged = true;
+    notifyListeners();
+  }
+
+  /// Fiche compactée du début de la discussion (null si elle n'a pas encore été compactée).
+  String? summary;
+
+  /// Compactage manuel : renvoie la fiche (ou null s'il n'y a rien à compacter).
+  Future<String?> compact() async {
+    final id = conversationId;
+    if (id == null) return null;
+    final r = await backend.sendJson('POST', '/tontolo/conversations/$id/compact', {}) as Map<String, dynamic>;
+    summary = r['summary'] as String?;
+    notifyListeners();
+    return r['ok'] == true ? summary : null;
+  }
+
+  String get mode => learn ? 'learn' : agent != null ? 'agent' : 'general';
 
   void setLevel(String value) {
     backend.prefs.learnLevel = value;
@@ -210,6 +240,8 @@ class ChatController extends ChangeNotifier {
     _sub?.cancel();
     conversationId = null;
     learn = backend.prefs.learnMode;
+    agent = null;
+    summary = null;
     _modeChanged = false;
     messages.clear();
     busy = false;
@@ -227,7 +259,12 @@ class ChatController extends ChangeNotifier {
     try {
       final data = await backend.getJson('/tontolo/conversations/$id') as Map<String, dynamic>;
       if (epoch != _epoch) return;
-      if (data.containsKey('mode')) learn = '${data['mode']}'.startsWith('learn');
+      if (data.containsKey('mode')) {
+        final mode = '${data['mode']}';
+        learn = mode.startsWith('learn');
+        summary = data['summary'] as String?;
+        agent = mode.startsWith('agent') ? (mode.contains(':') ? mode.split(':')[1] : 'auto') : null;
+      }
       await _loadMessages((data['messages'] as List).cast<Map<String, dynamic>>());
       if (epoch != _epoch) return;
       await _loadDocuments();
@@ -292,15 +329,16 @@ class ChatController extends ChangeNotifier {
           ];
     // Le mode n'est envoyé que s'il compte : nouvelle discussion, bascule, ou mode Apprendre
     // (un ancien serveur distant ignore simplement ces champs).
-    final sendMode = conversationId == null || _modeChanged || learn;
+    final sendMode = conversationId == null || _modeChanged || learn || agent != null;
     _modeChanged = false;
     _run(backend.sse('/tontolo/chat', {
       'conversation_id': conversationId,
       'content': content,
       'model': modelOverride,
       'category': category,
-      if (sendMode) 'mode': learn ? 'learn' : 'general',
+      if (sendMode) 'mode': mode,
       if (sendMode && learn) 'level': level,
+      if (sendMode && agent != null) 'agent': agent,
     }));
   }
 
@@ -518,6 +556,9 @@ class ChatController extends ChangeNotifier {
           status = 'tool|${ev['name']}';
         case 'tool_result':
           status = null;
+        case 'continuing':
+          // Réponse coupée par la limite de longueur : suite demandée automatiquement.
+          status = 'continuing';
         case 'job':
           status = 'generating';
           final c = ensureCurrent();
