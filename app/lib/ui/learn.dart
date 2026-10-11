@@ -39,15 +39,18 @@ class ModeToggle extends StatelessWidget {
                     chat.setLearn(value);
                   },
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
               child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                 Icon(icon, size: 17, color: selected ? (value ? scheme.onTertiary : scheme.onPrimary) : scheme.onSurfaceVariant),
                 const SizedBox(width: 5),
                 Flexible(
-                  child: Text(label,
-                      overflow: TextOverflow.ellipsis,
+                  // Réduit plutôt que tronqué quand la barre est étroite (menu ⋮ affiché).
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(label,
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           color: selected ? (value ? scheme.onTertiary : scheme.onPrimary) : scheme.onSurfaceVariant)),
+                  ),
                 ),
               ]),
             ),
