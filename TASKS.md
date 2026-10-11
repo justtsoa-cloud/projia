@@ -170,3 +170,9 @@ Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cass�
 - [x] D7. Tout type de fichier à la demande (par défaut, gratuit) : DOCX, PDF/LaTeX, XLSX, PPTX, CSV, HTML, Markdown, code, SVG/schémas, cartes mentales, graphiques ; outils payants branchables si l'utilisateur a une clé
 - [x] L1. Mode Apprendre plus simple : accueil épuré (niveau + une question), guidage strict sans réponse directe (« prochaine étape » au lieu de « solution »)
 - [ ] S1. Expliquer comment lire les statistiques (Supabase) ; voir avec l'utilisateur ce que Claude peut configurer lui-même pour les comptes
+
+## Retours utilisateur du 2026-10-11 (vidéo) — prioritaires
+- [x] B1. Photo + « Put this on a public space in Antananarivo » : demande de modification d'image non reconnue (verbes « put / place / add… ») → envoyée à un modèle de texte
+- [x] B2. La photo jointe clignote dans la bulle (décodage à chaque reconstruction)
+- [x] B3. « Anime-la » après une image générée : la vidéo doit partir de cette image (pas du texte seul)
+- [x] B4. « Rajoute des détails et des exemples » après une carte mentale : modifier le fichier existant (même format, source précédent repris), pas une réponse texte

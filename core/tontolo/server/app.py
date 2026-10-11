@@ -109,6 +109,44 @@ async def _english_prompt(core: Core, text: str) -> str:
     return out[:900] if 3 <= len(out.split()) <= 160 else text
 
 
+async def _last_file(core: Core, cid: str) -> tuple[str, str] | None:
+    """(format, source) du fichier créé par la DERNIÈRE réponse de la conversation."""
+    last = next((m for m in reversed(await core.db.get_messages(cid))
+                 if m.get("role") == "assistant"), None)
+    mt = re.match(r"^\[média:([0-9a-f]+)\]$", str((last or {}).get("content") or "").strip())
+    if not mt:
+        return None
+    job = await core.db.get_job(mt.group(1))
+    params = (job or {}).get("params") or {}
+    if not job or job.get("kind") != "file_gen" or job.get("status") != "done":
+        return None
+    src = params.get("source_path") or job.get("result_path")
+    path = Path(str(src or ""))
+    text = ""
+    if path.is_file() and path.resolve().is_relative_to(core.media.dir.resolve()):
+        raw = path.read_bytes()
+        text = raw.decode("utf-8", "replace") if params.get("source_path") or str(
+            params.get("mime", "")).startswith("text/") else ""
+    return str(params.get("format") or ""), text
+
+
+async def _last_image(core: Core, cid: str) -> bytes | None:
+    """Image (créée ou retouchée) la plus récente de la conversation, ou None."""
+    for m in reversed(await core.db.get_messages(cid)):
+        mt = re.match(r"^\[média:([0-9a-f]+)\]$", str(m.get("content") or "").strip())
+        if m.get("role") != "assistant" or not mt:
+            continue
+        job = await core.db.get_job(mt.group(1))
+        if not job or job.get("status") != "done" or not job.get("result_path"):
+            continue
+        if job["kind"] in ("image_gen", "image_edit") or str(
+                (job.get("params") or {}).get("mime", "")).startswith("image/"):
+            path = Path(job["result_path"])
+            if path.is_file() and path.resolve().is_relative_to(core.media.dir.resolve()):
+                return path.read_bytes()
+    return None
+
+
 def _wants_image(text: str) -> bool:
     """La demande porte sur une image (mot « image », ou « draw / dessine… » détecté)."""
     return mentions_image(text) or classify([{"role": "user", "content": text}]).category in (
@@ -461,8 +499,15 @@ def create_app(
         if file_kind is not None and not file_intent.valid(file_kind):
             raise HTTPException(400, "format de fichier inconnu")
         category = Category(body.category) if body.category and file_kind is None else None
+        base_source: str | None = None
         if file_kind is None and body.category is None and not _first_image(body.content):
             file_kind = file_intent.detect(_text_of(body.content))
+            if file_kind is None and body.conversation_id:
+                # « Rajoute des détails », « traduis-la »… juste après un fichier créé :
+                # on modifie CE fichier (même format, version précédente reprise).
+                prev = await _last_file(core, body.conversation_id)
+                if prev is not None and file_intent.is_revision(_text_of(body.content)):
+                    file_kind, base_source = prev
         if file_kind is not None:
             category = None
         elif category is None:
@@ -489,7 +534,7 @@ def create_app(
             await core.db.set_mode(cid, f"learn:{body.level or 'lycee'}" if body.mode == "learn"
                                    else "")
         if file_kind is not None:
-            return _turn(core, cid, _file_turn(core, body, file_kind), first)
+            return _turn(core, cid, _file_turn(core, body, file_kind, base_source), first)
         if category is not None and category.value in MEDIA_TURN_KINDS:
             return _turn(core, cid, _media_turn(core, body, category), first)
         return _turn(core, cid, _text_turn(core, body, cid, category), first)
@@ -532,7 +577,8 @@ def create_app(
             async for ev in _media_turn(core, body, kind, add_user=False):
                 yield ev
 
-    async def _file_turn(core: Core, body: ChatBody, kind: str) -> AsyncIterator[dict[str, Any]]:
+    async def _file_turn(core: Core, body: ChatBody, kind: str, base_source: str | None = None
+                         ) -> AsyncIterator[dict[str, Any]]:
         """Création d'un fichier (DOCX, PDF, carte mentale…) par l'équipe de modèles :
         rédaction, vérification, correction ; le résultat est une carte « fichier »."""
         cid = str(body.conversation_id)
@@ -544,7 +590,8 @@ def create_app(
         )[-9000:]
         await core.db.add_message(cid, {"role": "user", "content": body.content})
         done: dict[str, Any] = {}
-        async for ev in core.creator.create(kind, text, conversation_id=cid, context=context):
+        async for ev in core.creator.create(kind, text, conversation_id=cid, context=context,
+                                            base=base_source):
             if ev["type"] == "job":
                 done = ev
             yield ev
@@ -567,8 +614,11 @@ def create_app(
         if add_user:
             await core.db.add_message(cid, {"role": "user", "content": body.content})
         image = _first_image(body.content)
+        if image is None and category in (Category.VIDEO_GEN, Category.IMAGE_EDIT):
+            # « Anime-la », « mets-la sur une place… » : on part de la dernière image créée.
+            image = await _last_image(core, cid)
         prompt = await _media_prompt(core, cid, text)
-        if category in (Category.IMAGE_GEN, Category.VIDEO_GEN):
+        if category in (Category.IMAGE_GEN, Category.VIDEO_GEN, Category.IMAGE_EDIT):
             prompt = await _english_prompt(core, prompt)
         job = await core.media.submit(category.value, prompt, conversation_id=cid,
                                       model=body.model, input_bytes=image,

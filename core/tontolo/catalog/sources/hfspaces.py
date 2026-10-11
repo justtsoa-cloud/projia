@@ -54,12 +54,20 @@ IMAGE_SPACES: tuple[ImageSpace, ...] = (
 )
 
 
+# Retouche guidée par une consigne (la personne ou l'objet est conservé, la scène change).
+EDIT_SPACES: tuple[ImageSpace, ...] = (
+    ImageSpace("black-forest-labs/FLUX.1-Kontext-dev",
+               "https://black-forest-labs-flux-1-kontext-dev.hf.space", "FLUX.1 Kontext",
+               0.8, 0.35, 28),
+)
+
+
 def by_id(model_id: str) -> VideoSpace | None:
     return next((s for s in VIDEO_SPACES if s.space == model_id), None)
 
 
 def image_by_id(model_id: str) -> ImageSpace | None:
-    return next((s for s in IMAGE_SPACES if s.space == model_id), None)
+    return next((s for s in (*IMAGE_SPACES, *EDIT_SPACES) if s.space == model_id), None)
 
 
 def models() -> list[ModelInfo]:
@@ -81,4 +89,13 @@ def models() -> list[ModelInfo]:
             rate_limit="GPU partagé : quota quotidien anonyme",
         )
         for s in IMAGE_SPACES
+    ] + [
+        ModelInfo(
+            provider="hf_spaces", model_id=s.space, name=s.name, family=s.name,
+            input_modalities=["text", "image"], output_modalities=["image"],
+            is_free=True, needs_key=False, media=["image_edit"],
+            quality={"image_edit": s.quality}, speed=s.speed,
+            rate_limit="GPU partagé : quota quotidien anonyme",
+        )
+        for s in EDIT_SPACES
     ]

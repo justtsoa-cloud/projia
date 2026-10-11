@@ -55,3 +55,17 @@ def valid(kind: str) -> bool:
     from tontolo.creator.pipeline import KINDS
 
     return kind in KINDS or (kind.startswith("text:") and bool(SAFE_EXT.match(kind[5:])))
+
+
+_REVISION = re.compile(
+    r"\b(ajoute|rajoute|ajouter|rajouter|compl[èe]te|d[ée]taille|d[ée]veloppe|enrichis|"
+    r"modifie|change|corrige|am[ée]liore|remplace|enl[èe]ve|supprime|retire|raccourcis|"
+    r"allonge|simplifie|traduis|mets|plus de|davantage|moins de|"
+    r"add|more|expand|extend|update|fix|improve|include|remove|shorten|simplify|translate|"
+    r"ampio|ampiana|ovay|ahitsio|hatsarao|esory)\b", re.I)
+
+
+def is_revision(text: str) -> bool:
+    """Demande de modification du fichier qui vient d'être créé (et non une question)."""
+    t = (text or "").strip()
+    return bool(t) and len(t) < 600 and bool(_REVISION.search(t)) and not t.endswith("?")

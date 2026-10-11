@@ -53,11 +53,10 @@ REINTERPRETATION_NOTE = (
     "avoir changé."
 )
 PRESERVE_REFUSAL = (
-    "Impossible gratuitement : modifier le contenu de cette photo sans changer la personne ni "
-    "la composition n'est pas possible avec les services gratuits (ils recréent une autre "
-    "image). Ce qui marche à la place, directement sur votre téléphone et sans rien envoyer : "
-    "éclaircir, contraste, couleurs vives, noir et blanc, sépia, vintage, style professionnel, "
-    "netteté. Par exemple : « édite cette photo, style professionnel »."
+    "La retouche fidèle gratuite (FLUX Kontext, qui garde la personne et la composition) est "
+    "occupée pour le moment (quota GPU partagé) : réessayez plus tard. En attendant, une retouche "
+    "simple se fait directement sur votre téléphone, sans rien envoyer : éclaircir, contraste, "
+    "couleurs vives, noir et blanc, sépia, vintage, style professionnel, netteté."
 )
 NO_VISION_NOTE = (
     "Aucune IA gratuite n'a pu lire votre photo : l'image a été créée à partir de votre "

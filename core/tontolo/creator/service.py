@@ -103,11 +103,13 @@ class CreatorService:
                 "name": name}
 
     async def create(self, kind: str, request: str, *, conversation_id: str | None,
-                     context: str = "") -> AsyncIterator[dict[str, Any]]:
+                     context: str = "", base: str | None = None
+                     ) -> AsyncIterator[dict[str, Any]]:
         """Événements `step` puis `job` (terminé ou en échec), comme un média."""
         job: dict[str, Any] = {
             "id": uuid.uuid4().hex, "kind": "file_gen", "status": "running", "prompt": request,
-            "params": {"format": kind}, "conversation_id": conversation_id,
+            "params": {"format": kind, "revision": bool(base)},
+            "conversation_id": conversation_id,
             "created_at": time.time(),
         }
         await self.db.upsert_job(job)
@@ -116,7 +118,7 @@ class CreatorService:
         creator = Creator(self.ask, self.pick_reviewer if self.review else None)
         try:
             async for ev in creator.run(kind, request, context=context, language=self.language,
-                                        out=out):
+                                        out=out, base=base):
                 yield ev
             self.dir.mkdir(parents=True, exist_ok=True)
             path = self.dir / f"{job['id']}-{out.filename}"

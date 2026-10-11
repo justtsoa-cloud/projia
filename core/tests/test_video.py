@@ -197,3 +197,37 @@ def test_gpu_quota_pauses_every_space() -> None:
 
     err = mp._gradio_error("You have exceeded your GPU quota (60s requested vs. 0s left)")
     assert err.kind == ErrorKind.QUOTA and err.scope == Scope.PROVIDER
+
+
+async def test_photo_edit_with_flux_kontext(monkeypatch: pytest.MonkeyPatch) -> None:
+    space = hfspaces.EDIT_SPACES[0]
+    model = next(m for m in hfspaces.models() if m.model_id == space.space)
+    assert model.media == ["image_edit"]
+    calls: dict[str, Any] = {}
+
+    class Resp:
+        def json(self) -> list[str]:
+            return ["/tmp/gradio/photo.png"]
+
+    async def fake_post(url: str, **kw: Any) -> Resp:
+        calls["upload"] = url
+        return Resp()
+
+    async def fake_queue(base: str, api: str, data: list[Any], headers: Any,
+                         timeout: float = 0) -> Any:  # noqa: ASYNC109
+        calls["data"] = data
+        return [{"url": f"{base}/gradio_api/file=/tmp/out.webp"}]
+
+    async def fake_dl(url: str, headers: Any, limit: int = 0) -> bytes:
+        return b"RIFF\x00\x00\x00\x00WEBPVP8 "
+
+    monkeypatch.setattr(mp, "_post", fake_post)
+    monkeypatch.setattr(mp, "_gradio_queue", fake_queue)
+    monkeypatch.setattr(mp, "_download_limited", fake_dl)
+    out = await mp.generate_image(model, {}, "put it in a public square",
+                                  {"image": "data:image/png;base64,iVBORw0KGgo="})
+    assert out.mime == "image/webp" and calls["upload"].endswith("/gradio_api/upload")
+    assert calls["data"][0]["path"] == "/tmp/gradio/photo.png"
+    assert calls["data"][1] == "put it in a public square"
+    with pytest.raises(ProviderError):
+        await mp.generate_image(model, {}, "x", {})  # pas de photo

@@ -379,7 +379,7 @@ def test_preserve_instruction_never_generates_another_person(
     job_id = msgs[1]["content"].removeprefix("[média:").removesuffix("]")
     job = client.get(f"/tontolo/media/{job_id}").json()
     assert job["status"] == "failed" and called == []
-    assert "Impossible gratuitement" in job["error"] and "sur votre téléphone" in job["error"]
+    assert "FLUX Kontext" in job["error"] and "sur votre téléphone" in job["error"]
 
 
 def test_local_retouch_result_is_stored_in_conversation(client: TestClient) -> None:
@@ -675,3 +675,80 @@ def test_math_answer_cross_checked_by_second_model(client: TestClient,
     # Conversation courante (« salut ») : pas de vérification.
     with client.stream("POST", "/tontolo/chat", json={"content": "salut"}) as s:
         assert not any('"review"' in x for x in s.iter_lines())
+
+
+def test_animate_reuses_last_generated_image(client: TestClient, catalog_service: CatalogService,
+                                             monkeypatch: pytest.MonkeyPatch) -> None:
+    from tontolo.catalog.service import BUILTIN_PROVIDERS
+    from tontolo.catalog.sources import hfspaces
+
+    cat = catalog_service.catalog
+    cat.providers["hf_spaces"] = BUILTIN_PROVIDERS["hf_spaces"]
+    for m in hfspaces.models():
+        cat.models[m.key] = m
+    png = b"\x89PNG\r\n\x1a\nIMAGE-BAOBAB"
+    seen: dict[str, Any] = {}
+
+    async def fake_image(model: Any, provider: Any, prompt: str, params: Any) -> mp.MediaOutput:
+        return mp.MediaOutput(png, "image/png")
+
+    async def fake_video(model: Any, prompt: str, params: Any) -> mp.MediaOutput:
+        seen["image"] = params.get("image_bytes")
+        return mp.MediaOutput(b"\x00\x00\x00\x18ftypmp42", "video/mp4")
+
+    async def same(core: Any, text: str) -> str:
+        return text
+
+    monkeypatch.setattr(mp, "generate_image", fake_image)
+    monkeypatch.setattr(mp, "generate_video", fake_video)
+    monkeypatch.setattr("tontolo.server.app._english_prompt", same)
+    with client.stream("POST", "/tontolo/chat", json={
+            "content": "Dessine un baobab au coucher du soleil"}) as s:
+        events = [json.loads(x[5:]) for x in s.iter_lines() if x.startswith("data:")]
+    cid = next(e["id"] for e in events if e["type"] == "conversation")
+    with client.stream("POST", "/tontolo/chat", json={"conversation_id": cid,
+                                                      "content": "anime-la"}) as s:
+        events = [json.loads(x[5:]) for x in s.iter_lines() if x.startswith("data:")]
+    job = next(e for e in events if e["type"] == "done")["job"]
+    assert job["kind"] == "video_gen" and seen["image"] == png
+
+
+def test_revision_of_last_file_keeps_format_and_previous_version(
+        client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    from tontolo.creator.service import CreatorService
+
+    asked: list[str] = []
+    outline = {"title": "Analyse fonctionnelle", "children": [
+        {"label": "Besoin", "children": [{"label": "bête à cornes"}]},
+        {"label": "Fonctions", "children": [{"label": "FP / FC"}]}]}
+
+    async def ask(self: Any, messages: Any, *, category: Any = None,
+                  model: Any = None) -> tuple[str, str, str]:
+        asked.append(str(messages[-1]["content"]))
+        return json.dumps(outline), "fake:w", "W"
+
+    async def pick(self: Any, *, exclude: str, vision: bool = False) -> None:
+        return None
+
+    async def render(data: Any) -> tuple[bytes, str]:
+        return b"\x89PNG\r\n\x1a\n" + b"\x00" * 16, "test"
+
+    from tontolo.creator import diagram
+    monkeypatch.setattr(CreatorService, "ask", ask)
+    monkeypatch.setattr(CreatorService, "pick_reviewer", pick)
+    monkeypatch.setattr(diagram, "render_mindmap", render)
+
+    def chat(payload: dict[str, Any]) -> list[dict[str, Any]]:
+        with client.stream("POST", "/tontolo/chat", json=payload) as s:
+            return [json.loads(x[5:]) for x in s.iter_lines() if x.startswith("data:")]
+
+    first = chat({"content": "Fais une carte mentale sur l'analyse fonctionnelle"})
+    cid = next(e["id"] for e in first if e["type"] == "conversation")
+    second = chat({"conversation_id": cid, "content": "rajoute des détails et des exemples"})
+    job = next(e for e in second if e["type"] == "done")["job"]
+    assert job["kind"] == "file_gen" and job["params"]["format"] == "mindmap"
+    assert job["params"]["revision"] is True
+    assert "bête à cornes" in asked[-1] and "rajoute des détails" in asked[-1]
+    # Une question après le fichier reste une discussion normale.
+    third = chat({"conversation_id": cid, "content": "c'est quoi une fonction contrainte ?"})
+    assert not any(e["type"] == "step" for e in third)

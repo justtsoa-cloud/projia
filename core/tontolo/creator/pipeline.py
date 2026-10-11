@@ -189,13 +189,19 @@ class Creator:
         self.pick_reviewer = pick_reviewer
 
     async def run(self, kind: str, request: str, *, context: str = "", language: str = "fr",
-                  out: Output | None = None) -> AsyncIterator[dict[str, Any]]:
+                  out: Output | None = None, base: str | None = None
+                  ) -> AsyncIterator[dict[str, Any]]:
         what, category = kind_info(kind)
         lang = _LANG.get(language, "français")
         system = (TEXT_PROMPT.format(ext=kind[5:], language=lang) if kind.startswith("text:")
                   else WRITER_PROMPTS[kind].format(
                       language=lang, babel={"en": "english"}.get(language, "french")))
         user = request if not context else f"{request}\n\nContexte de la discussion :\n{context}"
+        if base:
+            # Révision : on part de la version précédente, entière, dans le même format.
+            user = (f"Voici la version actuelle du fichier :\n{base[:20000]}\n\nModifie-la selon "
+                    f"cette demande, en gardant ce qui est bon, et renvoie la version complète "
+                    f"dans le même format : {request}")
         messages: list[dict[str, Any]] = [{"role": "system", "content": system},
                                           {"role": "user", "content": user[:12000]}]
         loop = asyncio.get_running_loop()

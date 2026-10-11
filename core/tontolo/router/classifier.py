@@ -189,7 +189,14 @@ _EDIT_VERBS = re.compile(
     r"[ée]claircis\w*|assombris\w*|recadr\w*|rogn\w*|nettoy\w*|lisse\w*|maquill\w*|colori\w*|"
     r"restaur\w*|r[ée]par\w*|embelli\w*|optimis\w*|enhance|fix|replace|remove|add|edit|retouch|"
     r"make (it|this)|turn (it|this)|noir et blanc|s[ée]pia|vintage|professionnel\w*|"
+    r"put|place|insert|move|integrate|composite|pose|poser|int[èe]gre\w*|incruste\w*|"
+    r"d[ée]place\w*|positionne\w*|apetraho|ampidiro|"
     r"hatsarao|amboary|ahitsio|ovay|mainty sy fotsy|matihanina)\b", re.I)
+# « Anime-la », « animate it » juste après une image : on anime cette image.
+_ANIMATE = re.compile(
+    r"\b(anime[rz]?(-(la|le|les))?|animate|make it move|bring it to life|"
+    r"fais[- ](la|le|les)[- ]bouger|donne[- ]lui vie|en vid[ée]o|ampihetsiho|ampihetseho)\b",
+    re.I)
 
 _FOLLOWUP = re.compile(
     r"^\s*(oui|ok|okay|d'accord|vas-?y|go|allez|essaie|essaye|r[ée]essaie|r[ée]essaye|refais|"
@@ -263,6 +270,10 @@ def classify(
     if "video" in parts:
         scores[Category.VISION] = scores.get(Category.VISION, 0) + 3
 
+    if not scores.get(Category.VIDEO_GEN) and not parts and len(text) < 120 \
+            and _ANIMATE.search(text) \
+            and _previous_media_category(messages) in (Category.IMAGE_GEN, Category.IMAGE_EDIT):
+        scores[Category.VIDEO_GEN] = 5.0
     if not scores.get(Category.IMAGE_GEN) and not parts and _is_followup(text):
         # « vas-y », « refais », « oui » après une demande d'image : on hérite de la demande.
         prev = _previous_media_category(messages)

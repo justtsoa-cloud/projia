@@ -5,6 +5,22 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.4.3] - 2026-10-11
+
+### Corrigé (retours d'utilisateur)
+- Photo + « Put this on a public space in Antananarivo » : la demande de modification n'était
+  pas reconnue (« put / place / insert / pose / incruste… ») et partait vers un modèle de texte.
+- « Anime-la » / « animate it » juste après une image : la vidéo part maintenant de cette image
+  (elle était créée à partir du texte seul, sans rapport avec l'image).
+- « Rajoute des détails et des exemples » juste après une carte mentale (ou tout fichier créé) :
+  le même fichier est refait à partir de sa version précédente, au lieu d'une réponse en texte.
+- La photo jointe clignotait dans la bulle pendant l'écriture de la réponse.
+
+### Ajouté
+- **Retouche fidèle gratuite** avec FLUX.1 Kontext (Space Hugging Face) : la personne ou l'objet
+  est conservé et seule la scène change ; repli sur la réinterprétation si le quota GPU est
+  épuisé.
+
 ## [0.4.2] - 2026-10-11
 
 ### Corrigé

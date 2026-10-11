@@ -58,6 +58,7 @@ class MessageView extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     child: Image.memory(
                       _decodeDataUrl(img),
+                      gaplessPlayback: true,
                       height: 180,
                       cacheHeight: 360,
                       fit: BoxFit.cover,
@@ -255,8 +256,17 @@ Future<void> openSafeLink(String? href) async {
   await launchUrl(uri, mode: LaunchMode.externalApplication);
 }
 
-Uint8List _decodeDataUrl(String url) =>
-    base64Decode(url.substring(url.indexOf(',') + 1));
+/// Images jointes décodées une seule fois : décoder à chaque reconstruction (pendant que la
+/// réponse s'écrit) créait un nouvel objet image et la photo clignotait.
+final _decoded = <int, Uint8List>{};
+
+Uint8List _decodeDataUrl(String url) {
+  final key = Object.hash(url.length, url.hashCode);
+  final hit = _decoded[key];
+  if (hit != null) return hit;
+  if (_decoded.length > 40) _decoded.remove(_decoded.keys.first);
+  return _decoded[key] = base64Decode(url.substring(url.indexOf(',') + 1));
+}
 
 class _TypingSkeleton extends StatelessWidget {
   const _TypingSkeleton();

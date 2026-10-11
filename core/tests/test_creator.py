@@ -187,7 +187,8 @@ async def test_self_review_after_fallback_is_not_counted() -> None:
     class Fallback(FakeModels):
         async def ask(self, messages: list[dict[str, Any]], *, category: Any = None,
                       model: str | None = None) -> tuple[str, str, str]:
-            if model == "r:reviewer-model":  # relecteur indisponible : la bascule renvoie au rédacteur
+            # Relecteur indisponible : la bascule renvoie au rédacteur.
+            if model == "r:reviewer-model":
                 return '{"ok": false, "issues": ["x"]}', "w:writer-model", "Rédacteur"
             return await super().ask(messages, category=category, model=model)
 

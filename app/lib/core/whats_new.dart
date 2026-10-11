@@ -14,6 +14,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.4.3': [
+    NewsItem(Icons.auto_fix_high_outlined, 'Vos photos, mises en scène',
+        '« Mets cette statue sur une place d\'Antananarivo » : la photo est retouchée en gardant le sujet. « Anime-la » anime l\'image que vous venez de créer.',
+        'Your photos, staged', '“Put this statue in a square in Antananarivo”: the photo is edited while keeping the subject. “Animate it” animates the image you just made.',
+        mg: 'Ny saryanao, apetraka amin\'ny toerana', mgText: '« Apetraho amin\'ny kianja iray eto Antananarivo ity sarivongana ity »: amboarina ny sary nefa tsy ovaina ilay zavatra. « Ampihetsiho » no mampihetsika ny sary vao noforoninao.'),
+    NewsItem(Icons.edit_note, 'Modifiez vos fichiers',
+        'Après une carte mentale ou un document, dites « rajoute des exemples » : le même fichier est complété.',
+        'Edit your files', 'After a mind map or a document, say “add examples”: the same file is completed.',
+        mg: 'Ovay ny rakitrao', mgText: 'Aorian\'ny sarintsaina na rakitra, lazao hoe « ampio ohatra »: fenoina ilay rakitra ihany.'),
+  ],
   '0.4.2': [
     NewsItem(Icons.groups_outlined, 'Relecture vraiment croisée',
         'Un fichier ou une réponse n\'est indiqué « relu par » que si un modèle différent l\'a réellement vérifié.',

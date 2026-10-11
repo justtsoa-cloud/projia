@@ -115,14 +115,28 @@ async def _space_image(model: ModelInfo, prompt: str, params: dict[str, Any]) ->
     h = max(256, min(int(params.get("height", 1024)), 1440)) // 32 * 32
     seed = int(params.get("seed") or 0)
     rand = params.get("seed") is None
-    if "stable-diffusion" in space.space:
-        data: list[Any] = [prompt, "", seed, rand, w, h, 0.0, space.steps]
+    if "Kontext" in space.space:
+        # Retouche guidée : la photo est envoyée au Space, puis la consigne est appliquée.
+        source = params.get("image")
+        if not isinstance(source, str) or "," not in source:
+            raise ProviderError("Photo manquante pour la retouche", ErrorKind.BAD_REQUEST)
+        raw = base64.b64decode(source.split(",", 1)[1])
+        up = await _post(f"{space.base_url}/gradio_api/upload", headers=headers, timeout=60.0,
+                         files={"files": ("photo.png", raw, "image/png")})
+        paths = up.json()
+        if not paths:
+            raise ProviderError("Envoi de la photo refusé", ErrorKind.SERVER)
+        data: list[Any] = [{"path": paths[0], "meta": {"_type": "gradio.FileData"}}, prompt,
+                           seed, rand, 2.5, space.steps]
+    elif "stable-diffusion" in space.space:
+        data = [prompt, "", seed, rand, w, h, 0.0, space.steps]
     elif space.steps > 4:  # FLUX.1-dev : échelle de guidage
         data = [prompt, seed, rand, w, h, 3.5, space.steps]
     else:
         data = [prompt, seed, rand, w, h, space.steps]
     # File GPU saturée : mieux vaut passer vite à la source suivante (Pollinations).
-    result = await _gradio_queue(space.base_url, "infer", data, headers, timeout=90.0)
+    result = await _gradio_queue(space.base_url, "infer", data, headers,
+                                 timeout=150.0 if "Kontext" in space.space else 90.0)
     item = result[0] if isinstance(result, list) and result else result
     url = item.get("url") if isinstance(item, dict) else None
     if not isinstance(url, str) or not url.startswith(space.base_url + "/"):

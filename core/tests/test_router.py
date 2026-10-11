@@ -162,3 +162,15 @@ def test_short_followup_keeps_discussion_topic() -> None:
            {"role": "user", "content": "Traduis en anglais : bonjour tout le monde"}]
     assert classify(new).category == Category.TRANSLATION
     assert classify([{"role": "user", "content": "salut"}]).category == Category.CHAT
+
+
+def test_photo_placement_is_an_edit_and_animate_follows_image() -> None:
+    img = {"type": "image_url", "image_url": {"url": "data:image/png;base64,AAA"}}
+    msg = [{"role": "user", "content": [
+        {"type": "text", "text": "Put this on a public space in Antananarivo."}, img]}]
+    assert classify(msg).category == Category.IMAGE_EDIT
+    after = [{"role": "user", "content": "Dessine un baobab"},
+             {"role": "assistant", "content": "[média:abc]"},
+             {"role": "user", "content": "anime-la"}]
+    assert classify(after).category == Category.VIDEO_GEN
+    assert classify([{"role": "user", "content": "anime la réunion"}]).category == Category.CHAT
