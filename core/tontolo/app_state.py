@@ -61,5 +61,7 @@ class Core:
         await self.mcp.close()
         if self.chat.browser_cdp is not None:
             await self.chat.browser_cdp.close()
+        if self.chat.terminals is not None:
+            self.chat.terminals.close_all()
         await self.db.close()
         await http.aclose()

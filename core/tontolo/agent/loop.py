@@ -24,8 +24,15 @@ from typing import Any
 from tontolo import documents
 from tontolo.agent import browser, planner
 from tontolo.agent.mcp_client import McpManager
-from tontolo.agent.tools import ToolBox, native_tools, search_raw, untrusted
-from tontolo.agent.workspace import Workspace, check_workdir, is_desktop
+from tontolo.agent.terminal import TerminalManager
+from tontolo.agent.tools import Tool, ToolBox, native_tools, search_raw, untrusted
+from tontolo.agent.workspace import (
+    DANGEROUS,
+    SENSITIVE_DIRS,
+    Workspace,
+    check_workdir,
+    is_desktop,
+)
 from tontolo.catalog.models import Category
 from tontolo.config import Settings
 from tontolo.memory import MemoryService, explicit_memory
@@ -159,6 +166,8 @@ class ChatService:
         self.browser_cdp = (browser.CdpBrowser(settings.data_dir / "browser-profile")
                             if is_desktop() else None)
         self.browser_bridge = browser.AppBridge()
+        # Terminal du bureau : une session par discussion, visible dans l'application.
+        self.terminals = TerminalManager() if is_desktop() else None
         self._conversation = ""  # discussion dont l'agent utilise l'onglet
         # Confirmations en attente : appels du modèle et l'appel unique à confirmer.
         self._pending: dict[str, tuple[list[dict[str, Any]], str]] = {}
@@ -189,12 +198,63 @@ class ChatService:
         # Outils du navigateur seulement s'il y en a un (sinon ils encombreraient la liste).
         names = [t.name for t in browser.browser_tools(None, None)]
         if self.browser_backend() is not None:
-            for t in browser.browser_tools(self.browser_backend, lambda: self._conversation):
+            for t in browser.browser_tools(self.browser_backend, lambda: self._conversation,
+                                           self.router.describe_image):
                 self.toolbox.add(t)
         else:
             for n in names:
                 self.toolbox.tools.pop(n, None)
+        if self.terminals is not None:
+            for t in self._terminal_tools():
+                self.toolbox.add(t)
         return self.toolbox
+
+    def terminal_cwd(self) -> Path:
+        return self.workspace.root if self.workspace is not None else Path.home()
+
+    def _terminal_tools(self) -> list[Tool]:
+        assert self.terminals is not None
+        terms = self.terminals
+
+        async def read(args: dict[str, Any]) -> str:
+            s = terms.existing(self._conversation)
+            if s is None:
+                return "Aucun terminal ouvert pour cette discussion."
+            return untrusted(s.text(int(args.get("lines") or 80)) or "(terminal vide)")
+
+        async def send(args: dict[str, Any]) -> str:
+            text = str(args.get("text", ""))
+            if DANGEROUS.search(text) or any(d in text for d in SENSITIVE_DIRS):
+                return "Refusé par les garde-fous de Tontolo (commande destructrice ou sensible)."
+            s = terms.get(self._conversation, self.terminal_cwd())
+            s.write((text + ("\n" if args.get("enter", True) else "")).encode())
+            await asyncio.sleep(min(float(args.get("wait") or 2), 15))
+            return untrusted(s.text(40))
+
+        return [
+            Tool("terminal_read", "Lit les dernières lignes du terminal de cette discussion "
+                 "(ce que l'utilisateur y a tapé et vu).",
+                 {"type": "object", "properties": {"lines": {"type": "integer"}}}, read),
+            Tool("terminal_send", "Tape du texte dans le terminal de cette discussion (programme "
+                 "interactif, réponse à une question) puis renvoie l'écran. Confirmation de "
+                 "l'utilisateur. Pour une commande simple, préfère run_command.",
+                 {"type": "object", "properties": {"text": {"type": "string"},
+                                                   "enter": {"type": "boolean"},
+                                                   "wait": {"type": "number"}},
+                  "required": ["text"]}, send, side_effect=True,
+                 preview=lambda a: f"⌨ {a.get('text', '')}"),
+        ]
+
+    def _mirror_command(self, cid: str, fn: dict[str, Any], result: str) -> None:
+        """Commande de l'agent recopiée dans le terminal de la discussion (bureau)."""
+        if self.terminals is None or fn.get("name") != "run_command":
+            return
+        try:
+            cmd = str(json.loads(fn.get("arguments") or "{}").get("command", ""))
+        except ValueError:
+            cmd = ""
+        with contextlib.suppress(OSError):
+            self.terminals.get(cid, self.terminal_cwd()).mirror(cmd, result[:20000])
 
     def _system(self, mode: str = "") -> dict[str, Any]:
         date = datetime.now(UTC).astimezone().strftime("%Y-%m-%d")
@@ -543,6 +603,7 @@ class ChatService:
             await self.db.add_message(conversation_id, {
                 "role": "tool", "tool_call_id": call["id"], "name": fn["name"],
                 "content": result})
+            self._mirror_command(conversation_id, fn, result)
             yield {**_tool_event(fn, result), "approved": approved}
         async for ev in self._loop(conversation_id, model=model):
             yield ev
@@ -676,6 +737,7 @@ class ChatService:
                     done_calls[sig] = result
                 await self.db.add_message(cid, {"role": "tool", "tool_call_id": call["id"],
                                                 "name": fn["name"], "content": result})
+                self._mirror_command(cid, fn, result)
                 yield _tool_event(fn, result)
         yield {"type": "error", "code": "agent_steps",
                "message": "Nombre maximal d'étapes de l'agent atteint."}

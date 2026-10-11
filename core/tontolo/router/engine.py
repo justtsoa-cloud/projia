@@ -447,8 +447,10 @@ class Router:
         """Appel court à un petit modèle gratuit (résumé, mémoire, classifieur)."""
         return await self._quick(messages)
 
-    async def describe_image(self, data_url: str) -> str | None:
-        """Description d'une photo par un modèle gratuit à vision (pour la recréer ensuite)."""
+    async def describe_image(self, data_url: str, prompt: str | None = None,
+                             max_chars: int = 600) -> str | None:
+        """Description d'une image par un modèle gratuit à vision (photo à recréer, ou
+        capture d'écran du navigateur avec `prompt`)."""
         usable = self.catalog.usable_providers()
         cands = [m for m in self.catalog.catalog.models.values()
                  if m.is_free and m.is_text and m.supports_vision and m.provider in usable
@@ -456,7 +458,7 @@ class Router:
         cands.sort(key=lambda m: -(m.quality.get("vision", 0.0)
                                    + 0.3 * self.reliability.get(m.key)))
         messages: list[dict[str, Any]] = [
-            {"role": "system", "content": (
+            {"role": "system", "content": prompt or (
                 "Décris précisément cette photo pour qu'un générateur d'images puisse la "
                 "recréer : sujet, objets, couleurs, lumière, ambiance, composition. Réponds "
                 "en une à trois phrases, en français, sans introduction.")},
@@ -468,7 +470,8 @@ class Router:
             try:
                 client = self.registry.get(self.catalog.catalog.providers[m.provider])
                 self.quota.record_request(m)
-                res = await client.chat(m, messages, max_tokens=300, temperature=0.2)
+                res = await client.chat(m, messages, max_tokens=300 if prompt is None else 900,
+                                        temperature=0.2)
             except ProviderError as err:
                 self.quota.on_error(m, err)
                 continue
@@ -477,7 +480,7 @@ class Router:
             text = res.message.get("content")
             if text and str(text).strip():
                 self.quota.on_success(m)
-                return str(text).strip()[:600]
+                return str(text).strip()[:max_chars]
         return None
 
     async def _summarize(self, messages: list[dict[str, Any]]) -> str | None:

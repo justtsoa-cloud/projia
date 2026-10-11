@@ -611,6 +611,7 @@ const Map<String, Map<String, String>> _t = {
     'browser_desktop': 'L\'agent utilise {b} dans sa propre fenêtre, avec un profil séparé du vôtre : un onglet par discussion ({n} ouvert(s)). Vous pouvez reprendre la main à tout moment.',
     'tool_browser_type': 'remplir un champ du navigateur',
     'close': 'Fermer',
+    'terminal_closed': 'Terminal déconnecté.',
   },
   'en': {
     'app': 'Tontolo', 'chat': 'Chat', 'creations': 'Creations', 'settings': 'Settings',
@@ -1095,6 +1096,7 @@ const Map<String, Map<String, String>> _t = {
     'browser_desktop': 'The agent uses {b} in its own window, with a profile separate from yours: one tab per chat ({n} open). You can take over at any time.',
     'tool_browser_type': 'fill a field in the browser',
     'close': 'Close',
+    'terminal_closed': 'Terminal disconnected.',
   },
   'mg': {
     'app': 'Tontolo', 'chat': 'Resaka', 'creations': 'Famoronana', 'settings': 'Kirakira',
@@ -1619,6 +1621,7 @@ const Map<String, Map<String, String>> _t = {
     'browser_desktop': 'Mampiasa {b} ao amin\'ny varavarankeliny manokana ny agent, miaraka amin\'ny mombamomba tsy an\'ny anao: tabilao iray isaky ny resaka ({n} misokatra). Afaka mandray an-tanana ianao amin\'ny fotoana rehetra.',
     'tool_browser_type': 'hameno saha ao amin\'ny mpitety',
     'close': 'Hidio',
+    'terminal_closed': 'Tapaka ny terminal.',
   },
 };
 

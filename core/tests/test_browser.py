@@ -6,6 +6,7 @@ from __future__ import annotations
 import asyncio
 import functools
 import http.server
+import os
 import threading
 from pathlib import Path
 from typing import Any
@@ -37,11 +38,13 @@ _EXE = browser.find_browser() or ""
 
 # Vivaldi et Opera ne savent pas fonctionner sans fenêtre : test fait avec Chromium ou Chrome
 # (présent sur les machines de la CI GitHub).
-@pytest.mark.skipif(not _EXE or any(n in _EXE for n in ("vivaldi", "opera")),
+@pytest.mark.skipif(not _EXE or (any(n in _EXE for n in ("vivaldi", "opera"))
+                                 and not os.environ.get("TONTOLO_BROWSER_VISIBLE_TEST")),
                     reason="aucun Chromium ou Chrome sans fenêtre")
 async def test_real_browser_one_tab_per_conversation(site: str, tmp_path: Path,
                                                      monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("TONTOLO_BROWSER_HEADLESS", "1")
+    if not os.environ.get("TONTOLO_BROWSER_VISIBLE_TEST"):
+        monkeypatch.setenv("TONTOLO_BROWSER_HEADLESS", "1")
     b = browser.CdpBrowser(tmp_path / "profil")
     try:
         page = await b.command("c1", "open", {"url": site + "/index.html"})
@@ -62,7 +65,10 @@ async def test_real_browser_one_tab_per_conversation(site: str, tmp_path: Path,
         await b.command("c1", "read", {})
         assert len(b.tabs) == 2  # un onglet par discussion, réutilisé à chaque commande
         targets = (await b._call("Target.getTargets"))["targetInfos"]
-        assert len([t for t in targets if t["type"] == "page"]) == 2
+        ours = [t for t in targets if t["type"] == "page" and t["url"].startswith(site)]
+        assert len(ours) == 2  # (les pages internes du navigateur ne comptent pas)
+        shot = await b.command("c1", "screenshot", {})
+        assert shot["screenshot"].startswith("data:image/jpeg;base64,/9j/")  # elle voit la page
         with pytest.raises(browser.BrowserError):
             await b.command("c1", "open", {"url": "file:///etc/passwd"})
     finally:

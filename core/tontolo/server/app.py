@@ -1447,6 +1447,52 @@ def create_app(
         finally:
             hub.queues.discard(q)
 
+    # --- Terminal du bureau (une session par discussion) -----------------------------
+
+    @app.websocket("/tontolo/terminal/{cid}/ws")
+    async def terminal_ws(websocket: WebSocket, cid: str) -> None:
+        """Affichage et saisie du terminal d'une discussion. Accès à un shell : application
+        locale uniquement (aucune page web, aucun client distant)."""
+        core = core_of(websocket)
+        token = core.settings.server.token
+        local = (websocket.client is not None and websocket.client.host in ("127.0.0.1", "::1")
+                 and core.settings.server.host in LOOPBACK)
+        if (core.chat.terminals is None or not local or websocket.headers.get("origin")
+                or not re.fullmatch(r"[\w-]{1,64}", cid)
+                or (token and not hmac.compare_digest(websocket.query_params.get("token", ""),
+                                                      token))):
+            await websocket.close(code=4403)
+            return
+        await websocket.accept()
+        session = core.chat.terminals.get(cid, core.chat.terminal_cwd())
+        q: asyncio.Queue[bytes] = asyncio.Queue()
+        session.listeners.add(q)
+
+        async def pump() -> None:
+            await websocket.send_bytes(bytes(session.buffer))
+            while True:
+                await websocket.send_bytes(await q.get())
+
+        sender = asyncio.create_task(pump())
+        try:
+            while True:
+                msg = json.loads(await websocket.receive_text())
+                if isinstance(msg.get("input"), str):
+                    session.write(msg["input"].encode())
+                if isinstance(msg.get("resize"), list) and len(msg["resize"]) == 2:
+                    session.resize(int(msg["resize"][0]), int(msg["resize"][1]))
+                if msg.get("restart"):
+                    session.close()
+                    session.listeners.discard(q)
+                    session = core.chat.terminals.get(cid, core.chat.terminal_cwd())
+                    session.listeners.add(q)
+                    await websocket.send_bytes(bytes(session.buffer))
+        except Exception:
+            pass
+        finally:
+            sender.cancel()
+            session.listeners.discard(q)
+
     return app
 
 

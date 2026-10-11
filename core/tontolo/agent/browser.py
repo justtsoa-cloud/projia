@@ -163,7 +163,7 @@ class CdpBrowser:
             "about:blank",
             stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL,
             start_new_session=True)
-        for _ in range(100):
+        for _ in range(150):
             if port_file.exists() and port_file.read_text().strip():
                 break
             await asyncio.sleep(0.1)
@@ -177,6 +177,9 @@ class CdpBrowser:
         self.ws = await websockets.connect(info["webSocketDebuggerUrl"], max_size=50_000_000)
         self.tabs.clear()
         self._reader = asyncio.create_task(self._read())
+        # S'attacher à un onglet pendant que le navigateur prépare son interface peut le
+        # figer (constaté avec Vivaldi) : courte pause, une seule fois par lancement.
+        await asyncio.sleep(2.5)
 
     async def _read(self) -> None:
         try:
@@ -205,7 +208,10 @@ class CdpBrowser:
         if session:
             msg["sessionId"] = session
         await self.ws.send(json.dumps(msg))
-        res = await asyncio.wait_for(fut, wait)
+        try:
+            res = await asyncio.wait_for(fut, wait)
+        finally:
+            self._waiters.pop(mid, None)
         if "error" in res:
             raise BrowserError(str(res["error"].get("message")))
         return dict(res.get("result") or {})
@@ -225,14 +231,36 @@ class CdpBrowser:
             with contextlib.suppress(BrowserError):
                 await self._call("Target.closeTarget", {"targetId": self.tabs[old_cid]["target"]})
             self.tabs.pop(old_cid, None)
+        # Un onglet créé pendant que le navigateur démarre son interface (ex. Vivaldi) peut
+        # rester figé : s'il ne répond pas, il est fermé et recréé (25 s au plus).
+        deadline = time.monotonic() + 25
         blank = await self._reuse_blank()
-        target = blank or (await self._call("Target.createTarget",
-                                            {"url": "about:blank"}))["targetId"]
-        session = (await self._call("Target.attachToTarget",
-                                    {"targetId": target, "flatten": True}))["sessionId"]
+        while True:
+            # Premier onglet : dans une nouvelle fenêtre (certains navigateurs, comme Vivaldi,
+            # n'ont pas encore de fenêtre de navigation au démarrage) ; les suivants à côté.
+            target = blank or (await self._call("Target.createTarget", {
+                "url": "about:blank", "newWindow": not self.tabs}))["targetId"]
+            blank = None
+            await asyncio.sleep(0.4)
+            session = (await self._call("Target.attachToTarget",
+                                        {"targetId": target, "flatten": True}))["sessionId"]
+            if await self._responsive(session):
+                break
+            with contextlib.suppress(BrowserError, TimeoutError):
+                await self._call("Target.closeTarget", {"targetId": target}, wait=5)
+            if time.monotonic() > deadline:
+                raise BrowserError("l'onglet du navigateur ne répond pas")
+            await asyncio.sleep(1)
         await self._call("Page.enable", session=session)
         self.tabs[cid] = {"target": target, "session": session, "used": time.time()}
         return str(session)
+
+    async def _responsive(self, session: str) -> bool:
+        try:
+            await self._call("Runtime.evaluate", {"expression": "1"}, session=session, wait=3)
+            return True
+        except (BrowserError, TimeoutError):
+            return False
 
     async def _reuse_blank(self) -> str | None:
         """Le premier onglet vide (ouvert au lancement) sert à la première discussion."""
@@ -285,6 +313,10 @@ class CdpBrowser:
                     await self._wait_loaded(session)
             elif action == "scroll":
                 await self._eval(session, "window.scrollBy(0, window.innerHeight * 0.9)")
+            elif action == "screenshot":
+                shot = await self._call("Page.captureScreenshot",
+                                        {"format": "jpeg", "quality": 60}, session=session)
+                return {"screenshot": "data:image/jpeg;base64," + str(shot.get("data") or "")}
             await self._call("Target.activateTarget", {"targetId": self.tabs[cid]["target"]})
             raw = await self._eval(session, READ_JS)
             return dict(json.loads(raw or "{}"))
@@ -352,9 +384,30 @@ def describe(page: dict[str, Any]) -> str:
                         f"\n{items}"))
 
 
-def browser_tools(get_backend: Any, conversation: Any) -> list[Tool]:
+LOOK_PROMPT = ("Tu regardes une capture d'écran de navigateur pour un agent qui ne la voit pas. "
+               "Décris en français ce qui est affiché : type de page, éléments principaux, "
+               "messages, fenêtres ou bandeaux (cookies, connexion), images importantes, et "
+               "où se trouvent les boutons utiles. N'invente rien ; 12 lignes au plus.")
+
+
+def browser_tools(get_backend: Any, conversation: Any, describe_image: Any = None
+                  ) -> list[Tool]:
     """Outils de l'agent. `get_backend()` renvoie le navigateur disponible (ou None) ;
-    `conversation()` la discussion en cours (son onglet)."""
+    `conversation()` la discussion en cours (son onglet) ; `describe_image(url, prompt)`
+    fait décrire une capture par un modèle qui voit."""
+
+    async def look(args: dict[str, Any]) -> str:
+        backend = get_backend()
+        if not isinstance(backend, CdpBrowser):
+            return "Capture indisponible ici : utilise browser_read."
+        try:
+            shot = (await backend.command(conversation(), "screenshot", {})).get("screenshot")
+        except BrowserError as exc:
+            return f"Erreur du navigateur : {exc}"
+        if not shot or describe_image is None:
+            return "Capture impossible : utilise browser_read."
+        seen = await describe_image(shot, LOOK_PROMPT, 2500)
+        return untrusted(seen) if seen else "Aucun modèle de vision disponible : browser_read."
 
     def runner(action: str) -> Any:
         async def run(args: dict[str, Any]) -> str:
@@ -388,4 +441,6 @@ def browser_tools(get_backend: Any, conversation: Any) -> list[Tool]:
               "required": ["id", "text"]}, runner("type"), side_effect=True),
         Tool("browser_scroll", "Fait défiler la page vers le bas.", empty, runner("scroll")),
         Tool("browser_back", "Revient à la page précédente.", empty, runner("back")),
+        Tool("browser_look", "Regarde la page affichée (capture décrite par un modèle qui "
+             "voit) : mise en page, images, fenêtres surgissantes.", empty, look),
     ]

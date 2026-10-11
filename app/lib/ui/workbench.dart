@@ -1,7 +1,7 @@
 // Plan de travail à côté de la discussion (écrans larges) :
-// - Terminal (bureau Linux) : UNE session par discussion, ouverte dans le dossier de travail ;
-//   les commandes lancées par l'agent (après confirmation) y apparaissent avec leur sortie,
-//   et l'utilisateur peut y taper ses propres commandes.
+// - Terminal (bureau Linux) : UNE session par discussion, tenue par le cœur dans le dossier de
+//   travail ; l'agent peut la lire, ses commandes y apparaissent avec leur sortie, et
+//   l'utilisateur peut y taper ses propres commandes.
 // - Navigateur (tablette Android) : panneau WebView piloté par l'agent (pont avec le cœur),
 //   UN onglet par discussion, réutilisé à chaque commande (6 au plus, le plus ancien fermé).
 //   Sur le bureau, l'agent pilote un vrai navigateur Chromium dans sa propre fenêtre.
@@ -12,7 +12,6 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_pty/flutter_pty.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:xterm/xterm.dart';
 
@@ -29,62 +28,8 @@ bool browserPanelSupported(BuildContext context) =>
     !kIsWeb && Platform.isAndroid && MediaQuery.sizeOf(context).shortestSide >= 600;
 
 // --- Terminal --------------------------------------------------------------------------
-
-class TermSession {
-  TermSession(this.terminal, this.pty);
-  final Terminal terminal;
-  final Pty pty;
-  DateTime used = DateTime.now();
-}
-
-class Terminals extends ChangeNotifier {
-  Terminals._();
-  static final instance = Terminals._();
-
-  final Map<String, TermSession> sessions = {};
-
-  TermSession session(String key, String? cwd) {
-    final s = sessions[key];
-    if (s != null) {
-      s.used = DateTime.now();
-      return s;
-    }
-    if (sessions.length >= maxSessions) {
-      final oldest = sessions.entries.reduce((a, b) => a.value.used.isBefore(b.value.used) ? a : b);
-      oldest.value.pty.kill();
-      sessions.remove(oldest.key);
-    }
-    final terminal = Terminal(maxLines: 5000);
-    final shell = Platform.environment['SHELL'] ?? '/bin/bash';
-    final dir = cwd != null && Directory(cwd).existsSync() ? cwd : Platform.environment['HOME'];
-    final pty = Pty.start(shell, workingDirectory: dir, columns: terminal.viewWidth, rows: terminal.viewHeight);
-    pty.output.cast<List<int>>().transform(const Utf8Decoder(allowMalformed: true)).listen(terminal.write);
-    pty.exitCode.then((code) {
-      terminal.write('\r\n[session terminée : $code]\r\n');
-      sessions.remove(key);
-      notifyListeners();
-    });
-    terminal.onOutput = (data) => pty.write(const Utf8Encoder().convert(data));
-    terminal.onResize = (w, h, pw, ph) => pty.resize(h, w);
-    final created = TermSession(terminal, pty);
-    sessions[key] = created;
-    return created;
-  }
-
-  /// Commande de l'agent (déjà confirmée et exécutée par le cœur) : affichée dans la session
-  /// de la discussion, sans ouvrir de nouvel onglet.
-  void agentCommand(String key, String? cwd, String command, String output) {
-    final t = session(key, cwd).terminal;
-    t.write('\r\n\x1b[36m[agent] \$ $command\x1b[0m\r\n');
-    t.write('${output.replaceAll('\r\n', '\n').replaceAll('\n', '\r\n')}\r\n');
-    notifyListeners();
-  }
-
-  void close(String key) {
-    sessions.remove(key)?.pty.kill();
-    notifyListeners();
-  }
-}
+// La session vit dans le cœur (une par discussion) : l'agent peut la lire et ses commandes y
+// sont recopiées ; ici on l'affiche en direct et on y tape (WebSocket locale).
 
 class TerminalPane extends StatefulWidget {
   const TerminalPane({super.key, required this.chat});
@@ -95,49 +40,100 @@ class TerminalPane extends StatefulWidget {
 }
 
 class _TerminalPaneState extends State<TerminalPane> {
+  final terminal = Terminal(maxLines: 5000);
+  WebSocket? socket;
+  String? key;
   String? cwd;
+  bool failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    terminal.onOutput = (data) => _send({'input': data});
+    terminal.onResize = (w, h, pw, ph) => _send({'resize': [h, w]});
+    widget.chat.addListener(_onChat);
+  }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _loadCwd();
+    if (key == null) _connect();
   }
 
-  Future<void> _loadCwd() async {
+  @override
+  void dispose() {
+    widget.chat.removeListener(_onChat);
+    socket?.close();
+    super.dispose();
+  }
+
+  void _onChat() {
+    if ((widget.chat.conversationId ?? '_') != key) _connect();
+  }
+
+  void _send(Map<String, Object> msg) {
+    final s = socket;
+    if (s != null && s.readyState == WebSocket.open) s.add(jsonEncode(msg));
+  }
+
+  Future<void> _connect() async {
+    final backend = AppScope.of(context).backend;
+    key = widget.chat.conversationId ?? '_';
+    await socket?.close();
+    socket = null;
+    terminal.buffer.clear();
+    terminal.buffer.setCursor(0, 0);
     try {
-      final ws = await AppScope.of(context).backend.getJson('/tontolo/workspace') as Map<String, dynamic>;
-      if (mounted) setState(() => cwd = ws['path'] as String?);
-    } catch (_) {}
+      final ws = await backend.getJson('/tontolo/workspace') as Map<String, dynamic>;
+      cwd = ws['path'] as String?;
+      final base = backend.uri('/tontolo/terminal/$key/ws', {if (backend.token.isNotEmpty) 'token': backend.token});
+      final s = await WebSocket.connect(base.replace(scheme: base.scheme == 'https' ? 'wss' : 'ws').toString());
+      socket = s;
+      failed = false;
+      s.listen((data) {
+        if (data is List<int>) terminal.write(utf8.decode(data, allowMalformed: true));
+      }, onDone: () {
+        if (mounted) setState(() => failed = true);
+      });
+      _send({'resize': [terminal.viewHeight, terminal.viewWidth]});
+    } catch (_) {
+      failed = true;
+    }
+    if (mounted) setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
-    final key = widget.chat.conversationId ?? '_';
-    return ListenableBuilder(
-      listenable: Terminals.instance,
-      builder: (context, _) {
-        final s = Terminals.instance.session(key, cwd);
-        return Column(children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            child: Row(children: [
-              const Icon(Icons.folder_outlined, size: 16),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(cwd ?? context.t('terminal_home'),
-                    maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
-              ),
-              IconButton(
-                tooltip: context.t('terminal_restart'),
-                icon: const Icon(Icons.restart_alt, size: 18),
-                onPressed: () => Terminals.instance.close(key),
-              ),
-            ]),
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        child: Row(children: [
+          const Icon(Icons.folder_outlined, size: 16),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(cwd ?? context.t('terminal_home'),
+                maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
           ),
-          Expanded(child: TerminalView(s.terminal, autofocus: true, padding: const EdgeInsets.all(6))),
-        ]);
-      },
-    );
+          IconButton(
+            tooltip: context.t('terminal_restart'),
+            icon: const Icon(Icons.restart_alt, size: 18),
+            onPressed: () {
+              if (failed) {
+                _connect();
+              } else {
+                terminal.buffer.clear();
+                terminal.buffer.setCursor(0, 0);
+                _send({'restart': true});
+              }
+            },
+          ),
+        ]),
+      ),
+      if (failed) MaterialBanner(content: Text(context.t('terminal_closed')), actions: [
+        TextButton(onPressed: _connect, child: Text(context.t('retry'))),
+      ]),
+      Expanded(child: TerminalView(terminal, autofocus: true, padding: const EdgeInsets.all(6))),
+    ]);
   }
 }
 

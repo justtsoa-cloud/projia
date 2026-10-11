@@ -45,7 +45,6 @@ class _ChatScreenState extends State<ChatScreen> {
   bool stickToBottom = true;
   // Plan de travail (terminal du bureau, navigateur de la tablette) à côté de la discussion.
   bool bench = false;
-  ChatController? _chat;
 
   @override
   void initState() {
@@ -53,7 +52,6 @@ class _ChatScreenState extends State<ChatScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final scope = AppScope.of(context);
-      _chat = scope.chat..onToolResult = _onToolResult;
       if (browserPanelSupported(context)) {
         BrowserBridge.instance
           ..start(scope.backend)
@@ -70,16 +68,6 @@ class _ChatScreenState extends State<ChatScreen> {
     if (!bench) setState(() => bench = true);
   }
 
-  /// Commande du terminal lancée par l'agent : affichée dans la session de la discussion.
-  void _onToolResult(Map<String, dynamic> ev) {
-    if (!terminalSupported || ev['name'] != 'run_command' || ev['output'] == null) return;
-    String command = '';
-    try {
-      command = '${(jsonDecode('${ev['arguments'] ?? '{}'}') as Map)['command'] ?? ''}';
-    } catch (_) {}
-    Terminals.instance.agentCommand(_chat?.conversationId ?? '_', null, command, '${ev['output']}');
-  }
-
   void _toggleBench(bool wide) {
     if (wide) {
       setState(() => bench = !bench);
@@ -94,7 +82,6 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     BrowserBridge.instance.removeListener(_onBridge);
-    if (_chat?.onToolResult == _onToolResult) _chat?.onToolResult = null;
     input.dispose();
     scroll.dispose();
     focus.dispose();
