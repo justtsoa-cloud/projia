@@ -80,6 +80,10 @@ class Reliability:
         self.dirty.add(key)
 
 
+# Demandes simples : la vitesse peut primer (option « réponse rapide d'abord »).
+SIMPLE_CATEGORIES = frozenset({Category.CHAT, Category.WRITING, Category.TRANSLATION,
+                               Category.SEARCH})
+
 def pick_preference(
     prefs: list[dict[str, Any]], conversation_id: str | None, category: Category
 ) -> Preference | None:
@@ -127,6 +131,9 @@ def rank(
     now = now or time.time()
     w = settings.weights
     category = profile.category
+    w_q, w_s, w_r = w.quality, w.speed, w.reliability
+    if settings.speed_first and category in SIMPLE_CATEGORIES:
+        w_q, w_s, w_r = 0.3, 0.45, 0.25
     decision = RouteDecision(profile=profile, preferred=preference)
 
     def collect(cat: Category) -> list[Candidate]:
@@ -145,7 +152,7 @@ def rank(
             if m.provider == "local":
                 penalty += 0.3  # repli local : toujours en dernier
             penalty += 0.15 * quota.pressure(m, now)
-            score = w.quality * q + w.speed * s + w.reliability * r - penalty
+            score = w_q * q + w_s * s + w_r * r - penalty
             cands.append(Candidate(m, score, q, s, r, available_at=quota.available_at(m, now)))
         return cands
 

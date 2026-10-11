@@ -80,6 +80,9 @@ class Settings(BaseModel):
     custom_instructions: str = ""
     # Téléchargement et installation automatiques des nouvelles versions.
     auto_update: bool = True
+    # « Réponse rapide d'abord » : pour les demandes simples, le modèle le plus rapide passe
+    # devant ; les demandes complexes (raisonnement, code, maths…) gardent le meilleur.
+    speed_first: bool = False
 
     @property
     def data_dir(self) -> Path:

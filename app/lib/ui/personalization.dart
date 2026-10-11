@@ -16,6 +16,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
   final instructions = TextEditingController();
   List<Map<String, dynamic>> memories = [];
   bool enabled = true;
+  bool speedFirst = false;
   bool loaded = false;
 
   @override
@@ -40,6 +41,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
       loaded = true;
       instructions.text = '${s['custom_instructions'] ?? ''}';
       enabled = m['enabled'] == true;
+      speedFirst = s['speed_first'] == true;
       memories = (m['items'] as List).cast<Map<String, dynamic>>();
     });
   }
@@ -68,6 +70,16 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
             _call('PUT', '/tontolo/settings', {'custom_instructions': instructions.text});
           },
         ),
+      ),
+      SwitchListTile(
+        secondary: const Icon(Icons.bolt_outlined),
+        title: Text(context.t('speed_first')),
+        subtitle: Text(context.t('speed_first_help'), style: small),
+        value: speedFirst,
+        onChanged: (v) {
+          setState(() => speedFirst = v);
+          _call('PUT', '/tontolo/settings', {'speed_first': v});
+        },
       ),
       SwitchListTile(
         title: Text(context.t('memory')),
