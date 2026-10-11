@@ -17,6 +17,9 @@ la cohérence des fichiers, et la release refuse une étiquette qui ne suit pas 
    `app/pubspec.yaml` (numéro de build Android +1).
 2. Compléter `CHANGELOG.md` (section `## [X.Y.Z] - AAAA-MM-JJ`) et les nouveautés fr/en/mg
    de `app/lib/core/whats_new.dart`, puis lancer les tests du cœur et de Flutter.
+   Préparer aussi le **poster de la version** : simple mais complet, illustré, avec le
+   changement majeur montré par un exemple concret d'utilisation (demande consigne du
+   propriétaire, 2026-10-12).
 3. `git commit -m "chore(release): vX.Y.Z"` puis `git tag vX.Y.Z && git push --tags`.
 4. La CI construit et publie : roue + sdist Python, AppImage (x86_64), APK par ABI
    (arm64-v8a, armeabi-v7a, x86_64) signés, `SHA256SUMS`, rapport de taille, notes tirées

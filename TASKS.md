@@ -238,3 +238,7 @@ l'emploi ; bureau Linux = fichiers + commandes confirmées dans un dossier chois
 - [x] A10. Tests, émulateur, publication 0.5.1 — publiée (émulateur OK : mise à jour en place, onglet Agent, réponse continuée en arrière-plan puis rattachée ; tag v0.5.1 poussé)
 - [x] A18. Espace disque : tous les caches de l'appareil dans UN dossier, sans doublons (fichiers temporaires de partage, profil du navigateur, médias synchronisés), avec plafonds et nettoyage
 - [x] A19. Accueil d'une nouvelle discussion animé et vivant (comme Claude) : salutation selon l'heure et le prénom si connu (« Bonjour Antsa », « Bonsoir Antsa »), suggestions qui changent
+- [ ] A20. Pastilles d'activité : une discussion ou tâche en cours porte une pastille dans l'historique, distincte selon le lieu (sur CET appareil / sur un AUTRE appareil) ; si une discussion attend une réponse de l'utilisateur (question du modèle, confirmation d'outil, accord payant) pendant qu'il est ailleurs (autre discussion, Créations, Réglages, ou app en arrière-plan), Tontolo le signale (pastille « attend votre réponse » + notification)
+
+## Consigne permanente (2026-10-12)
+- À chaque mise à jour publiée : un poster de changelog simple mais complet, illustré, qui montre le changement majeur de la version par un exemple simple d'utilisation (voir docs/RELEASING.md)
