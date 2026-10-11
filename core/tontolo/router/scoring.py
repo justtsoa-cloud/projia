@@ -80,6 +80,8 @@ class Reliability:
         self.dirty.add(key)
 
 
+LOCAL_LLM_PROVIDERS = frozenset({"ollama_local", "llamacpp_local"})
+
 # Demandes simples : la vitesse peut primer (option « réponse rapide d'abord »).
 SIMPLE_CATEGORIES = frozenset({Category.CHAT, Category.WRITING, Category.TRANSLATION,
                                Category.SEARCH})
@@ -151,6 +153,8 @@ def rank(
             penalty = 0.05 if m.provisional else 0.0
             if m.provider == "local":
                 penalty += 0.3  # repli local : toujours en dernier
+            elif m.provider in LOCAL_LLM_PROVIDERS:
+                penalty += 0.25  # modèles sur l'appareil : derniers recours (et hors ligne)
             penalty += 0.15 * quota.pressure(m, now)
             score = w_q * q + w_s * s + w_r * r - penalty
             cands.append(Candidate(m, score, q, s, r, available_at=quota.available_at(m, now)))

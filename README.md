@@ -97,6 +97,18 @@ Lancez `TONTOLO_TOKEN=un-secret tontolo serve --host 0.0.0.0` sur votre machine 
 dans l'application : **Réglages › Avancé › Serveur distant** (URL + jeton). La
 synchronisation de l'historique entre appareils se règle au même endroit.
 
+## Modèles locaux (sans Internet)
+
+Si [Ollama](https://ollama.com) (port 11434) ou `llama-server` de
+[llama.cpp](https://github.com/ggml-org/llama.cpp) (port 8080, modèles GGUF) tourne sur
+l'appareil — sous Linux, ou dans Termux sous Android — Tontolo le détecte tout seul et s'en sert
+en **dernier recours**, et **immédiatement quand il n'y a plus de réseau**. La détection
+interroge uniquement `127.0.0.1` : rien ne sort de l'appareil.
+
+```bash
+ollama pull llama3.2:3b
+```
+
 ## Captures
 
 | Réponse avec formules | Retouche fidèle d'une photo | Image gratuite, sans clé |

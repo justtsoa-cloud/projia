@@ -15,7 +15,14 @@ from tontolo.catalog import watcher
 from tontolo.catalog.cache import SourceCache
 from tontolo.catalog.catalog import Catalog, build_catalog
 from tontolo.catalog.models import ModelInfo
-from tontolo.catalog.sources import freeapis, hfspaces, openrouter, pollinations, rankings
+from tontolo.catalog.sources import (
+    freeapis,
+    hfspaces,
+    local_llm,
+    openrouter,
+    pollinations,
+    rankings,
+)
 from tontolo.config import Settings
 from tontolo.media.providers import LOCAL_TTS_MODEL
 from tontolo.storage.db import Database
@@ -102,24 +109,28 @@ class CatalogService:
             freeapis.fetch(cache, ttl, force),
             _none() if quick else rankings.fetch_artificial_analysis(cache, aa_key, ttl, force),
             _none() if quick else rankings.fetch_lmarena(cache, ttl, force),
+            local_llm.discover(),
             return_exceptions=True,
         )
-        or_models, poll_models, free_res, aa, lma = (
+        or_models, poll_models, free_res, aa, lma, local_models = (
             r if not isinstance(r, BaseException) else None for r in results
         )
         for r in results:
             if isinstance(r, BaseException):
                 log.warning("Source en échec : %r", r)
         models: list[ModelInfo] = [*(or_models or []), *(poll_models or []),
-                                   LOCAL_TTS_MODEL.model_copy(deep=True), *hfspaces.models()]
+                                   LOCAL_TTS_MODEL.model_copy(deep=True), *hfspaces.models(),
+                                   *(local_models or [])]
         providers = dict(BUILTIN_PROVIDERS)
+        providers.update(local_llm.PROVIDERS)
         if isinstance(free_res, tuple):
             free_models, free_providers = free_res
             models += free_models
             providers.update(free_providers)
         if not cache.offline:
             models += await self._discover_media(providers, cache)
-        if not any(m.provider not in ("local", "hf_spaces") for m in models):
+        if not any(m.provider not in ("local", "hf_spaces", *local_llm.PROVIDERS)
+                   for m in models):
             return []  # rien en cache ni en ligne : on garde l'ancien catalogue
         ranking_entries = [*(aa or []), *(lma or [])]
         catalog = build_catalog(models, ranking_entries, providers)

@@ -80,3 +80,26 @@ async def test_health_states(router: Router) -> None:
         router.quota.on_error(m, ProviderError("quota", ErrorKind.QUOTA, retry_after=3600))
     h = await router.health()
     assert h["state"] == "red" and h["ready"] == 0 and h["retry_at"]
+
+
+async def test_offline_uses_on_device_model(router: Router, fake: FakeProvider, db: Database,
+                                            settings: Settings) -> None:
+    from tontolo.catalog.sources import local_llm
+
+    cat = router.catalog.catalog
+    cat.providers.update(local_llm.PROVIDERS)
+    local = local_llm._model("ollama_local", "llama3.2:3b", "llama3.2:3b (local)")
+    cat.models[local.key] = local
+
+    async def down() -> bool:
+        return False
+
+    router.probe = down
+    router.registry = type(router.registry)(lambda p: fake)  # même faux client pour tous
+    fake.fail("chatty", net())
+    chat = ChatService(settings, db, router)
+    events = await collect(chat.send(None, "Bonjour", use_tools=False))
+    done = next(e for e in events if e["type"] == "done")
+    assert done["model"] == "ollama_local:llama3.2:3b"
+    sw = next(e for e in events if e["type"] == "model_switched")
+    assert sw["reason_code"] == "offline"

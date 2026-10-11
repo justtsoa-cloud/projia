@@ -35,6 +35,7 @@ from tontolo.router.classifier import TaskProfile
 from tontolo.router.context import SUMMARY_PROMPT, fit
 from tontolo.router.quota import QuotaManager
 from tontolo.router.scoring import (
+    LOCAL_LLM_PROVIDERS,
     Candidate,
     Preference,
     Reliability,
@@ -280,6 +281,13 @@ class Router:
                     self.offline_since = self.offline_since or time.time()
                     if started:
                         yield {"type": "stream_reset", "model": m.key, "reason": "hors ligne"}
+                    local = next((i for i in range(idx, len(chain))
+                                  if chain[i].model.provider in LOCAL_LLM_PROVIDERS), None)
+                    if local is not None:
+                        # Un modèle tourne sur l'appareil : il répond sans Internet.
+                        previous, idx = cand, local
+                        last_reason, last_until, last_code = "hors ligne", None, "offline"
+                        continue
                     back = False
                     if recoveries < MAX_RECOVERIES:
                         deadline = time.monotonic() + OFFLINE_WAIT
