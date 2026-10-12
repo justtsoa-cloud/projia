@@ -339,3 +339,13 @@ Outils gratuits, locaux d'abord ; rien n'est exécuté depuis une pièce jointe.
 - [x] B18. (essai émulateur) Carte de questions pour « résume ce fichier » → jamais pour une demande de résumé
 - [ ] P7. Vidéo : quelques images clés (ffmpeg) analysées par un modèle de vision, en plus de la transcription
 - [x] P6. App : sélecteur de fichiers élargi, aperçu par type (icône, nom, taille), limites claires ; tests de chaque type et des fichiers piégés
+
+## Orchestration multi-modèles et durcissement (demande du 2026-10-12)
+Contraintes : rien ne change par défaut (`orchestrate=false`), léger (asyncio, httpx, re), modèles gratuits seulement, sécurité d'abord.
+- [ ] S1. Audit secrets.py / server/app.py / WebSockets / MCP ; bandit
+- [ ] S2. secrets.json chiffré en repli (Fernet si `cryptography` présent, sinon chiffrement léger stdlib), migration transparente des fichiers existants
+- [ ] S3. Limitation de débit des WebSockets (connexions et messages)
+- [ ] S4. MCP durci : commandes dangereuses refusées, taille des requêtes bornée, configuration stdio réservée à l'appareil
+- [ ] O1. Paquet `orchestrator/` : TaskDecomposer (regex, repli Ollama local), ResponseSynthesizer (low/medium/high), HierarchicalPipeline (cache, gather, délais, replis, routeur existant)
+- [ ] O2. `/tontolo/chat` : `orchestrate: bool = false` ; complexité faible → flux normal ; métriques (durée, modèles) dans les événements
+- [ ] O3. tests/test_orchestrator.py + essai « code Python + explication »
