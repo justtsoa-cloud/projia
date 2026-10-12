@@ -130,7 +130,10 @@ def pins() -> ProviderPins:
 
 
 BUILTIN_PROVIDERS = {"openrouter", "pollinations", "local", "openai", "anthropic", "deepseek",
-                     "xai"}
+                     "xai", "moonshot", "qwen", "perplexity",
+                     # gratuits avec clé, adresses codées en dur (catalog/sources/keyed.py)
+                     "groq", "cerebras", "sambanova", "github", "together", "mistral", "gemini",
+                     "nvidia", "huggingface"}
 
 
 def key_allowed(provider: str, base_url: str) -> bool:

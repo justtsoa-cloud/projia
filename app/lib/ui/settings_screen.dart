@@ -225,9 +225,14 @@ class _ProviderKeysState extends State<ProviderKeys> {
             leading: Icon(p['keyless'] == true ? Icons.lock_open : p['has_key'] == true ? Icons.check_circle : Icons.key_outlined,
                 color: p['has_key'] == true || p['keyless'] == true ? Theme.of(context).colorScheme.secondary : null),
             title: Text('${p['name']}'),
-            subtitle: Text(p['keyless'] == true
-                ? context.t('no_key_needed')
-                : context.t('n_free_models', {'n': '${p['free_models']}'})),
+            subtitle: Text(
+                p['keyless'] == true
+                    ? context.t('no_key_needed')
+                    : (p['free_models'] as int? ?? 0) == 0 && p['has_key'] != true && p['description'] != null
+                        ? '${p['description']}' // modèles découverts une fois la clé ajoutée
+                        : context.t('n_free_models', {'n': '${p['free_models']}'}),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis),
             onTap: p['keyless'] == true ? null : () => _edit(p),
           ),
       ]);
@@ -340,7 +345,12 @@ class _PaidSimpleState extends State<PaidSimple> {
       setState(() {
         paid = (s['paid'] as Map?)?.cast<String, dynamic>() ?? {};
         month = (sp['month'] as num? ?? 0).toDouble();
-        servers = [for (final id in _order) ...prov.where((p) => p['id'] == id)];
+        // Ordre connu d'abord, puis tout autre serveur payant ajouté au cœur (aucune liste figée).
+        servers = [
+          for (final id in _order) ...prov.where((p) => p['id'] == id),
+          ...prov.where((p) => p['paid'] == true && !_order.contains(p['id']))
+              .toList()..sort((a, b) => '${a['name']}'.compareTo('${b['name']}')),
+        ];
       });
     } catch (_) {} // ancien cœur distant : section masquée
   }

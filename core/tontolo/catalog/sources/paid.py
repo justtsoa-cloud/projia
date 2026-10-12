@@ -39,6 +39,25 @@ PROVIDERS: dict[str, dict[str, Any]] = {
         "key_url": "https://console.x.ai", "paid": True, "or_prefix": "x-ai/",
         "description": "Modèles Grok. Facturé à l'usage par xAI.",
     },
+    "moonshot": {
+        "id": "moonshot", "name": "Moonshot AI (Kimi)", "base_url": "https://api.moonshot.ai/v1",
+        "key_url": "https://platform.moonshot.ai/console/api-keys", "paid": True,
+        "or_prefix": "moonshotai/",
+        "description": "Modèles Kimi : long contexte, bons en agents. Facturé à l'usage.",
+    },
+    "qwen": {
+        "id": "qwen", "name": "Alibaba Qwen (Model Studio)",
+        "base_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+        "key_url": "https://modelstudio.console.alibabacloud.com/?tab=playground#/api-key",
+        "paid": True, "or_prefix": "qwen/",
+        "description": "Qwen Max, Plus, Coder… Facturé à l'usage par Alibaba Cloud.",
+    },
+    "perplexity": {
+        "id": "perplexity", "name": "Perplexity (Sonar)", "base_url": "https://api.perplexity.ai",
+        "key_url": "https://www.perplexity.ai/account/api/keys", "paid": True,
+        "or_prefix": "perplexity/", "static": True,
+        "description": "Réponses avec recherche web et sources. Facturé à l'usage.",
+    },
 }
 
 _DATE = re.compile(r"(-\d{4}-\d{2}-\d{2}|-\d{8}|-latest)$")
@@ -78,6 +97,11 @@ async def discover(cache: SourceCache, ttl: float,
         key = secrets.get_key(pid)
         if not key or not security.key_allowed(pid, p["base_url"]):
             continue
+        if p.get("static"):  # pas de liste des modèles : ceux d'OpenRouter, même identifiant
+            listed = [m.model_id.removeprefix(p["or_prefix"]) for m in openrouter_models
+                      if m.model_id.startswith(p["or_prefix"])]
+            found += match(pid, listed, openrouter_models)
+            continue
         headers = {"Authorization": f"Bearer {key}"}
         if pid == "anthropic":
             headers |= {"x-api-key": key, "anthropic-version": "2023-06-01"}
@@ -90,4 +114,4 @@ async def discover(cache: SourceCache, ttl: float,
 
 
 def public(p: dict[str, Any]) -> dict[str, Any]:
-    return {k: v for k, v in p.items() if k != "or_prefix"}
+    return {k: v for k, v in p.items() if k not in ("or_prefix", "static")}

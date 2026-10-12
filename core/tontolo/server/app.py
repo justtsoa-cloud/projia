@@ -1769,7 +1769,8 @@ async def _validate_key(core: Core, provider: str, key: str) -> tuple[bool, str]
         base = p["base_url"]
         if not key_allowed(provider, base):
             return False, "Adresse du fournisseur non fiable (HTTPS requis, hôte épinglé)"
-        url = f"{base}/key" if provider == "openrouter" else f"{base}/models"
+        url = (f"{base}/key" if provider == "openrouter"
+               else p.get("models_url") or f"{base}/models")
         headers = {"Authorization": f"Bearer {key}"}
         if provider == "anthropic":
             headers |= {"x-api-key": key, "anthropic-version": "2023-06-01"}

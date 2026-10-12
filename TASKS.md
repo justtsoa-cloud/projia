@@ -153,6 +153,7 @@ Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cass�
 - [x] R3. Création d'image : ne plus rester bloqué sur Pollinations, choisir la meilleure source d'image disponible
 - [x] F1. Aide par fournisseur d'API : étapes simples et lien direct pour obtenir la clé (fr/en/mg)
 - [x] F2. Réglages simplifiés : proposer les serveurs d'API payants avec plafond de dépense (simple)
+- [ ] F3. Descriptions des fournisseurs en anglais et malgache (aujourd'hui en français pour tous)
 - [ ] F3. Mode Apprendre (élèves / étudiants), inspiré de Khanmigo, MagicSchool, MIA Seconde, Dinobot : bascule Général / Apprendre bien visible, niveau scolaire, guidage pas à pas sans donner la réponse, indices, quiz interactifs, fiches, correction d'exercice en photo, plan de révision
 - [~] F4. Comptes et synchronisation chiffrée : code, tests, SQL et doc faits ; Supabase configuré le 2026-10-11 (table sync_items + RLS vérifiées, URL de retour localhost:43823, **connexion GitHub active**) ; reste : Google (facultatif), essai de connexion réel sur téléphone par l'auteur, relecture du protocole par Codex
 - [x] F5. Guide de publication : Play Store, F-Droid, dépôts Linux (Flathub, AUR, Snap, .deb)
@@ -300,3 +301,14 @@ Règle : tout test, bug trouvé et optimisation est noté ici au fur et à mesur
 - [x] B15. (essai réel R3) Questions posées au 3e tour alors que le contexte suffisait → en pleine discussion, `ask_user` seulement pour une nouvelle demande d'au moins 15 mots
 - [x] B16. (essai réel R3) Tour sans réponse plus de 10 min : un modèle qui « réfléchit » sans fin n'était jamais vu comme silencieux → limite de réflexion sans texte de réponse (150 s, 300 s pour les créations), puis bascule ; réglages du routeur jamais envoyés au fournisseur
 
+
+## Fournisseurs, mémoire sémantique, mode avancé (demande du 2026-10-12)
+Philosophie gardée : gratuit d'abord, clés de l'utilisateur, rien ne passe par un intermédiaire, une clé n'est envoyée qu'à l'hôte prévu (HTTPS, épinglé).
+- [x] F1. Registre intégré de fournisseurs (gratuits et payants directs) en plus de la liste en ligne : gratuits à clé (Cerebras, SambaNova, GitHub Models, Together « -Free »…), payants directs avec prix connu (Mistral, Google, Moonshot, Qwen, Z.ai, Cohere, Perplexity, MiniMax…) ; modèles découverts par `GET /models` quand la clé est là ; adresse codée en dur (jamais remplaçable par une source en ligne)
+- [x] F2. App : les nouveaux fournisseurs apparaissent dans la liste des clés avec lien « obtenir une clé », gratuit/payant indiqué
+- [ ] F3. Descriptions des fournisseurs en anglais et malgache (aujourd'hui en français pour tous)
+- [ ] M1. Mémoire sémantique unifiée : un même index local (vecteurs de trigrammes, sans dépendance, toutes langues) pour les souvenirs ET les réponses déjà données
+- [ ] M2. Cache sémantique : question quasi identique, sans dépendance au temps ni au contexte → réponse réutilisée immédiatement (« déjà répondu le … », Régénérer contourne) ; question proche → réponse antérieure fournie en contexte ; jamais pour l'actualité, les fichiers, les photos, le mode Apprendre ; effacé avec la discussion ; réglage « Réutiliser les réponses » + Vider
+- [ ] A1. Mode avancé : fournisseurs personnalisés compatibles OpenAI (HTTPS obligatoire, hôte épinglé, test de connexion, clé dans le stockage sécurisé)
+- [ ] A2. Mode avancé : enchaînements de modèles définis par l'utilisateur (par catégorie), fournisseurs exclus/préférés
+- [ ] A3. Mode avancé : délais du routeur réglables dans des bornes sûres ; export/import des réglages avancés sans les clés

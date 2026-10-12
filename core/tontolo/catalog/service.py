@@ -18,6 +18,7 @@ from tontolo.catalog.models import ModelInfo
 from tontolo.catalog.sources import (
     freeapis,
     hfspaces,
+    keyed,
     local_llm,
     openrouter,
     paid,
@@ -132,6 +133,13 @@ class CatalogService:
         # adresse (leur clé n'est envoyée qu'à l'adresse codée en dur).
         providers.update(BUILTIN_PROVIDERS)
         providers.update({pid: paid.public(p) for pid, p in paid.PROVIDERS.items()})
+        for pid, p in keyed.PROVIDERS.items():  # adresse intégrée prioritaire sur la liste en ligne
+            providers[pid] = {**providers.get(pid, {}), **keyed.public(p), "keyless": False}
+        try:  # gratuits avec clé : tous les modèles de l'offre, dès que la clé est là
+            known = {m.key for m in models}
+            models += [m for m in await keyed.discover(cache, ttl) if m.key not in known]
+        except Exception as exc:
+            log.warning("Fournisseurs à clé : %r", exc)
         try:  # serveurs payants directs : seulement si l'utilisateur a mis sa clé
             models += await paid.discover(cache, ttl, or_models or [])
         except Exception as exc:  # une source en panne ne doit pas bloquer le catalogue
