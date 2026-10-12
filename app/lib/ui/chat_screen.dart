@@ -164,22 +164,32 @@ class _ChatScreenState extends State<ChatScreen> {
     focus.requestFocus();
   }
 
+  static const _imageExt = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif', 'bmp'];
+  static const _mediaExt = ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'oga', 'opus', 'flac', 'amr', 'weba',
+      'mp4', 'mov', 'mkv', 'webm', 'avi', '3gp', 'm4v'];
+  static const _maxBytes = 100 * 1024 * 1024; // le cœur borne ensuite selon le type
+
   Future<void> _pickFile() async {
-    final res = await FilePicker.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: const ['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'pdf', 'txt', 'md', 'html', 'htm'],
-    );
+    // Tout type de fichier : images (vision), et le reste (PDF, bureautique, texte, code,
+    // archives, son, vidéo…) lu ou transcrit par le cœur, qui refuse ce qu'il ne sait pas lire.
+    final res = await FilePicker.pickFiles(type: FileType.any);
     if (res.isEmpty) return;
     final f = res.first;
-    final raw = await f.xFile.readAsBytes();
     final ext = f.name.split('.').last.toLowerCase();
-    if (const ['pdf', 'txt', 'md', 'html', 'htm'].contains(ext)) {
-      // Document : texte extrait par le cœur, utilisé pour répondre en citant les pages.
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final tooBig = context.t('file_too_big');
+    if (await f.xFile.length() > _maxBytes) {
+      messenger.showSnackBar(SnackBar(content: Text(tooBig)));
+      return;
+    }
+    final raw = await f.xFile.readAsBytes();
+    if (!_imageExt.contains(ext)) {
+      // Document : texte extrait (ou transcrit) par le cœur, utilisé pour répondre en citant.
       if (!mounted) return;
       final chat = AppScope.of(context).chat;
-      final messenger = ScaffoldMessenger.of(context);
-      final reading = context.t('doc_reading');
-      messenger.showSnackBar(SnackBar(content: Text(reading)));
+      final reading = context.t(_mediaExt.contains(ext) ? 'media_transcribing' : 'doc_reading');
+      messenger.showSnackBar(SnackBar(content: Text(reading), duration: const Duration(minutes: 10)));
       final err = await chat.attachDocument(f.name, raw);
       if (!mounted) return;
       messenger.hideCurrentSnackBar();

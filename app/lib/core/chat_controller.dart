@@ -228,10 +228,12 @@ class ChatController extends ChangeNotifier {
       ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: name));
     if (conversationId != null) req.fields['conversation_id'] = conversationId!;
     try {
-      final resp = await http.Response.fromStream(await req.send()).timeout(const Duration(minutes: 2));
+      // Son et vidéo : transcription (plus longue qu'une simple lecture).
+      final resp = await http.Response.fromStream(await req.send()).timeout(const Duration(minutes: 10));
       final body = jsonDecode(utf8.decode(resp.bodyBytes));
       if (resp.statusCode != 200) {
-        return (body is Map && body['detail'] is String) ? body['detail'] as String : tr(backend.prefs.locale, 'error_generic');
+        final msg = body is Map ? ((body['error'] as Map?)?['message'] ?? body['detail']) : null;
+        return msg is String ? msg : tr(backend.prefs.locale, 'error_generic');
       }
       final doc = (body as Map).cast<String, dynamic>();
       if (epoch != _epoch) return null;
