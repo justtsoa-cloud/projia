@@ -370,7 +370,7 @@ async def r11_beamer_from_book(api: Api, v: Verdict) -> None:
     cid = up["conversation_id"]
     ev = await api.chat("Crée un slide en beamer puis rends le en pdf : une présentation du "
                         "chapitre sur les mathématiques avec des illustrations, des exemples et du "
-                        "code LaTeX", cid, limit=1500)
+                        "code LaTeX", cid, limit=2400)
     job = job_of(ev)
     v.check(not any(e["type"] == "question" for e in ev), "aucune question pour une demande claire")
     v.check(bool(job) and job["status"] == "done", f"PDF livré ({errors_of(ev)[:1]})")

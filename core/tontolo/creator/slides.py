@@ -26,8 +26,9 @@ from tontolo.creator.errors import CreationError
 PARALLEL = 3
 SECTION_DEADLINE = 300
 SECTION_TRIES = 2
-MAX_FIXES = 8          # corrections par un modèle, en tout
-FIXES_PER_SECTION = 2  # puis la section est simplifiée
+MAX_FIXES = 6          # corrections par un modèle, en tout
+FIXES_PER_SECTION = 1  # puis la section est simplifiée
+FIX_BUDGET = 300       # secondes de corrections ; au-delà, simplification directe
 
 OUTLINE_PROMPT = """Tu prépares le plan d'une présentation Beamer en {language}. Réponds \
 UNIQUEMENT en JSON : {{"title": "titre", "sections": [{{"title": "titre de section", \
@@ -246,6 +247,8 @@ class SlidesWriter:
             raise CreationError("les modèles gratuits ont trop tardé : réessayez plus tard")
 
         fixes = 0
+        loop = asyncio.get_running_loop()
+        fix_deadline = loop.time() + FIX_BUDGET  # la présentation sort à temps, quitte à simplifier
         tried: dict[int, int] = {}
         simplified: set[int] = set()
         while True:
@@ -265,7 +268,7 @@ class SlidesWriter:
                 if idx is None:
                     raise
                 if (fixes >= MAX_FIXES or tried.get(idx, 0) >= FIXES_PER_SECTION
-                        or idx in simplified):
+                        or idx in simplified or loop.time() > fix_deadline):
                     if idx in simplified:
                         raise
                     simplified.add(idx)
