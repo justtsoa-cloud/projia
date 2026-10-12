@@ -52,6 +52,9 @@ def test_intent() -> None:
     assert intent.detect("fais-moi une carte mentale du chapitre") == "mindmap"
     assert intent.detect("explique-moi ce pdf") is None
     assert intent.detect("crée un fichier json des pays") == "text:json"
+    assert intent.detect("Manorata tatitra Word momba ny fandotoana") == "docx"  # malgache
+    assert intent.detect("Avoahy amin'ny pdf ity lahatsoratra ity") == "pdf"
+    assert intent.detect("manorata hira momba ny fitiavana") is None
     assert intent.valid("pptx") and intent.valid("text:csv") and not intent.valid("text:../x")
 
 

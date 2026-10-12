@@ -11,7 +11,8 @@ from tontolo.creator.textfile import SAFE_EXT
 _VERB = (r"(g[ée]n[èe]re|g[ée]n[ée]rer|cr[ée]e|cr[ée]er|fais|faire|fabrique|r[ée]dige|r[ée]diger|"
          r"pr[ée]pare|pr[ée]parer|exporte|exporter|convertis|convertir|compile|compiler|donne|"
          r"produis|[ée]cris|[ée]crire|dessine|construis|make|create|generate|write|export|build|"
-         r"draw|prepare|produce|give me|manaova|mamorona|ataovy|soraty|omeo)")
+         r"draw|prepare|produce|give me|manaova|mamorona|ataovy|soraty|omeo|manorata|amboary|"
+         r"vokary|avoahy)")
 _FORMATS: list[tuple[str, str]] = [
     ("mindmap", r"carte[s]? (mentale|heuristique)|mind ?-?maps?|sch[ée]ma heuristique|"
                 r"carte conceptuelle|sarintsaina|sarin-kevitra"),
@@ -54,7 +55,7 @@ def detect(text: str) -> str | None:
 
     if (has_verb and wants_book(t)) or asks_for_book(t):
         return "book"  # livre / long document : plan puis chapitres, livré en PDF
-    as_format = re.search(r"\b(en|au format|in|as|sous forme d['e]|version)\s+"
+    as_format = re.search(r"\b(en|au format|in|as|sous forme d['e]|version|amin'ny)\s+"
                           r"(pdf|docx|word|excel|xlsx|pptx|powerpoint|latex)\b", t)
     for kind, pattern in _FORMATS:
         if re.search(pattern, t) and (has_verb or as_format):

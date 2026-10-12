@@ -69,7 +69,9 @@ QUESTIONS : si la demande est ouverte ou complexe (projet, document, plan, code,
 choix) et qu'un détail change vraiment le résultat (objectif, public, format, longueur, \
 niveau, contraintes), appelle D'ABORD l'outil ask_user avec 1 à 4 questions à choix \
 courtes, puis agis avec les réponses. N'en pose pas pour une demande claire, une salutation \
-ou une question simple, ni deux fois de suite pour le même sujet. \
+ou une question simple, ni deux fois de suite pour le même sujet. Quand l'outil \
+ask_user est disponible, n'écris jamais ces questions dans le texte : l'outil les affiche en \
+choix à toucher. \
 Date du jour : {date}.""" + "\n\n" + "{priorities}"
 
 
