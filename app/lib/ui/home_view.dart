@@ -9,6 +9,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../core/backend.dart';
 import '../core/chat_controller.dart';
 import '../main.dart';
 import 'theme.dart';
@@ -108,6 +109,8 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   int _next = 0;
   int _subtitle = Random().nextInt(4);
   bool _still = false;
+  bool _loaded = false;
+  Backend? _backend;
 
   @override
   void initState() {
@@ -127,7 +130,13 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
       _still = still;
       _start();
     }
-    if (_recent.isEmpty && _name.isEmpty) _load();
+    // Démarrage à froid : le cœur n'est pas encore prêt ; on charge dès qu'il l'est.
+    _backend ??= AppScope.of(context).backend..addListener(_onBackend);
+    if (!_loaded) _load();
+  }
+
+  void _onBackend() {
+    if (!_loaded && _backend?.state == BackendState.ready) _load();
   }
 
   void _start() {
@@ -180,12 +189,15 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   Future<void> _load() async {
     final scope = AppScope.of(context);
     final account = scope.account.session?.firstName ?? '';
+    if (account.isNotEmpty && _name.isEmpty) setState(() => _name = account);
+    if (scope.backend.state != BackendState.ready) return;
     try {
       final home = await scope.backend.getJson('/tontolo/home') as Map<String, dynamic>;
       // Ordre : prénom du réglage, puis du compte, puis appris dans la mémoire.
       final fromSettings = home['name_from'] == 'settings' ? '${home['name']}' : '';
       final name = fromSettings.isNotEmpty ? fromSettings.split(' ').first : (account.isNotEmpty ? account : '${home['name'] ?? ''}');
       if (!mounted) return;
+      _loaded = true;
       setState(() {
         _name = name;
         _recent = ((home['recent'] as List?) ?? const []).cast<Map<String, dynamic>>();
@@ -193,12 +205,13 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
       });
       if (!_still) _typing.forward(from: 0);
     } catch (_) {
-      if (mounted && account.isNotEmpty) setState(() => _name = account);
+      // Ancien cœur ou cœur indisponible : nouvel essai au prochain changement d'état.
     }
   }
 
   @override
   void dispose() {
+    _backend?.removeListener(_onBackend);
     _rotate?.cancel();
     _typing.dispose();
     _breath.dispose();
