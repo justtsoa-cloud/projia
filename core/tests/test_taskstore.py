@@ -97,3 +97,15 @@ def test_cloud_roundtrip(client: TestClient) -> None:  # noqa: F811
     assert client.post("/tontolo/cloud/tasks", json={"items": [item]}).json() == {"applied": 0}
     bad = dict(item, conversation_id="../x")
     assert client.post("/tontolo/cloud/tasks", json={"items": [bad]}).json() == {"applied": 0}
+
+
+def test_total_size_is_bounded(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from tontolo.agent import taskstore
+
+    monkeypatch.setattr(taskstore, "TOTAL_MAX", 2500)
+    store = TaskStore(tmp_path)
+    first = store.put("c1", "part", "ancien", "a" * 1000, updated=1000.0)
+    store.put("c2", "part", "milieu", "b" * 1000, updated=2000.0)
+    store.put("c3", "part", "récent", "c" * 1000, updated=3000.0)
+    assert store.get("c1", first["id"]) is None  # le plus ancien est parti
+    assert len(store.items("c2")) == 1 and len(store.items("c3")) == 1

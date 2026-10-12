@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 
 import '../core/chat_controller.dart';
 import '../main.dart';
+import 'theme.dart';
 import 'message_view.dart' show RichMarkdown;
 
 const learnLevels = ['primaire', 'college', 'lycee', 'universite', 'adulte'];
@@ -24,38 +25,51 @@ class ModeToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     final mode = chat.mode;
     final scheme = Theme.of(context).colorScheme;
+    // Seul le mode actif affiche son nom ; les deux autres ne montrent que leur icône.
     Widget seg(String value, IconData icon, String label, VoidCallback onTap) {
       final selected = mode == value;
       final bg = switch (value) { 'learn' => scheme.tertiary, 'agent' => scheme.secondary, _ => scheme.primary };
       final fg = switch (value) { 'learn' => scheme.onTertiary, 'agent' => scheme.onSecondary, _ => scheme.onPrimary };
       return Expanded(
-        child: Material(
-          color: selected ? bg : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(20),
-            // L'agent sélectionné se rechoisit d'un nouvel appui (Chercheur, Développeur…).
-            onTap: selected && value != 'agent'
-                ? null
-                : () {
-                    HapticFeedback.selectionClick();
-                    onTap();
-                  },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 7),
-              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                Icon(icon, size: 17, color: selected ? fg : scheme.onSurfaceVariant),
-                const SizedBox(width: 5),
-                Flexible(
-                  // Réduit plutôt que tronqué quand la barre est étroite (menu ⋮ affiché).
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(label,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: selected ? fg : scheme.onSurfaceVariant)),
+        flex: selected ? 5 : 2,
+        child: Tooltip(
+          message: label,
+          child: Semantics(
+            button: true,
+            selected: selected,
+            label: label,
+            child: AnimatedContainer(
+              duration: context.motion,
+              curve: Curves.easeOutCubic,
+              decoration: BoxDecoration(color: selected ? bg : Colors.transparent, borderRadius: BorderRadius.circular(20)),
+              child: Material(
+                type: MaterialType.transparency,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  // L'agent sélectionné se rechoisit d'un nouvel appui (Chercheur, Développeur…).
+                  onTap: selected && value != 'agent'
+                      ? null
+                      : () {
+                          HapticFeedback.selectionClick();
+                          onTap();
+                        },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Icon(icon, size: 20, color: selected ? fg : scheme.onSurfaceVariant),
+                      if (selected) ...[
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(label, style: Theme.of(context).textTheme.labelLarge?.copyWith(color: fg)),
+                          ),
+                        ),
+                      ],
+                    ]),
                   ),
                 ),
-              ]),
+              ),
             ),
           ),
         ),
@@ -65,7 +79,7 @@ class ModeToggle extends StatelessWidget {
     return Semantics(
       label: context.t('mode_toggle'),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 340),
+        constraints: const BoxConstraints(maxWidth: 300),
         padding: const EdgeInsets.all(3),
         decoration: BoxDecoration(color: scheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(23)),
         child: Row(mainAxisSize: MainAxisSize.min, children: [

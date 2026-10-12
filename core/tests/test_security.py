@@ -90,3 +90,44 @@ async def test_file_tools_confined(tmp_path: Path) -> None:
     for path in ("../secret.txt", "/etc/passwd", "lien"):
         with pytest.raises(PermissionError):
             await tools["read_file"].func({"path": path})
+
+
+def test_latex_cannot_read_or_run_files() -> None:
+    from tontolo.creator import book, bundle
+
+    files = {"main.tex": "\\documentclass{x}\\input{/etc/passwd}"}
+    _, missing = bundle.inline_tex(files, "main.tex")
+    assert missing == ["/etc/passwd"]  # chemin hors projet : jamais lu
+    from tontolo.creator.pipeline import latex_problems
+
+    nasty = ["\\openin5=/etc/passwd", "\\read5 to \\x", "\\InputIfFileExists{/etc/passwd}{}{}",
+             "\\verbatiminput{/etc/hosts}", "\\lstinputlisting{/etc/hosts}",
+             "\\directlua{os.execute('id')}", "\\input{/etc/passwd}", "\\write18{id}"]
+    for cmd in nasty:
+        assert latex_problems(f"\\documentclass{{article}}\\begin{{document}}{cmd}\\end"
+                              "{document}"), cmd
+        if "\\input" not in cmd:  # \input vers le projet est légitime (résolu, jamais lu)
+            assert bundle.problems({"a.tex": cmd}), cmd
+        assert cmd.split("{")[0].split("=")[0].split(" ")[0] not in book.clean_chapter(
+            f"\\chapter{{A}}\n{cmd}\n", "A")
+
+
+def test_media_served_safely(client: TestClient, tmp_path: Path) -> None:
+    from tontolo.server.app import safe_mime
+
+    assert safe_mime("text/html") == "text/html" and safe_mime("<script>") == \
+        "application/octet-stream"
+    core = client.app.state.core  # type: ignore[attr-defined]
+    page = core.media.dir / "page.html"
+    page.write_text("<script>fetch('/tontolo/memory')</script>")
+
+    async def make() -> None:
+        await core.db.upsert_job({"id": "e" * 32, "kind": "file_gen", "status": "done",
+                                  "params": {"mime": "text/html"}, "result_path": str(page)})
+
+    client.portal.call(make)  # type: ignore[attr-defined]
+    r = client.get("/tontolo/media/" + "e" * 32 + "/file")
+    assert r.headers["content-type"].startswith("application/octet-stream")
+    assert "attachment" in r.headers["content-disposition"]
+    assert r.headers["x-content-type-options"] == "nosniff"
+    assert "sandbox" in r.headers["content-security-policy"]

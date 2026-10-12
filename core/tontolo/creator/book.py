@@ -85,8 +85,9 @@ def clean_chapter(text: str, title: str) -> str:
     body = re.sub(r"\\documentclass.*?\\begin\{document\}", "", body, flags=re.S)
     body = re.sub(r"\\(usepackage|documentclass)(\[[^\]]*\])?\{[^}]*\}", "", body)
     body = re.sub(r"\\(end|begin)\{document\}|\\maketitle|\\tableofcontents", "", body)
-    body = re.sub(r"\\(input|include|includegraphics|write18|immediate|openout)\b[^\n]*", "",
-                  body)
+    body = re.sub(r"\\(input|include|includegraphics|openin|read|readline|InputIfFileExists|"
+                  r"verbatiminput|lstinputlisting|directlua|luaexec|write18|immediate|"
+                  r"openout|write|catcode|@@input)(?![A-Za-z])[^\n]*", "", body)
     if "\\chapter" not in body:
         body = f"\\chapter{{{latex_escape(title)}}}\n{body}"
     return body.strip() + "\n"

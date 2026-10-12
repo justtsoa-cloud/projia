@@ -77,8 +77,28 @@ class TermSession:
         with contextlib.suppress(Exception):
             asyncio.get_running_loop().remove_reader(self.fd)
         self._push(b"\r\n[session terminee]\r\n")
-        with contextlib.suppress(OSError):
-            os.waitpid(self.pid, os.WNOHANG)
+        self._reap()
+
+    def _reap(self) -> None:
+        """Récolte le processus fils (jamais de zombie) ; il est arrêté de force au besoin."""
+        pid = self.pid
+
+        def wait() -> None:
+            for _ in range(50):
+                try:
+                    done, _ = os.waitpid(pid, os.WNOHANG)
+                except ChildProcessError:
+                    return
+                if done:
+                    return
+                time.sleep(0.1)
+            with contextlib.suppress(ProcessLookupError):
+                os.kill(pid, signal.SIGKILL)
+            with contextlib.suppress(ChildProcessError):
+                os.waitpid(pid, 0)
+
+        with contextlib.suppress(RuntimeError):
+            asyncio.get_running_loop().run_in_executor(None, wait)
 
     def write(self, data: bytes) -> None:
         if self.alive:

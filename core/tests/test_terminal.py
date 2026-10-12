@@ -47,6 +47,9 @@ async def test_session_reads_and_mirrors(tmp_path: Path) -> None:
     assert terms.sessions == {}
 
 
+TOKEN = "jeton-de-test"
+
+
 @pytest.fixture
 def client(settings: Settings, catalog_service: CatalogService, fake: FakeProvider,
            monkeypatch: pytest.MonkeyPatch) -> Any:
@@ -55,13 +58,19 @@ def client(settings: Settings, catalog_service: CatalogService, fake: FakeProvid
         return self.catalog
 
     monkeypatch.setattr(CatalogService, "load", fake_load)
+    settings.server.token = TOKEN
     app = create_app(settings, registry=ProviderRegistry(lambda p: fake), refresh=False)
-    with TestClient(app, base_url="http://127.0.0.1", client=("127.0.0.1", 5000)) as c:
+    with TestClient(app, base_url="http://127.0.0.1", client=("127.0.0.1", 5000),
+                    headers={"authorization": f"Bearer {TOKEN}"}) as c:
         yield c
 
 
+def _ws(cid: str, token: str | None = TOKEN) -> str:
+    return f"/tontolo/terminal/{cid}/ws" + (f"?token={token}" if token else "")
+
+
 def test_websocket_local_only(client: TestClient) -> None:
-    with client.websocket_connect("/tontolo/terminal/abc/ws") as ws:
+    with client.websocket_connect(_ws("abc")) as ws:
         ws.send_text(json.dumps({"resize": [30, 100]}))
         ws.send_text(json.dumps({"input": "echo depuis-l-app\n"}))
         seen = b""
@@ -71,19 +80,46 @@ def test_websocket_local_only(client: TestClient) -> None:
     assert "depuis-l-app" in core.chat.terminals.existing("abc").text()
     for headers in ({"origin": "http://localhost:3000"}, {"origin": "https://evil.example"}):
         with pytest.raises(WebSocketDisconnect), client.websocket_connect(
-                "/tontolo/terminal/abc/ws", headers=headers) as ws:
+                _ws("abc"), headers=headers) as ws:
             ws.receive_bytes()
-    with pytest.raises(WebSocketDisconnect), client.websocket_connect(
-            "/tontolo/terminal/..%2Fx/ws") as ws:
-        ws.receive_bytes()
+    for bad in (_ws("..%2Fx"), _ws("abc", None), _ws("abc", "mauvais")):  # jeton obligatoire
+        with pytest.raises(WebSocketDisconnect), client.websocket_connect(bad) as ws:
+            ws.receive_bytes()
 
 
 def test_remote_client_refused(settings: Settings) -> None:
+    settings.server.token = TOKEN
     app = create_app(settings, refresh=False)
     with TestClient(app, base_url="http://127.0.0.1", client=("10.0.0.9", 1)) as c, \
-            pytest.raises(WebSocketDisconnect), c.websocket_connect(
-                "/tontolo/terminal/abc/ws") as ws:
+            pytest.raises(WebSocketDisconnect), c.websocket_connect(_ws("abc")) as ws:
         ws.receive_bytes()
+
+
+def test_no_token_no_shell(settings: Settings) -> None:
+    app = create_app(settings, refresh=False)  # aucun jeton configuré
+    with TestClient(app, base_url="http://127.0.0.1", client=("127.0.0.1", 5000)) as c, \
+            pytest.raises(WebSocketDisconnect), c.websocket_connect(_ws("abc", None)) as ws:
+        ws.receive_bytes()
+
+
+async def test_child_is_reaped(tmp_path: Path) -> None:
+    import os
+
+    terms = TerminalManager()
+    s = terms.get("c1", tmp_path)
+    pid = s.pid
+    terms.close_all()
+    for _ in range(60):
+        await asyncio.sleep(0.1)
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return  # récolté : plus de zombie
+        except PermissionError:
+            return
+        if Path(f"/proc/{pid}/stat").read_text().split()[2] != "Z":
+            continue
+    raise AssertionError("processus fils non récolté")
 
 
 def test_agent_reads_terminal_and_sees_its_commands(client: TestClient, fake: FakeProvider,

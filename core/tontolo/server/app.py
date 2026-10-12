@@ -45,6 +45,15 @@ from tontolo.update import check_update, download_update
 
 LOOPBACK = {"127.0.0.1", "::1", "localhost"}
 MAX_TASK_VIEW = 200_000
+ACTIVE_MIMES = {"text/html", "application/xhtml+xml", "image/svg+xml", "text/xml",
+                "application/xml", "text/javascript", "application/javascript"}
+_SAFE_MIME = re.compile(r"^(image|audio|video|text|application)/[\w.+-]{1,60}(; ?charset=[\w-]+)?$")
+
+
+def safe_mime(value: Any) -> str:
+    """Type de contenu d'une création : forme valide, sinon binaire neutre."""
+    mime = str(value or "").strip().lower()
+    return mime if _SAFE_MIME.match(mime) else "application/octet-stream"
 SYNC_CREATION_MAX = 1_000_000  # créations synchronisées entre appareils (octets)
 MEDIA_TURN_KINDS = {"image_gen", "image_edit", "tts", "music_sfx", "video_gen"}
 REVIEWED_TOPICS = {"math", "code", "reasoning"}  # réponses vérifiées par un second modèle
@@ -1250,7 +1259,13 @@ def create_app(
         path = Path(job["result_path"]).resolve()
         if not path.is_relative_to(core.media.dir.resolve()):
             raise HTTPException(403, "Accès refusé")
-        return FileResponse(path, media_type=job["params"].get("mime"))
+        mime = safe_mime(job["params"].get("mime"))
+        headers = {"X-Content-Type-Options": "nosniff",
+                   "Content-Security-Policy": "sandbox; default-src 'none'"}
+        if mime in ACTIVE_MIMES:  # page, SVG, XML : téléchargés, jamais affichés par le cœur
+            headers["Content-Disposition"] = f'attachment; filename="{path.name}"'
+            mime = "application/octet-stream"
+        return FileResponse(path, media_type=mime, headers=headers)
 
     @app.delete("/tontolo/media/{job_id}")
     async def media_delete(request: Request, job_id: str) -> dict[str, bool]:
@@ -1364,6 +1379,7 @@ def create_app(
                 path.write_bytes(data)
                 params = item.get("params") if isinstance(item.get("params"), dict) else {}
                 params.pop("source_path", None)  # chemin d'un autre appareil : sans objet
+                params["mime"] = safe_mime(params.get("mime"))
                 await core.db.upsert_job({
                     "id": job_id, "kind": str(item.get("kind") or "image_gen")[:20],
                     "status": "done", "model": item.get("model"),
@@ -1564,10 +1580,12 @@ def create_app(
         token = core.settings.server.token
         local = (websocket.client is not None and websocket.client.host in ("127.0.0.1", "::1")
                  and core.settings.server.host in LOOPBACK)
-        if (core.chat.terminals is None or not local or websocket.headers.get("origin")
+        # Un shell : jeton OBLIGATOIRE (sans jeton, n'importe quel processus local pourrait
+        # s'y connecter), application locale seulement, aucune origine web.
+        if (core.chat.terminals is None or not local or not token
+                or websocket.headers.get("origin")
                 or not re.fullmatch(r"[\w-]{1,64}", cid)
-                or (token and not hmac.compare_digest(websocket.query_params.get("token", ""),
-                                                      token))):
+                or not hmac.compare_digest(websocket.query_params.get("token", ""), token)):
             await websocket.close(code=4403)
             return
         await websocket.accept()

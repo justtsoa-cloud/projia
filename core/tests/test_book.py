@@ -46,7 +46,8 @@ class Writer:
         self.calls.append(system[:40])
         if "éditeur d'un livre" in system:
             return json.dumps({"title": "Histoire de Madagascar", "chapters": [
-                {"title": f"Partie {i}", "summary": "…"} for i in range(1, self.n + 1)]}), "m:0", "M"
+                {"title": f"Partie {i}", "summary": "…"}
+                for i in range(1, self.n + 1)]}), "m:0", "M"
         if "Tu corriges" in system:
             return "\\chapter{Partie 2}\nCorrigé.", "m:fix", "M"
         self.active += 1

@@ -173,10 +173,12 @@ class ChatService:
                 self.set_workdir(settings.agent.workdir)
         self.mcp = mcp
         # Navigateur intégré : bureau (Chromium & co. piloté) ou panneau WebView (tablette).
+        core_ports = {settings.server.port}
         self.browser_cdp = (browser.CdpBrowser(settings.data_dir / "browser-profile",
-                                               cache=settings.data_dir / "cache" / "browser")
+                                               cache=settings.data_dir / "cache" / "browser",
+                                               blocked_ports=core_ports)
                             if is_desktop() else None)
-        self.browser_bridge = browser.AppBridge()
+        self.browser_bridge = browser.AppBridge(core_ports)
         # Résultats intermédiaires des tâches complexes (dossier privé, 7 jours après la fin).
         self.tasks = TaskStore(settings.data_dir / "tasks")
         with contextlib.suppress(OSError):
@@ -667,7 +669,8 @@ class ChatService:
             await self.db.add_message(conversation_id, {
                 "role": "tool", "tool_call_id": call["id"], "name": fn["name"],
                 "content": result})
-            self._mirror_command(conversation_id, fn, result)
+            if approved:
+                self._mirror_command(conversation_id, fn, result)
             yield {**_tool_event(fn, result), "approved": approved}
         async for ev in self._loop(conversation_id, model=model):
             yield ev

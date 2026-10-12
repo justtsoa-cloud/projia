@@ -63,8 +63,11 @@ def problems(files: dict[str, str]) -> list[str]:
         ext = path.rsplit(".", 1)[-1].lower() if "." in path else ""
         for p in textfile.problems(ext, content) if ext else []:
             out.append(f"{path} : {p}")
-        if ext == "tex" and re.search(r"\\write18|\\immediate\\write|\\openout", content):
-            out.append(f"{path} : commandes d'écriture de fichiers interdites")
+        if ext == "tex" and re.search(
+                r"\\write18|\\immediate\\write|\\openout|\\openin(?![A-Za-z])|"
+                r"\\read(?![A-Za-z])|\\directlua|\\luaexec|\\InputIfFileExists|"
+                r"\\verbatiminput|\\lstinputlisting", content):
+            out.append(f"{path} : commandes de lecture ou d'écriture de fichiers interdites")
     return out[:8]
 
 

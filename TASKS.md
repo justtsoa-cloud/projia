@@ -187,11 +187,11 @@ Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cass�
 - [x] Accéder au projet Google Cloud et au projet Supabase existants (connexion propriétaire effectuée).
 - [x] Configurer le consentement et le client OAuth Web Google avec le callback exact du projet Supabase ; conserver GitHub. Configuration créée et secret enregistré par le propriétaire.
 - [x] Activer Google dans Supabase, sans placer le secret OAuth dans le dépôt ou dans l’application. Google et GitHub ENABLED vérifiés ; retour http://localhost:43823/ autorisé ; dossier de clés ignoré et permissions privées.
-- [ ] Tester connexion, annulation, retour Android/Linux, déconnexion et reconnexion ; vérifier GitHub également.
+- [x] (connexion Google testée par le propriétaire le 2026-10-12) Tester connexion, annulation, retour Android/Linux, déconnexion et reconnexion ; vérifier GitHub également.
 - [ ] Relire le protocole de synchronisation séparément et vérifier la conservation des données.
 - [ ] Réconcilier les anciennes cases non cochées (publication 0.2.0, F3 Apprendre) avec les preuves de livraison ; ne pas les considérer automatiquement comme fonctionnalités absentes.
 
-- [ ] Google reste en statut Testing sans utilisateurs de test : ajouter un testeur autorisé avant essai ; compléter présentation/confidentialité avant publication publique.
+- [x] (2026-10-12 : essai Google réel par le propriétaire réussi) Google reste en statut Testing sans utilisateurs de test : ajouter un testeur autorisé avant essai ; compléter présentation/confidentialité avant publication publique.
 - [x] Tests ciblés PKCE et synchronisation : 5 tests réussis ; ne constitue pas un essai OAuth réel Android/Linux.
 
 ## v0.4.7 — retour Google/GitHub sur Android
@@ -202,7 +202,7 @@ Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cass�
 - [x] Tests : 192 cœur, 45 Flutter, analyse Flutter sans erreur ; dernier ajustement revérifié (analyse et 9 tests ciblés).
 - [x] Trois APK signés construits ; installation par-dessus sur émulateur réussie (0.4.7, versionCode 4022), lien natif rouvre MainActivity à chaud et à froid.
 - [x] Publication GitHub v0.4.7 (workflow 38162162769 réussi), fichiers présents et téléchargements en tête des notes ; SHA-256 de l’APK officiel x86_64 vérifié et installation par-dessus réussie.
-- [ ] Essai Google réel par le propriétaire : configuration Google en mode Testing à vérifier si accès refusé.
+- [x] Essai Google réel par le propriétaire : configuration Google en mode Testing à vérifier si accès refusé.
 
 
 ## v0.5.0 — isolation du contexte et continuité des médias (Codex)
@@ -242,3 +242,11 @@ l'emploi ; bureau Linux = fichiers + commandes confirmées dans un dossier chois
 
 ## Consigne permanente (2026-10-12)
 - À chaque mise à jour publiée : un poster de changelog simple mais complet, illustré, qui montre le changement majeur de la version par un exemple simple d'utilisation (voir docs/RELEASING.md)
+
+## Audit de sécurité et de cohérence (2026-10-12, avant le poster)
+- [x] Terminal : jeton obligatoire (sans jeton, aucun shell), processus fils récoltés (pas de zombie), commande refusée non recopiée
+- [x] Navigateur : jamais l'API de Tontolo ni les métadonnées cloud ; boutons confirmés
+- [x] Créations synchronisées : type de contenu validé, pages actives servies en téléchargement (CSP sandbox, nosniff)
+- [x] LaTeX : lecture/exécution de fichiers refusées (\openin5, \read, \InputIfFileExists, \directlua… ; faille de frontière de mot corrigée)
+- [x] Résultats de tâches : plafond global de 300 Mo ; planification plus sobre (plus de déclenchement sur la seule longueur)
+- [x] Sélecteur de mode : seul le mode actif affiche son nom (icônes pour les autres)

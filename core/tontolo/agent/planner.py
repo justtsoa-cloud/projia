@@ -52,7 +52,7 @@ def looks_complex(text: str) -> bool:
     if len(t) < 60 or wants_continue(t):
         return False
     items = len(re.findall(r"(?m)^\s*(\d+[.)]|[-*•])\s+\S", t))
-    return (items >= 3 and len(t) > 150) or bool(_KEYWORDS.search(t)) or len(t) > 1200
+    return (items >= 3 and len(t) > 150) or bool(_KEYWORDS.search(t))
 
 
 def wants_continue(text: str) -> bool:

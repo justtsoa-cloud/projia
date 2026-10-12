@@ -130,7 +130,11 @@ def find_browser() -> str | None:
     return None
 
 
-def _safe_url(url: str) -> str:
+def _safe_url(url: str, blocked_ports: frozenset[int] | set[int] = frozenset()) -> str:
+    """http(s) seulement ; jamais l'API de Tontolo elle-même (une page ne doit pas pouvoir
+    amener l'agent à lire ou piloter le cœur) ni les services de métadonnées du cloud."""
+    from urllib.parse import urlsplit
+
     url = url.strip()
     if not url:
         raise BrowserError("adresse vide")
@@ -138,6 +142,17 @@ def _safe_url(url: str) -> str:
         url = "https://" + url
     if not url.startswith(("http://", "https://")):
         raise BrowserError("seules les adresses http(s) sont permises")
+    try:
+        parts = urlsplit(url)
+        host = (parts.hostname or "").lower()
+        port = parts.port or (443 if parts.scheme == "https" else 80)
+    except ValueError as exc:
+        raise BrowserError("adresse invalide") from exc
+    if (host in ("localhost", "127.0.0.1", "::1", "0.0.0.0") or host.endswith(".localhost")) \
+            and port in blocked_ports:
+        raise BrowserError("l'API de Tontolo n'est pas accessible depuis le navigateur")
+    if host.startswith("169.254.") or host in ("metadata.google.internal", "metadata"):
+        raise BrowserError("adresse de métadonnées refusée")
     return url
 
 
@@ -145,8 +160,9 @@ class CdpBrowser:
     """Navigateur de bureau piloté par DevTools (une connexion, un onglet par discussion)."""
 
     def __init__(self, profile: Path, executable: str | None = None,
-                 cache: Path | None = None) -> None:
+                 cache: Path | None = None, blocked_ports: set[int] | None = None) -> None:
         self.profile = profile
+        self.blocked_ports = set(blocked_ports or ())
         self.cache = cache  # cache web dans le dossier de cache unique, plafonné
         self.executable = executable or find_browser()
         self.proc: asyncio.subprocess.Process | None = None
@@ -308,8 +324,8 @@ class CdpBrowser:
         async with self._lock:
             session = await self._tab(cid)
             if action == "open":
-                await self._call("Page.navigate", {"url": _safe_url(str(args.get("url", "")))},
-                                 session=session)
+                await self._call("Page.navigate", {"url": _safe_url(
+                    str(args.get("url", "")), self.blocked_ports)}, session=session)
                 await self._wait_loaded(session)
             elif action == "back":
                 await self._eval(session, "history.back()")
@@ -353,7 +369,8 @@ class CdpBrowser:
 class AppBridge:
     """Tablette : l'application exécute les commandes dans son panneau WebView."""
 
-    def __init__(self) -> None:
+    def __init__(self, blocked_ports: set[int] | None = None) -> None:
+        self.blocked_ports = set(blocked_ports or ())
         self.queue: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
         self.waiting: dict[str, asyncio.Future[dict[str, Any]]] = {}
         self.last_seen = 0.0  # dernière lecture par l'application (panneau disponible)
@@ -364,7 +381,7 @@ class AppBridge:
 
     async def command(self, cid: str, action: str, args: dict[str, Any]) -> dict[str, Any]:
         if action == "open":
-            args = {**args, "url": _safe_url(str(args.get("url", "")))}
+            args = {**args, "url": _safe_url(str(args.get("url", "")), self.blocked_ports)}
         rid = uuid.uuid4().hex
         fut: asyncio.Future[dict[str, Any]] = asyncio.get_running_loop().create_future()
         self.waiting[rid] = fut

@@ -100,3 +100,15 @@ async def test_app_bridge_roundtrip() -> None:
     await task
     assert out["title"] == "Exemple" and bridge.available
     assert "Exemple" in browser.describe(out)
+
+
+def test_browser_never_reaches_core_api_or_metadata() -> None:
+    blocked = {8765}
+    for url in ("http://127.0.0.1:8765/tontolo/memory", "localhost:8765/health",
+                "http://LOCALHOST:8765/", "http://169.254.169.254/latest/meta-data/",
+                "http://metadata.google.internal/", "file:///etc/passwd",
+                "javascript:alert(1)"):
+        with pytest.raises(browser.BrowserError):
+            browser._safe_url(url, blocked)
+    assert browser._safe_url("http://127.0.0.1:3000/", blocked)  # son propre site de dev
+    assert browser._safe_url("example.org", blocked) == "https://example.org"

@@ -167,7 +167,8 @@ def latex_problems(source: str) -> list[str]:
         problems.append("il manque \\documentclass : renvoie un document complet")
     if "\\begin{document}" not in source or "\\end{document}" not in source:
         problems.append("il manque \\begin{document} ou \\end{document}")
-    if re.search(r"\\(input|include|includegraphics)\b", source):
+    if re.search(r"\\(input|include|includegraphics|openin|read|readline|InputIfFileExists|"
+                 r"verbatiminput|lstinputlisting|directlua|luaexec|@@input)(?![A-Za-z])", source):
         problems.append("pas de \\input, \\include ni \\includegraphics (aucun fichier externe)")
     if re.search(r"\\write18|\\immediate\\write|\\openout", source):
         problems.append("commandes d'écriture de fichiers interdites")

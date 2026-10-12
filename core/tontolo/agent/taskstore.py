@@ -24,6 +24,7 @@ from typing import Any
 KEEP_DAYS = 7
 MAX_ITEM = 1_000_000          # octets par élément (comme les créations synchronisées)
 MAX_ITEMS = 200               # par discussion (les plus anciens sont retirés)
+TOTAL_MAX = 300 * 1024 * 1024  # octets, toutes discussions (les plus anciens sont retirés)
 TOOL_INLINE = 4000            # au-delà, une sortie d'outil est rangée ici
 KINDS = ("part", "step", "tool", "draft")
 _ID = re.compile(r"^[0-9a-f]{8,32}$")
@@ -72,7 +73,24 @@ class TaskStore:
         self._dir(cid).mkdir(parents=True, exist_ok=True)
         (self._dir(cid) / f"{iid}.txt").write_bytes(data)
         self._save_index(cid, index)
+        self._enforce_total()
         return item
+
+    def _enforce_total(self) -> None:
+        """Place totale bornée : les éléments les plus anciens partent d'abord."""
+        if not self.root.is_dir():
+            return
+        entries = [(float(i.get("updated") or 0), d.name, i) for d in self.root.iterdir()
+                   if d.is_dir() and _CID.match(d.name) for i in self._index(d.name)["items"]]
+        total = sum(int(e[2].get("size") or 0) for e in entries)
+        for _, cid, item in sorted(entries, key=lambda e: e[0]):
+            if total <= TOTAL_MAX:
+                break
+            total -= int(item.get("size") or 0)
+            (self._dir(cid) / f"{item['id']}.txt").unlink(missing_ok=True)
+            index = self._index(cid)
+            index["items"] = [i for i in index["items"] if i["id"] != item["id"]]
+            self._save_index(cid, index)
 
     def items(self, cid: str) -> list[dict[str, Any]]:
         return list(self._index(cid)["items"])
