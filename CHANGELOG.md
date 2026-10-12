@@ -5,6 +5,33 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.6.0] - 2026-10-12
+
+### Ajouté
+- Présentations Beamer (LaTeX rendu en PDF) : « fais un slide en beamer » ne donne plus un
+  PowerPoint. Rédaction par sections en parallèle (plan, puis 3 à 5 diapositives détaillées
+  par section avec schémas TikZ, exemples et code), compilation réelle, correction ciblée de
+  la section fautive, et en dernier recours une section simplifiée plutôt qu’un échec. Essai :
+  27 diapositives tirées d’un livre de 328 pages.
+- Fiche compacte des longs documents joints (livres, cours) : plan, définitions, exemples et
+  code de TOUT le document, calculés sur l’appareil sans modèle. Les créations s’en servent
+  avec les passages les plus utiles, au lieu des seules premières pages ; en discussion, le
+  plan accompagne les extraits.
+
+### Corrigé
+- Mode Apprendre : un quiz ou des fiches demandés sont toujours interactifs (un quiz écrit en
+  texte est converti) et ne sont plus relus par un second modèle.
+- « Fais un PowerPoint sur le livre » écrivait un livre : le format demandé prime.
+- Plus de questions à choix après une réponse déjà donnée, ni pour une demande détaillée.
+- « Équipe de modèles » s’appelle « Vérification par un second modèle ».
+
+### Sécurité
+- Adresse réellement connectée vérifiée (protection contre le « DNS rebinding »).
+- Masquage des secrets élargi (Anthropic, OpenRouter, GitHub, Slack, AWS, JWT, clés privées…).
+- Synchronisation : une conversation reçue est entièrement vérifiée avant d’être écrite
+  (une conversation à moitié invalide ne peut plus effacer l’existante) ; les éléments
+  refusés sont signalés.
+
 ## [0.5.9] - 2026-10-12
 
 ### Ajouté

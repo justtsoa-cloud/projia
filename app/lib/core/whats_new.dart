@@ -14,6 +14,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.6.0': [
+    NewsItem(Icons.quiz_outlined, 'Votre cours devient un quiz interactif',
+        'En mode Apprendre, joignez votre cours (PDF, Word…) et demandez « crée un quiz de 5 questions sur ce fichier » : vous répondez en touchant, avec le score et les explications à la fin.',
+        'Your course becomes an interactive quiz', 'In Learn mode, attach your course (PDF, Word…) and ask “create a quiz of 5 questions based on this file”: answer with a tap, with your score and explanations at the end.',
+        mg: 'Lasa quiz mifandray ny lesonao', mgText: 'Amin\'ny Mianatra, ampiarahonao ny lesonao (PDF, Word…) ary angataho hoe « mamorona quiz misy fanontaniana 5 momba ity rakitra ity »: mamaly amin\'ny fikitihana ianao, miaraka amin\'ny isa sy ny fanazavana amin\'ny farany.'),
+    NewsItem(Icons.slideshow_outlined, 'Une présentation Beamer depuis un livre',
+        'Demandez « fais un slide en beamer » : des diapositives LaTeX détaillées (schémas, exemples, code) rendues en PDF, même à partir d\'un livre de 300 pages, dont Tontolo garde une fiche compacte.',
+        'A Beamer presentation from a book', 'Ask “make a beamer slide deck”: detailed LaTeX slides (diagrams, examples, code) rendered as PDF, even from a 300-page book, which Tontolo keeps as a compact sheet.',
+        mg: 'Fampisehoana Beamer avy amin\'ny boky', mgText: 'Angataho hoe « ataovy slide beamer »: takelaka LaTeX amin\'ny antsipiriany (sary, ohatra, kaody) avoaka PDF, na avy amin\'ny boky 300 pejy aza, izay tehirizin\'i Tontolo ho taratasy fohy.'),
+  ],
   '0.5.9': [
     NewsItem(Icons.hub_outlined, 'Plusieurs modèles, une seule réponse',
         'Réglages › Réponses › « Plusieurs modèles » : les parties d\'une demande (« écris le code ; explique-le ; traduis le titre ») sont confiées en même temps à des modèles gratuits, puis réunies. Une demande simple reste inchangée.',

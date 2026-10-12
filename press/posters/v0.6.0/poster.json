@@ -1,0 +1,56 @@
+{
+  "shot": "quiz",
+  "lang": {
+    "fr": {
+      "tagline": "Nouveautés", "date": "12 octobre 2026",
+      "hero": ["Votre cours devient", "un quiz interactif"],
+      "sub": "Et votre livre, une présentation Beamer.",
+      "steps": [
+        ["Mode Apprendre : joignez", "votre cours (PDF, Word…)"],
+        ["Demandez : « crée un quiz", "de 5 questions sur ce", "fichier »"],
+        ["Répondez en touchant :", "score et explications à", "la fin"]
+      ],
+      "also": "Aussi dans cette version",
+      "items": [
+        ["Beamer depuis un livre", ["Diapositives LaTeX avec schémas et code,", "même tirées d'un livre de 300 pages."]],
+        ["Longs documents compacts", ["Une fiche de tout le livre : plus aucune", "page oubliée dans vos créations."]],
+        ["Sécurité renforcée", ["Adresses vérifiées après connexion, secrets", "masqués, synchronisation validée."]]
+      ],
+      "footer": "Gratuit · Android · Linux"
+    },
+    "en": {
+      "tagline": "What's new", "date": "October 12, 2026",
+      "hero": ["Your course becomes", "an interactive quiz"],
+      "sub": "And your book, a Beamer presentation.",
+      "steps": [
+        ["Learn mode: attach your", "course (PDF, Word…)"],
+        ["Ask: “create a quiz of", "5 questions based on this", "file”"],
+        ["Answer with a tap: score", "and explanations at the", "end"]
+      ],
+      "also": "Also in this version",
+      "items": [
+        ["Beamer from a book", ["LaTeX slides with diagrams and code,", "even from a 300-page book."]],
+        ["Compact long documents", ["One sheet for the whole book: no page", "forgotten in your creations."]],
+        ["Stronger security", ["Addresses checked after connecting,", "secrets masked, sync validated."]]
+      ],
+      "footer": "Free · Android · Linux"
+    },
+    "mg": {
+      "tagline": "Vaovao", "date": "12 Oktobra 2026",
+      "hero": ["Lasa quiz mifandray", "ny lesonao"],
+      "sub": "Ary lasa fampisehoana Beamer ny bokinao.",
+      "steps": [
+        ["Mianatra: ampiarahonao", "ny lesonao (PDF, Word…)"],
+        ["Angataho: « mamorona quiz", "misy fanontaniana 5 momba", "ity rakitra ity »"],
+        ["Mamalia amin'ny fikitihana:", "isa sy fanazavana", "amin'ny farany"]
+      ],
+      "also": "Ao amin'ity dikan-teny ity koa",
+      "items": [
+        ["Beamer avy amin'ny boky", ["Takelaka LaTeX misy sary sy kaody, na", "avy amin'ny boky 300 pejy aza."]],
+        ["Antontan-taratasy fohy", ["Taratasy iray ho an'ny boky manontolo:", "tsy misy pejy adino intsony."]],
+        ["Fiarovana matanjaka kokoa", ["Adiresy voamarina, tsiambaratelo", "voafono, fampifanarahana voazaha."]]
+      ],
+      "footer": "Maimaim-poana · Android · Linux"
+    }
+  }
+}
