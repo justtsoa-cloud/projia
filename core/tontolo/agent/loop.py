@@ -555,6 +555,23 @@ class ChatService:
         async for ev in self._loop(conversation_id, model=model, avoid=avoid):
             yield ev
 
+    async def _study_block(self, kind: str, text: str) -> str | None:
+        """Quiz ou fiches écrits en texte → bloc JSON interactif (un appel court, vérifié)."""
+        prompt = STUDY_CONVERT[kind]
+        try:
+            async with asyncio.timeout(90):
+                raw, _ = await self._ask([{"role": "system", "content": prompt},
+                                          {"role": "user", "content": text[:20000]}],
+                                         forced=Category.REASONING, max_tokens=6000)
+        except TimeoutError:
+            return None
+        data = parse_study_json(raw, kind)
+        if data is None:
+            return None
+        intro = text.strip().splitlines()[0][:200] if text.strip() else ""
+        intro = re.sub(r"^#+\s*", "", intro)
+        return f"{intro}\n\n```{kind}\n{json.dumps(data, ensure_ascii=False, indent=1)}\n```"
+
     async def rate(self, uid: str, rating: int, reason: str = "") -> dict[str, Any] | None:
         """Note 👍 (1) / 👎 (-1) d'une réponse, 0 pour l'annuler. Récompense ou pénalise le
         modèle pour ce type de demande ; une réponse 👎 ne sera plus jamais réutilisée."""
@@ -872,6 +889,10 @@ class ChatService:
                         messages.insert(1, {"role": "system", "content":
                                             "Résultats de recherche web récents (cite les URL) :\n"
                                             + untrusted(block)})
+            study = study_kind(question) if mode.startswith("learn") else None
+            if study is not None:
+                # Quiz / fiches en mode Apprendre : toujours le bloc interactif de l'app.
+                messages.append({"role": "system", "content": STUDY_REMINDER[study]})
             if final_turn:
                 messages.append({"role": "system", "content": (
                     "Assez d'outils : réponds maintenant directement à l'utilisateur avec les "
@@ -894,6 +915,14 @@ class ChatService:
                 async for ev in self._continue(cid, messages, final):
                     yield ev
                 msg = final["message"]
+            if study is not None and not msg.get("tool_calls") and not has_study_block(
+                    str(msg.get("content") or ""), study):
+                # Le modèle a écrit le quiz (ou les fiches) en texte : converti en bloc
+                # interactif, sinon l'élève ne peut pas y répondre dans l'application.
+                converted = await self._study_block(study, str(msg.get("content") or ""))
+                if converted:
+                    msg = {**msg, "content": converted}
+                    final["message"] = msg
             if (len(str(msg.get("content") or "").strip()) >= 200 and any(
                     c["function"]["name"] == "ask_user" for c in msg.get("tool_calls") or [])):
                 # Réponse déjà donnée : des questions APRÈS coup n'ont plus de sens (essai :
@@ -973,6 +1002,74 @@ class ChatService:
                 yield _tool_event(fn, result)
         yield {"type": "error", "code": "agent_steps",
                "message": "Nombre maximal d'étapes de l'agent atteint."}
+
+
+_STUDY = {
+    "quiz": re.compile(r"\b(quizz?|qcm|questionnaire|interro\w*|test de connaissances|"
+                       r"teste-moi|test me|fanontaniana \d+|tsapao)\b", re.I),
+    "flashcards": re.compile(r"\b(flash ?cards?|fiches? de révision|cartes? mémoire|"
+                             r"cartes? de révision|karatra fianarana)\b", re.I),
+}
+STUDY_REMINDER = {
+    "quiz": ("La demande est un QUIZ : réponds par UNE phrase d'introduction, puis UNIQUEMENT le "
+             "bloc ```quiz contenant le JSON {\"title\": \"…\", \"questions\": [{\"q\": \"…\", "
+             "\"choices\": [\"…\", \"…\", \"…\", \"…\"], \"answer\": 0, \"explain\": \"…\"}]} "
+             "(\"answer\" = indice à partir de 0, autant de questions que demandé, formules en "
+             "LaTeX $…$). Jamais de quiz en texte ni en liste : l'application le rend interactif."),
+    "flashcards": ("La demande porte sur des FICHES : réponds par UNE phrase d'introduction, puis "
+                   "UNIQUEMENT le bloc ```flashcards contenant le JSON [{\"front\": \"…\", "
+                   "\"back\": \"…\"}] (5 à 20 cartes). Jamais de fiches en texte."),
+}
+STUDY_CONVERT = {
+    "quiz": ("Convertis ce quiz en JSON, sans rien changer au fond : {\"title\": \"…\", "
+             "\"questions\": [{\"q\": \"…\", \"choices\": [\"…\"], \"answer\": 0, "
+             "\"explain\": \"…\"}]}. \"answer\" = indice (à partir de 0) de la bonne réponse ; si "
+             "elle n'est pas indiquée, déduis-la correctement. Réponds UNIQUEMENT avec le JSON."),
+    "flashcards": ("Convertis ces fiches en JSON [{\"front\": \"…\", \"back\": \"…\"}], sans rien "
+                   "changer au fond. Réponds UNIQUEMENT avec le JSON."),
+}
+
+
+def study_kind(text: str) -> str | None:
+    """« Crée un quizz de 10 questions… » → « quiz » ; « fais des fiches » → « flashcards »."""
+    for kind, rx in _STUDY.items():
+        if rx.search(text or ""):
+            return kind
+    return None
+
+
+def parse_study_json(raw: str, kind: str) -> Any:
+    """JSON de quiz ou de fiches, validé (structure attendue par l'application), ou None."""
+    m = re.search(r"[\[{].*[\]}]", raw or "", re.S)
+    try:
+        data = json.loads(m.group(0)) if m else None
+    except ValueError:
+        return None
+    if kind == "quiz":
+        qs = data.get("questions") if isinstance(data, dict) else None
+        if not isinstance(qs, list) or not qs:
+            return None
+        good = []
+        for q in qs:
+            if not isinstance(q, dict):
+                continue
+            choices = q.get("choices")
+            ans = q.get("answer")
+            if (str(q.get("q") or "").strip() and isinstance(choices, list)
+                    and len(choices) >= 2 and isinstance(ans, int) and 0 <= ans < len(choices)):
+                good.append(q)
+        title = str(data.get("title") or "") if isinstance(data, dict) else ""
+        return {"title": title, "questions": good} if good else None
+    cards = data if isinstance(data, list) else (
+        data.get("cards") if isinstance(data, dict) else None)
+    good_cards = [c for c in cards or [] if isinstance(c, dict) and c.get("front")
+                  and c.get("back")]
+    return good_cards or None
+
+
+def has_study_block(text: str, kind: str) -> bool:
+    m = re.search(rf"```{kind}[ \t]*\n([\s\S]*?)```", text or "")
+    return bool(m and parse_study_json(m.group(1), kind) is not None)
 
 
 def _json_args(fn: dict[str, Any]) -> dict[str, Any]:

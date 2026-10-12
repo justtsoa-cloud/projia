@@ -356,6 +356,37 @@ async def r10_orchestrate(api: Api, v: Verdict) -> None:
             "demande simple : flux normal")
 
 
+# --- R11 : présentation Beamer à partir d'un long livre PDF joint ----------------------------
+@scenario
+async def r11_beamer_from_book(api: Api, v: Verdict) -> None:
+    book = Path.home() / "GitHub/M1-info-Ankatso/Chap2-latex/framabook-versionenligne_v1_5.pdf"
+    if not book.exists():
+        v.note("livre de test absent : essai sauté")
+        return
+    r = await api.http.post("/tontolo/documents", files={"file": (book.name, book.read_bytes())},
+                            timeout=300)
+    up = r.json()
+    v.check(r.status_code == 200 and up.get("pages", 0) > 300, f"livre joint ({up.get('pages')} p.)")
+    cid = up["conversation_id"]
+    ev = await api.chat("Crée un slide en beamer puis rends le en pdf : une présentation du "
+                        "chapitre sur les mathématiques avec des illustrations, des exemples et du "
+                        "code LaTeX", cid, limit=1500)
+    job = job_of(ev)
+    v.check(not any(e["type"] == "question" for e in ev), "aucune question pour une demande claire")
+    v.check(bool(job) and job["status"] == "done", f"PDF livré ({errors_of(ev)[:1]})")
+    if job:
+        v.check(job["params"].get("format") in ("beamer", "pdf") or str(
+            job["params"].get("filename", "")).endswith(".pdf"), "c'est un PDF, pas un PowerPoint")
+        src = Path(str(job["params"].get("source_path") or ""))
+        tex = src.read_text(errors="replace") if src.is_file() else ""
+        frames = tex.count("\\begin{frame}")
+        v.check("beamer" in tex and frames >= 12, f"Beamer détaillé ({frames} diapositives)")
+        v.check(any(w in tex for w in ("equation", "frac", "align", "\\[", "$")),
+                "contenu mathématique tiré du livre")
+        v.note(f"tikz : {'tikz' in tex} ; lstlisting/verbatim : "
+               f"{'lstlisting' in tex or 'verbatim' in tex}")
+
+
 async def main() -> None:
     wanted = sys.argv[1:] or list(SCENARIOS)
     server = Server()

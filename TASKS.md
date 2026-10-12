@@ -359,4 +359,6 @@ Contraintes : rien ne change par défaut (`orchestrate=false`), léger (asyncio,
 - [x] B21. Seuls les 15 000 premiers caractères d'un document joint servaient aux créations → fiche compacte locale de TOUT le document (plan, définitions, exemples, code ; en-têtes courants et index écartés), calculée à l'envoi, + passages les plus utiles à la demande ; le plan accompagne aussi les extraits en discussion
 - [x] B22. Questions à choix après une réponse déjà donnée → ignorées ; jamais pour une demande détaillée (35 mots et plus)
 - [x] « Équipe de modèles » renommée « Vérification par un second modèle » (distincte de « Plusieurs modèles » et du mode Agent)
+- [x] B23. Mode Apprendre : « crée un quizz de 10 questions » donnait un quiz en texte (non interactif) et lançait la vérification par un second modèle → consigne ferme « bloc ```quiz » ; un quiz (ou des fiches) écrit en texte est converti en bloc JSON validé avant l'enregistrement ; pas de relecture sur un quiz
+- [x] Création longue (Beamer, document tiré d'un long fichier) : délai des chapitres de livre ; source raté gardé dans les résultats intermédiaires
 - [ ] Essai réel : livre LaTeX de 328 pages → présentation Beamer

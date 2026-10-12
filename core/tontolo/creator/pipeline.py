@@ -255,15 +255,19 @@ class Creator:
         messages: list[dict[str, Any]] = [{"role": "system", "content": system},
                                           {"role": "user", "content": user[:40000]}]
         loop = asyncio.get_running_loop()
-        deadline = loop.time() + TOTAL_TIMEOUT
+        # Création longue (présentation Beamer, document tiré d'un long fichier joint) : délai
+        # des chapitres de livre ; l'écriture en continu reste coupée si le modèle se tait.
+        long = kind == "beamer" or len(user) > 15000
+        write = self.ask_long if long else self.ask
+        deadline = loop.time() + TOTAL_TIMEOUT * (2 if long else 1)
         yield {"type": "step", "step": "doc_writing"}
         try:
-            text, writer, writer_name = await self.ask(messages, category=category)
+            text, writer, writer_name = await write(messages, category=category)
         except (TimeoutError, CreationError):
             # Rédacteur trop lent ou indisponible : un second essai (le routeur choisit à
             # nouveau, le modèle en échec est en pause) plutôt qu'un échec immédiat.
             yield {"type": "step", "step": "doc_writing"}
-            text, writer, writer_name = await self.ask(messages, category=category)
+            text, writer, writer_name = await write(messages, category=category)
         steps: list[dict[str, Any]] = [{"step": "doc_writing", "model": writer_name}]
         models = [writer]
         result: Output | None = None
@@ -300,6 +304,9 @@ class Creator:
             if fixes >= MAX_FIXES or (late and result is not None):
                 if result is not None:
                     break  # construit sans erreur : remarques de relecture restantes tolérées
+                if store is not None:  # le source raté reste consultable (et réparable)
+                    store("draft", f"{what} — non compilé", source + "\n\n% Problèmes :\n"
+                          + "\n".join("% " + p.replace("\n", "\n% ") for p in problems)[:6000])
                 raise CreationError("le fichier n'a pas pu être construit sans erreur : "
                                     + "; ".join(p.splitlines()[0] for p in problems)[:300])
             fixes += 1
@@ -308,7 +315,7 @@ class Creator:
                          {"role": "user", "content": FIX_PROMPT.format(
                              problems="\n".join(f"- {p}" for p in problems))}]
             try:
-                text, _, _ = await self.ask(messages, model=writer)
+                text, _, _ = await write(messages, model=writer)
             except (TimeoutError, CreationError):
                 if result is None:
                     raise

@@ -910,6 +910,7 @@ def create_app(
         answer = str(((final or {}).get("message") or {}).get("content") or "")
         if (not switch and final is not None and core.settings.team_review
                 and topic in REVIEWED_TOPICS and len(answer) > 80
+                and "```quiz" not in answer and "```flashcards" not in answer
                 and not (final.get("message") or {}).get("tool_calls")):
             # Équipe de modèles : un second modèle d'une autre famille vérifie la réponse.
             yield {"type": "step", "step": "answer_reviewing"}
