@@ -256,3 +256,12 @@ l'emploi ; bureau Linux = fichiers + commandes confirmées dans un dossier chois
 - [x] Poster 0.5.2 (fr, en, mg) ; système de poster par version (build_poster.py, exigé par la release, affiche embarquée dans « Nouveautés »)
 - [x] Poster 0.5.3 (captures réelles de l'émulateur en fr/en/mg) ; publication 0.5.3 en cours ; posters à ajouter à la release 0.5.2
 - [x] A20 pastilles d'activité (ici / autre appareil / attend votre réponse), badge du menu, avertissement + notification — prêt pour la version suivante
+
+## Tests d'endurance, de longs projets et de complexité (2026-10-12, demandés par le propriétaire)
+Règle : tout test, bug trouvé et optimisation est noté ici au fur et à mesure.
+- [ ] E1. Bancs d'essai du cœur (fournisseurs simulés) : très longue discussion (milliers de messages, images, vidéos, fichiers), nombreuses discussions, tours en parallèle, arrêt/reprise, mémoire, synchro ; mesurer temps et mémoire
+- [ ] E2. Essais réels avec modèles gratuits : livre long, projet multi-fichiers, plan complexe en parallèle, chaîne de corrections, agent avec outils
+- [ ] E3. Robustesse : entrées extrêmes (énormes, Unicode, injections), pannes de fournisseurs, coupures réseau, base verrouillée, disque plein
+- [ ] E4. Fuites et croissance : terminaux, onglets, résultats de tâches, caches, tâches de fond, connexions
+- [ ] E5. Application : longue discussion à l'écran (défilement, mémoire), arrière-plan Android, synchro de gros volumes
+- [ ] E6. Correctifs et optimisations issus de E1–E5 (liste ci-dessous, au fil de l'eau)
