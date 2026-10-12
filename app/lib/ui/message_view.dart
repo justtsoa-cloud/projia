@@ -119,7 +119,7 @@ class MessageView extends StatelessWidget {
                         avatar: const Icon(Icons.history, size: 16),
                         label: Text(
                           context.t('cached_answer', {
-                            'date': MaterialLocalizations.of(context).formatShortDate(message.cachedFrom!),
+                            'date': _shortDate(context, message.cachedFrom!),
                           }),
                           style: const TextStyle(fontSize: 12),
                         ),
@@ -722,4 +722,12 @@ String mediaError(BuildContext context, Map<String, dynamic> job) {
     msg += ' ${context.t('err_back_at', {'t': '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}'})}';
   }
   return msg;
+}
+
+/// Date courte dans la langue de l'app (le malgache n'a pas de format système : jj/mm/aaaa).
+String _shortDate(BuildContext context, DateTime d) {
+  final locale = AppScope.of(context).prefs.locale;
+  if (locale == 'en') return MaterialLocalizations.of(context).formatShortDate(d);
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${two(d.day)}/${two(d.month)}/${d.year}';
 }
