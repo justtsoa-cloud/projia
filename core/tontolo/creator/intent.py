@@ -53,6 +53,17 @@ def detect(text: str) -> str | None:
         return "bundle"  # plusieurs fichiers : livrés ensemble dans une archive .zip
     from tontolo.creator.book import asks_for_book, wants_book
 
+    if (re.search(r"\bbeamer\b", t) or re.search(
+            r"\b(slides?|diapos?|diapositives?|pr[ée]sentation)\b.{0,40}\b(latex|tex)\b|"
+            r"\b(latex|tex)\b.{0,40}\b(slides?|diapos?|diapositives?|pr[ée]sentation)\b", t)) \
+            and (has_verb or "pdf" in t):
+        return "beamer"  # présentation LaTeX rendue en PDF (et non un PowerPoint)
+    if has_verb and not re.search(r"\b\d{2,4}\s*(pages?|p\.|pejy)\b", t):
+        # Format explicite (PowerPoint, Word, carte mentale…) : « fais un PowerPoint sur le
+        # livre » transforme le livre joint, il ne s'agit pas d'écrire un livre.
+        for kind, pattern in _FORMATS:
+            if kind != "pdf" and re.search(pattern, t):
+                return kind
     if (has_verb and wants_book(t)) or asks_for_book(t):
         return "book"  # livre / long document : plan puis chapitres, livré en PDF
     as_format = re.search(r"\b(en|au format|in|as|sous forme d['e]|version|amin'ny)\s+"

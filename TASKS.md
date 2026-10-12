@@ -352,3 +352,11 @@ Contraintes : rien ne change par défaut (`orchestrate=false`), léger (asyncio,
 - [x] Essai réel R10 : « code + explication » (dépendance respectée, 64 s, 2 modèles) ; 3 parties en parallèle 19 s au lieu de 23 s en série, réponses justes ; « Bonjour » non orchestré
 - [x] O4. Fusion « medium » : petit modèle, puis modèle d’écriture si la fusion perd du contenu, puis concaténation
 - [x] O5. Réglages simples : « Tâches en plusieurs parties » (Simple / Planifier / Plusieurs modèles) ; réglages simples regroupés (Vous, Réponses, Mémoire, Espace de travail, Voix, Clés, Payant, Affichage et langue)
+
+## Retour d'essai : Beamer depuis un livre PDF (2026-10-12)
+- [x] B19. « slide en beamer puis rendu pdf » donnait un PowerPoint → format « beamer » (LaTeX Beamer compilé en PDF : TikZ, exemples, code en frame [fragile], 15 à 30 diapositives, contrôles avant compilation)
+- [x] B20. « PowerPoint sur le livre » lançait l'écriture d'un livre → un format explicite prime (le livre est la source)
+- [x] B21. Seuls les 15 000 premiers caractères d'un document joint servaient aux créations → fiche compacte locale de TOUT le document (plan, définitions, exemples, code ; en-têtes courants et index écartés), calculée à l'envoi, + passages les plus utiles à la demande ; le plan accompagne aussi les extraits en discussion
+- [x] B22. Questions à choix après une réponse déjà donnée → ignorées ; jamais pour une demande détaillée (35 mots et plus)
+- [x] « Équipe de modèles » renommée « Vérification par un second modèle » (distincte de « Plusieurs modèles » et du mode Agent)
+- [ ] Essai réel : livre LaTeX de 328 pages → présentation Beamer

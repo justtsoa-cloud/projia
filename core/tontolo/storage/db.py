@@ -218,6 +218,11 @@ class Database:
         if "plan" not in cols:  # 0.5.1 : plan d'une tâche complexe (JSON), « » sinon
             await self.conn.execute(
                 "ALTER TABLE conversations ADD COLUMN plan TEXT NOT NULL DEFAULT ''")
+        async with self.conn.execute("PRAGMA table_info(documents)") as cur:
+            doc_cols = {r[1] for r in await cur.fetchall()}
+        if "digest" not in doc_cols:  # 0.6.0 : fiche compacte d'un long document
+            await self.conn.execute(
+                "ALTER TABLE documents ADD COLUMN digest TEXT NOT NULL DEFAULT ''")
 
     async def close(self) -> None:
         if self._conn is not None:
@@ -698,12 +703,13 @@ class Database:
 
     # --- Documents joints ------------------------------------------------
 
-    async def add_document(self, cid: str, doc_id: str, name: str, pages: list[str]) -> None:
+    async def add_document(self, cid: str, doc_id: str, name: str, pages: list[str],
+                           digest: str = "") -> None:
         await self.conn.execute(
-            "INSERT INTO documents(id, conversation_id, name, pages, chars, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO documents(id, conversation_id, name, pages, chars, created_at, digest) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
             (doc_id, cid, name, json.dumps(pages, ensure_ascii=False),
-             sum(len(p) for p in pages), now()))
+             sum(len(p) for p in pages), now(), digest))
         await self.conn.commit()
 
     async def list_documents(self, cid: str, with_pages: bool = False) -> list[dict[str, Any]]:
@@ -715,6 +721,8 @@ class Database:
             pages = d.pop("pages")
             if with_pages:
                 d["pages"] = json.loads(pages)
+            else:
+                d.pop("digest", None)  # liste légère pour l'application
             out.append(d)
         return out
 

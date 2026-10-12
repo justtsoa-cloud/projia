@@ -285,3 +285,34 @@ def test_no_choice_card_for_a_summary_request(client: TestClient, fake: FakeProv
     _chat(client, "/tontolo/chat", {"content": "Fintino ity rakitra ity"})
     _chat(client, "/tontolo/chat", {"content": "Aide-moi pour ma coopérative"})
     assert offered[0] is False and offered[-1] is True
+
+
+def test_no_choice_card_after_an_answer_or_for_a_detailed_request(
+        client: TestClient, fake: FakeProvider) -> None:
+    long_answer = "Voici la présentation complète. " * 20
+    call = {"id": "q1", "type": "function", "function": {"name": "ask_user", "arguments": (
+        '{"questions": [{"question": "Autre chose ?", "options": ["Oui", "Non"]}]}')}}
+
+    def act(model: Any, messages: list[dict[str, Any]]) -> dict[str, Any]:
+        return {"role": "assistant", "content": long_answer, "tool_calls": [call]}
+
+    for mid in ("coder-pro", "chatty", "small", "vision-x", "paid-genius"):
+        fake.behaviors[mid] = act
+    events = _chat(client, "/tontolo/chat", {"content": "Aide-moi pour ma coopérative"})
+    assert not any(e["type"] == "question" for e in events)  # réponse donnée : pas de carte
+    done = [e for e in events if e["type"] == "done"]
+    assert done and done[-1]["message"]["content"].startswith("Voici la présentation")
+    offered: list[bool] = []
+    original = fake.stream
+
+    def spy(model, messages, *, tools=None, **params):  # type: ignore[no-untyped-def]
+        offered.append(any(t["function"]["name"] == "ask_user" for t in tools or []))
+        return original(model, messages, tools=tools, **params)
+
+    fake.stream = spy  # type: ignore[method-assign]
+    detailed = ("Prépare une présentation sur le livre joint avec une diapositive par chapitre, "
+                "des illustrations, des exemples concrets, du code Python commenté, des "
+                "schémas, un plan au début, une conclusion et des exercices pour des étudiants "
+                "de licence en informatique")
+    _chat(client, "/tontolo/chat", {"content": detailed})
+    assert offered and offered[-1] is False

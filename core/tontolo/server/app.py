@@ -235,19 +235,31 @@ async def _last_file(core: Core, cid: str) -> tuple[str, str] | None:
     return str(params.get("format") or ""), text
 
 
-async def _file_material(core: Core, cid: str, skip_last: bool = False) -> str:
-    """Contenu à convertir pour une création de fichier : documents joints (texte extrait)
-    puis source du dernier fichier créé dans la discussion."""
+async def _file_material(core: Core, cid: str, skip_last: bool = False,
+                         request: str = "") -> str:
+    """Contenu à convertir pour une création de fichier : documents joints puis source du
+    dernier fichier créé dans la discussion. Un long document (livre) est transmis sous forme
+    de fiche compacte (plan, notions, exemples, code de chaque partie) plus les passages les
+    plus utiles à la demande, et non ses seules premières pages."""
     parts: list[str] = []
     for d in (await core.db.list_documents(cid, with_pages=True))[-3:]:
-        text = "\n".join(str(p) for p in d.get("pages") or [])
-        if text.strip():
-            parts.append(f"Document joint « {d.get('name')} » (contenu à utiliser) :\n"
-                         + text[:15000])
+        pages = [str(p) for p in d.get("pages") or []]
+        text = "\n".join(pages)
+        if not text.strip():
+            continue
+        if len(text) <= documents.LONG_DOC:
+            parts.append(f"Document joint « {d.get('name')} » (contenu à utiliser) :\n" + text)
+            continue
+        digest = str(d.get("digest") or "") or documents.digest(pages)
+        picked = documents.select(documents.chunk_pages(pages), request or "résumé", k=10)
+        excerpts = "\n\n".join(f"[p. {c.page}] {c.text}" for c in picked)
+        parts.append(f"Document joint « {d.get('name')} » ({len(pages)} pages) — fiche "
+                     f"compacte de TOUT le document (à suivre) :\n{digest}\n\nPassages "
+                     f"détaillés les plus utiles à la demande :\n{excerpts}")
     prev = None if skip_last else await _last_file(core, cid)
     if prev and prev[1].strip():
         parts.append(f"Source du dernier fichier créé ({prev[0]}) :\n{prev[1][:15000]}")
-    return "\n\n".join(parts)[-30000:]
+    return "\n\n".join(parts)[-36000:]
 
 
 def _keep_draft(core: Core, cid: str, job: dict[str, Any]) -> None:
@@ -724,7 +736,10 @@ def create_app(
         if not cid or not await core.db.conversation_exists(cid):
             cid = await core.db.create_conversation(name[:60])
         doc_id = uuid.uuid4().hex
-        await core.db.add_document(cid, doc_id, name, pages)
+        # Long document (livre…) : fiche compacte calculée une fois, sur l'appareil.
+        digest = (await asyncio.to_thread(documents.digest, pages)
+                  if sum(len(p) for p in pages) > documents.LONG_DOC else "")
+        await core.db.add_document(cid, doc_id, name, pages, digest)
         return {"id": doc_id, "conversation_id": cid, "name": name, "pages": len(pages),
                 "chars": sum(len(p) for p in pages)}
 
@@ -959,7 +974,8 @@ def create_app(
         )[-9000:]
         # Matière à transformer (« convertis ce HTML en PDF », « mets ce document en Word ») :
         # documents joints à la discussion et source du dernier fichier créé, en entier.
-        material = await _file_material(core, cid, skip_last=base_source is not None)
+        material = await _file_material(core, cid, skip_last=base_source is not None,
+                                        request=text)
         if material:
             context = f"{material}\n\n{context}"
         await core.db.add_message(cid, {"role": "user", "content": body.content})

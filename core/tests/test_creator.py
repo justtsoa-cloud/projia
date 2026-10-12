@@ -250,3 +250,26 @@ def test_docx_markdown_is_made_acceptable() -> None:
     assert ensure("- puce\n- puce").startswith("# Document\n- puce")
     title, _ = docx.markdown_to_body(ensure("Intro sans titre\n- a\n- b"))
     assert title == "Intro sans titre"
+
+
+def test_beamer_and_explicit_formats_win() -> None:
+    assert intent.detect("Crée un slide en beamer puis rends le en pdf") == "beamer"
+    assert intent.detect("Fais une présentation LaTeX du chapitre 2") == "beamer"
+    assert intent.detect("Crée un PowerPoint sur le livre") == "pptx"  # le livre est la source
+    assert intent.detect("Fais une carte mentale du livre") == "mindmap"
+    assert intent.detect("Génère un livre de 200 pages en PDF") == "book"
+    assert intent.detect("Écris un livre sur Madagascar") == "book"
+
+
+def test_beamer_checks() -> None:
+    from tontolo.creator.pipeline import beamer_problems
+
+    frames = "".join(f"\\begin{{frame}}{{T{i}}}x\\end{{frame}}" for i in range(16))
+    ok = "\\documentclass{beamer}\\begin{document}" + frames + (
+        "\\begin{frame}[fragile]\\begin{lstlisting}\nprint(1)\n\\end{lstlisting}\\end{frame}"
+        "\\end{document}")
+    assert beamer_problems(ok) == []
+    assert any("fragile" in p for p in beamer_problems(ok.replace("[fragile]", "")))
+    assert any("trop courte" in p for p in beamer_problems(
+        "\\documentclass{beamer}\\begin{frame}x\\end{frame}"))
+    assert any("documentclass" in p for p in beamer_problems("\\documentclass{article}"))

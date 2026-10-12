@@ -37,6 +37,7 @@ KINDS = {
     "mindmap": ("carte mentale", Category.REASONING),
     "xlsx": ("classeur Excel", Category.REASONING),
     "pptx": ("présentation PowerPoint", Category.WRITING),
+    "beamer": ("présentation Beamer (LaTeX, rendue en PDF)", Category.CODE),
     "chart": ("graphique", Category.CODE),
     "diagram": ("schéma", Category.CODE),
     "bundle": ("projet de plusieurs fichiers (archive .zip)", Category.CODE),
@@ -77,6 +78,16 @@ formules en texte simple (a/b, x², √). Couvre l'essentiel du sujet pour révi
 définitions, méthodes, exemples, pièges.""",
 }
 WRITER_PROMPTS["latex"] = WRITER_PROMPTS["pdf"]
+WRITER_PROMPTS["beamer"] = """Tu écris une présentation LaTeX Beamer complète, compilable \
+directement avec pdflatex, en {language}. Réponds UNIQUEMENT avec le source (de \
+\\documentclass[aspectratio=169]{{beamer}} à \\end{{document}}), sans bloc de code autour. Thème \
+Madrid, couleurs sobres. Paquets autorisés : inputenc (utf8), fontenc (T1), lmodern, babel \
+({babel}), amsmath, amssymb, xcolor, hyperref, booktabs, tikz, listings. Pas d'image externe \
+ni de \\input : les ILLUSTRATIONS sont dessinées en TikZ (schémas, graphes, flèches). Une \
+diapositive de titre, un plan (\\tableofcontents), des \\section, puis 15 à 30 diapositives \
+DÉTAILLÉES (\\frametitle) : définitions, exemples concrets, schémas TikZ, code (environnement \
+lstlisting dans une frame [fragile]), blocs block/exampleblock/alertblock, et une conclusion. \
+Suis fidèlement le document fourni (sa structure, ses notions, ses exemples)."""
 WRITER_PROMPTS["xlsx"] = """Tu prépares un classeur Excel en {language}. Réponds UNIQUEMENT \
 avec du JSON : {{"sheets": [{{"name": "Feuille", "rows": [["En-tête 1", "En-tête 2"], \
 ["texte", 12.5]]}}]}}. La première ligne de chaque feuille est l'en-tête ; nombres en nombres \
@@ -170,6 +181,23 @@ def latex_problems(source: str) -> list[str]:
     if re.search(r"\\write18|\\immediate\\write|\\openout", source):
         problems.append("commandes d'écriture de fichiers interdites")
     return problems
+
+
+def beamer_problems(source: str) -> list[str]:
+    """Erreurs fréquentes d'une présentation Beamer (avant compilation)."""
+    out = []
+    if not re.search(r"\\documentclass(\[[^\]]*\])?\{beamer\}", source):
+        out.append("utilise \\documentclass{beamer} (c'est une présentation Beamer)")
+    for m in re.finditer(r"\\begin\{frame\}(\[[^\]]*\])?(.*?)\\end\{frame\}", source, re.S):
+        if re.search(r"\\begin\{(lstlisting|verbatim)\}", m.group(2)) and "fragile" not in (
+                m.group(1) or ""):
+            out.append("une frame contenant du code (lstlisting/verbatim) doit être "
+                       "\\begin{frame}[fragile]")
+            break
+    if len(re.findall(r"\\begin\{frame\}", source)) < 8:
+        out.append("présentation trop courte : au moins 15 diapositives détaillées (exemples, "
+                   "schémas TikZ, code) qui suivent le document fourni")
+    return out
 
 
 def latex_design(source: str) -> list[str]:
@@ -332,8 +360,8 @@ class Creator:
             return Output(data, "application/vnd.openxmlformats-officedocument."
                           "wordprocessingml.document", f"{slug(title)}.docx", title, source,
                           f"{slug(title)}.md"), docx.check(data)
-        if kind in ("pdf", "latex"):
-            pre = latex_problems(source)
+        if kind in ("pdf", "latex", "beamer"):
+            pre = latex_problems(source) + (beamer_problems(source) if kind == "beamer" else [])
             if pre:
                 return Output(b"", "", "", "", source, ""), pre
             pdf, log, _ = await latex.compile_pdf(source)
@@ -412,8 +440,8 @@ class Creator:
                       result: Output | None, writer: str) -> tuple[list[str], str, str]:
         """Relecture par un modèle d'une autre famille ; ([], "", "") si aucun disponible."""
         assert self.pick_reviewer is not None
-        pages = await pdf_pages(result.data) if result is not None and kind in ("pdf", "latex") \
-            else []
+        pages = (await pdf_pages(result.data)
+                 if result is not None and kind in ("pdf", "latex", "beamer") else [])
         vision = (kind in ("mindmap", "chart", "diagram") and result is not None) or bool(pages)
         reviewer = await self.pick_reviewer(exclude=writer, vision=vision)
         if reviewer is None:

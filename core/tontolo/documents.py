@@ -63,6 +63,9 @@ def extract_pages(name: str, data: bytes) -> list[str]:
 
 
 def _pdf_pages(data: bytes) -> list[str]:
+    import logging
+
+    logging.getLogger("pypdf").setLevel(logging.ERROR)  # polices incomplètes : sans bruit
     try:
         from pypdf import PdfReader
         from pypdf.errors import PdfReadError
@@ -143,3 +146,148 @@ def context_block(documents: list[tuple[str, list[Chunk]]]) -> str:
         for c in chunks:
             parts.append(f"[{name}, p. {c.page}]\n{c.text}")
     return "\n\n".join(parts)
+
+
+# --- Fiche compacte d'un long document ---------------------------------------------------------
+# Un livre entier ne tient pas dans une demande : la discussion garde une version LÉGÈRE (plan,
+# définitions, exemples, code et phrases clés de chaque section), calculée sur l'appareil sans
+# modèle ni quota. Les créations (Beamer, PowerPoint, Word…) partent de cette fiche et des
+# passages les plus utiles à la demande, au lieu des seules premières pages.
+
+LONG_DOC = 20_000            # au-delà, fiche compacte + passages choisis
+DIGEST_CHARS = 14_000        # taille de la fiche
+_HEADING_KW = re.compile(
+    r"^\s*(?:chapitre|chapter|partie|part|section|leçon|lesson|toko|lohahevitra)\s+"
+    r"[\dIVXLC]+\b.{0,80}$", re.I)
+# Titres numérotés « 1.2 Titre » ou « 3 Titre court » ; jamais une note de bas de page
+# (« 1. Phrase longue… ») : 8 mots au plus, sans ponctuation finale.
+_HEADING_NUM = re.compile(r"^\s*(?:\d{1,2}(?:\.\d{1,2}){1,2}|\d{1,2})\s+[A-ZÀ-Ý][^\n.,;:!?]{1,60}"
+                          r"\s*$|^\s*[A-ZÀ-Ý][A-ZÀ-Ý0-9 '’,:-]{5,70}\s*$")
+_RUNNING = re.compile(r"\s+\d{1,4}\s*$")  # numéro de page collé à un en-tête courant
+
+
+def _is_heading(line: str) -> bool:
+    text = _RUNNING.sub("", line.strip())
+    return (len(text) <= 90 and len(text.split()) <= 10
+            and bool(_HEADING_KW.match(text) or _HEADING_NUM.match(text)))
+
+
+_KEY = re.compile(r"\b(définition|on appelle|est un|est une|théorème|propriété|exemple|"
+                  r"par exemple|remarque|méthode|attention|definition|theorem|example|"
+                  r"for example|note that|famaritana|ohatra)\b", re.I)
+_CODE_LINE = re.compile(r"^\s*(def |class |import |from \w+ import|#include|public |"
+                        r"function |for \(|for \w+ in |while |if \(|return |print\(|\w+\s*=)")
+_LEADERS = re.compile(r"(\.\s?){4,}|\.{4,}")  # points de conduite (table des matières, index)
+_SENT = re.compile(r"(?<=[.!?])\s+(?=[A-ZÀ-Ý0-9«(])")
+
+
+def _sections(pages: list[str]) -> list[tuple[str, int, list[str]]]:
+    """(titre, page, lignes) ; sans titres détectés : une section toutes les ~10 pages."""
+    out: list[tuple[str, int, list[str]]] = []
+    seen: set[str] = set()
+
+    def bare(title: str) -> str:  # « 4 Principes de base 12 » → « principes de base »
+        return re.sub(r"^\d+\s+", "", _norm(_RUNNING.sub("", title)))
+
+    # En-têtes courants (titre du chapitre repris en haut de chaque page, avec son numéro de
+    # page) : seule la première occurrence compte, c'est le vrai titre du chapitre.
+    for number, page in enumerate(pages, 1):
+        for line in page.splitlines():
+            title = line.strip()
+            if _is_heading(line):
+                if bare(title) in seen:
+                    continue  # en-tête courant répété : ni titre ni texte
+                seen.add(bare(title))
+                out.append((title, number, []))
+            elif out:
+                out[-1][2].append(line)
+            else:
+                out.append(("Début", number, [line]))
+    if len(out) < 3:
+        out = []
+        for start in range(0, len(pages), 10):
+            lines = "\n".join(pages[start:start + 10]).splitlines()
+            out.append((f"Pages {start + 1}–{min(start + 10, len(pages))}", start + 1, lines))
+    # Sections minuscules (titres de table des matières) : fusionnées avec la suivante.
+    merged: list[tuple[str, int, list[str]]] = []
+    for title, first_page, lines in out:
+        if merged and sum(len(x) for x in merged[-1][2]) < 200:
+            prev = merged.pop()
+            merged.append((prev[0] if len(prev[2]) else title, prev[1], prev[2] + lines))
+        else:
+            merged.append((title, first_page, lines))
+    return merged
+
+
+def _group(sections: list[tuple[str, int, list[str]]], n: int
+           ) -> list[tuple[str, int, list[str]]]:
+    """Au plus `n` groupes de taille comparable : tout le livre est couvert, du début à la
+    fin, même avec des centaines de sous-sections."""
+    if len(sections) <= n:
+        return sections
+    total = sum(sum(len(x) for x in lines) for _, _, lines in sections) or 1
+    target = total / n
+    groups: list[tuple[str, int, list[str]]] = []
+    acc: list[tuple[str, int, list[str]]] = []
+    size = 0
+    for sec in sections:
+        acc.append(sec)
+        size += sum(len(x) for x in sec[2])
+        if size >= target:
+            groups.append((" · ".join(t for t, _, _ in acc[:2]) + (" …" if len(acc) > 2 else ""),
+                           acc[0][1], [x for _, _, lines in acc for x in lines]))
+            acc, size = [], 0
+    if acc:
+        groups.append((" · ".join(t for t, _, _ in acc[:2]) + (" …" if len(acc) > 2 else ""),
+                       acc[0][1], [x for _, _, lines in acc for x in lines]))
+    return groups
+
+
+def digest(pages: list[str], budget: int = DIGEST_CHARS) -> str:
+    """Fiche compacte : plan avec pages, puis l'essentiel de chaque section (phrases les plus
+    porteuses, définitions, exemples, un extrait de code)."""
+    sections = _sections(pages)
+    if not sections:
+        return ""
+    vocab = Counter(w for p in pages for w in _WORD.findall(_norm(p)) if w not in _STOP)
+    # Plan : les titres de premier et deuxième niveau (60 au plus), pour garder de la place.
+    main = [(t, p) for t, p, _ in sections if not re.match(r"^\d+\.\d+\.\d", t)]
+    toc = "\n".join(f"- {t} (p. {p})" for t, p in main[:60])
+    head = (f"Fiche compacte du document ({len(pages)} pages, {len(sections)} parties).\n"
+            f"Plan :\n{toc}\n")
+    groups = _group(sections, 30)
+    per = max(250, (budget - len(head)) // max(1, len(groups)) - 60)
+    body: list[str] = []
+    for title, page, lines in groups:
+        text = re.sub(r"\s+", " ", " ".join(x for x in lines if not _CODE_LINE.match(x)))
+        sentences = [x.strip() for x in _SENT.split(text) if 30 <= len(x.strip()) <= 400
+                     and not _LEADERS.search(x)]
+
+        def score(sentence: str) -> float:
+            words = [w for w in _WORD.findall(_norm(sentence)) if w not in _STOP]
+            base = sum(math.log(1 + vocab[w]) for w in words) / (len(words) + 4)
+            return base + (2.0 if _KEY.search(sentence) else 0.0)
+
+        ranked = sorted(range(len(sentences)), key=lambda i: -score(sentences[i]))
+        keep: list[int] = []
+        seen: set[str] = set()
+        used = 0
+        for i in ranked:
+            key = _norm(sentences[i])[:80]
+            if key in seen or used + len(sentences[i]) > per:
+                continue  # jamais deux fois la même phrase
+            seen.add(key)
+            keep.append(i)
+            used += len(sentences[i])
+        code = [x.rstrip()[:100] for x in lines if _CODE_LINE.match(x)][:4]
+        part = f"## {title} (p. {page})\n" + " ".join(sentences[i] for i in sorted(keep))
+        if code:
+            part += "\nCode :\n" + "\n".join(code)
+        body.append(part)
+    out = head + "\n" + "\n\n".join(body)
+    if len(out) > budget:  # chaque partie raccourcie d'autant : la fin du livre reste là
+        excess = len(out) - budget
+        cut = excess // max(1, len(body)) + 1
+        body = [b[:max(120, len(b) - cut)] for b in body]
+        out = head + "\n" + "\n\n".join(body)
+    return out[:budget]

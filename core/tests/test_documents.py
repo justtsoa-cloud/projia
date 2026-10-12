@@ -72,3 +72,38 @@ async def test_agent_cites_document(router: Router, db: Database, settings: Sett
     assert block is not None
     assert "[rapport.pdf, p. 2]" in block["content"] and "12 millions" in block["content"]
     assert "NON FIABLES" in block["content"]  # contenu externe balisé (injection de prompt)
+
+
+def _book(chapters: int = 30) -> list[str]:
+    pages = []
+    for c in range(1, chapters + 1):
+        pages.append(f"Chapitre {c} Notion numéro {c}\nOn appelle notion{c} une idée clé du "
+                     f"chapitre {c}. Par exemple, l'exemple{c} montre comment l'utiliser.\n"
+                     f"def fonction{c}(x):\n    return x + {c}\n"
+                     + f"Texte courant du chapitre {c} avec des détails supplémentaires. " * 60)
+        # en-tête courant répété sur la page suivante (titre du livre + numéro de page)
+        pages.append(f"{2 * c} Mon livre de test\n" + "Suite du chapitre, sans titre. " * 60)
+    return pages
+
+
+def test_digest_covers_the_whole_book_compactly() -> None:
+    from tontolo.documents import DIGEST_CHARS, digest
+
+    pages = _book()
+    text = "\n".join(pages)
+    d = digest(pages)
+    assert len(d) <= DIGEST_CHARS < len(text) / 4
+    assert "Chapitre 1 Notion numéro 1" in d and "Chapitre 30 Notion numéro 30" in d  # tout
+    assert "notion30" in d and "def fonction" in d  # définitions et code gardés
+    assert d.count("Mon livre de test") <= 2  # plan + sa section : jamais à chaque page
+    assert "Texte courant du chapitre 3 avec des détails supplémentaires. Texte courant" not in d
+
+
+def test_toc_leaders_are_dropped() -> None:
+    from tontolo.documents import digest
+
+    pages = ["Chapitre 1 Début\n" + "Une phrase utile et assez longue pour compter ici. " * 30,
+             "Table des matières\n1.1 Installation . . . . . . . . . 3\n" * 20,
+             "Chapitre 2 Fin\n" + "Une autre phrase utile, également assez longue. " * 30,
+             "Chapitre 3 Annexe\n" + "Encore une phrase qui sert à remplir la page. " * 30]
+    assert ". . . . ." not in digest(pages)

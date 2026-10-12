@@ -1124,3 +1124,20 @@ def test_event_websocket_connection_cap(client: TestClient) -> None:
         extra.receive_text()
     for ws in opened:
         ws.__exit__(None, None, None)
+
+
+async def test_long_document_material_uses_the_compact_digest(client: TestClient) -> None:
+    from tontolo.server.app import _file_material
+
+    pages = [f"Chapitre {c} Sujet {c}\nOn appelle concept{c} une idée du chapitre {c}. "
+             + "Remplissage du chapitre. " * 400 for c in range(1, 41)]
+    text = "\n\n".join(pages).encode()
+    up = client.post("/tontolo/documents", files={"file": ("livre.txt", text)}).json()
+    core = client.app.state.core  # type: ignore[attr-defined]
+    docs = await core.db.list_documents(up["conversation_id"], with_pages=True)
+    assert docs[0]["digest"].startswith("Fiche compacte")
+    material = await _file_material(core, up["conversation_id"], request="concept37")
+    assert "Chapitre 40 Sujet 40" in material  # tout le livre, pas seulement le début
+    assert "concept37" in material and len(material) <= 36000
+    listed = client.get(f"/tontolo/conversations/{up['conversation_id']}/documents").json()
+    assert "digest" not in listed[0]  # liste légère pour l'application

@@ -144,6 +144,7 @@ SUMMARY_CHUNK_CHARS = 18_000  # taille d'un bloc de résumé roulant
 SUMMARY_CHUNKS = 4            # blocs résumés par passage (le reste au tour suivant)
 NO_SUMMARY_WINDOW = 40        # sans résumé, un fil long n'envoie que ses derniers messages
 NO_SUMMARY_AFTER = 60
+ASK_DETAILED_WORDS = 35  # demande déjà détaillée : jamais de questions à choix
 ASK_NEW_TASK_WORDS = 15  # en pleine discussion, questions à choix seulement pour une demande longue
 MAX_CONTINUES = 3      # relances « continue » quand une réponse est coupée (longueur max)
 CONTINUE_PROMPT = ("Ta réponse a été coupée par la limite de longueur. Continue exactement là "
@@ -585,6 +586,11 @@ class ChatService:
         block = documents.context_block(picked)
         if not block:
             return None
+        # Long document : son plan accompagne les extraits (le modèle « voit » tout le livre).
+        outlines = [f"Plan de « {d['name']} » :\n" + str(d.get("digest") or "").split(
+            "\n\n## ", 1)[0][:3000] for d in docs[-4:] if d.get("digest")]
+        if outlines:
+            block = "\n\n".join(outlines) + "\n\n" + block
         return {"role": "system", "content": (
             "Documents joints par l'utilisateur (extraits). Réponds à partir de ces extraits "
             "et cite tes sources sous la forme [nom du document, p. N]. Si la réponse n'y est "
@@ -791,6 +797,7 @@ class ChatService:
         last_words = len(_last_user_text(recent).split()) if users else 0
         if (mode.startswith("learn") or any(m.get("name") == "ask_user" for m in recent)
                 or (len(users) > 2 and last_words < ASK_NEW_TASK_WORDS)
+                or last_words >= ASK_DETAILED_WORDS
                 or documents.wants_summary(_last_user_text(recent))):
             # Mode Apprendre : le tuteur interroge déjà ; jamais deux séries de questions
             # d'affilée (les réponses viennent d'être données) ; et en pleine discussion, le
@@ -887,6 +894,15 @@ class ChatService:
                 async for ev in self._continue(cid, messages, final):
                     yield ev
                 msg = final["message"]
+            if (len(str(msg.get("content") or "").strip()) >= 200 and any(
+                    c["function"]["name"] == "ask_user" for c in msg.get("tool_calls") or [])):
+                # Réponse déjà donnée : des questions APRÈS coup n'ont plus de sens (essai :
+                # code LaTeX livré puis carte de questions). On garde la réponse seule.
+                rest = [c for c in msg["tool_calls"] if c["function"]["name"] != "ask_user"]
+                msg = {k: v for k, v in msg.items() if k != "tool_calls"}
+                if rest:
+                    msg["tool_calls"] = rest
+                final["message"] = msg
             if not msg.get("tool_calls") and "<tool_call>" in str(msg.get("content") or ""):
                 clean, extra = extract_text_tool_calls(str(msg.get("content")), set(box.tools))
                 msg = {**msg, "content": clean, **({"tool_calls": extra} if extra else {})}
