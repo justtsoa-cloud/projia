@@ -14,6 +14,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.5.6': [
+    NewsItem(Icons.quiz_outlined, 'Tontolo vous pose les bonnes questions',
+        'Pour une demande ouverte (« Écris un rapport Word sur la pollution »), Tontolo demande d\'abord le public et la longueur, en puces à toucher. Touchez vos choix : le document est fait sur mesure.',
+        'Tontolo asks you the right questions', 'For an open request (“Write a Word report about pollution”), Tontolo first asks who it is for and how long, as chips to tap. Tap your choices: the document is made to measure.',
+        mg: 'Manontany tsara i Tontolo', mgText: 'Raha misy fangatahana malalaka (« Manorata tatitra Word momba ny fandotoana »), anontanian\'i Tontolo aloha hoe ho an\'iza sy ny halavany, amin\'ny safidy tsindriana. Tsindrio ny safidinao: vita araka ny tianao ilay antontan-taratasy.'),
+    NewsItem(Icons.speed_outlined, 'Plus solide, plus rapide',
+        'Un chapitre de livre qui ne compile pas est simplifié au lieu de tout faire échouer. Les longues discussions s\'ouvrent sur les 120 derniers messages. Tontolo mesure la vitesse réelle des modèles et favorise les plus rapides.',
+        'Sturdier and faster', 'A book chapter that does not compile is simplified instead of failing everything. Long chats open on the last 120 messages. Tontolo measures the models\' real speed and favors the fastest.',
+        mg: 'Matanjaka sy haingana kokoa', mgText: 'Toko tsy mety dia tsorina fa tsy mampijanona ny boky manontolo. Misokatra amin\'ny hafatra 120 farany ny resaka lava. Refesin\'i Tontolo ny hafainganan\'ny modely ary ny haingana no ankasitrahana.'),
+  ],
   '0.5.5': [
     NewsItem(Icons.history_edu_outlined, 'Corrigez vos fichiers en une phrase',
         'Après une carte mentale ou un document, dites simplement « excellent mais des vraies citations » ou « plus court » : Tontolo corrige ce fichier et le livre en nouvelle version (-v2, -v3), sans écraser la précédente.',

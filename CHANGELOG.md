@@ -5,6 +5,28 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.5.6] - 2026-10-12
+
+### Ajouté
+- Questions à choix : pour une demande ouverte ou complexe, Tontolo pose d’abord une à
+  quatre questions avec des puces à toucher, puis agit selon vos réponses. Pour un document
+  ou un livre dont le public ou la longueur manquent, les questions sont immédiates, sans
+  appel de modèle, et dans la langue de la demande. Aucune question pour une demande claire,
+  une conversion ou en mode Apprendre.
+- Longues discussions : seuls les 120 derniers messages s’ouvrent, les précédents se
+  chargent avec « Messages précédents ».
+
+### Corrigé
+- Livres : une erreur LaTeX sans numéro de ligne faisait échouer tout le livre. Le chapitre
+  fautif est maintenant retrouvé. S’il ne compile toujours pas après trois corrections, il
+  est simplifié (texte et titres gardés) et le livre est livré.
+- Demandes de création en malgache (« Manorata tatitra Word… », « amin’ny pdf ») reconnues.
+
+### Amélioré
+- Le routeur mesure la vitesse réelle de chaque modèle (attente comprise) et favorise les
+  plus rapides pour les échanges simples.
+- Essais d’endurance documentés dans `docs/ENDURANCE.md` (bancs du cœur et essais réels).
+
 ## [0.5.5] - 2026-10-12
 
 ### Corrigé

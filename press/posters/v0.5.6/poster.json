@@ -1,0 +1,56 @@
+{
+  "shot": "ask",
+  "lang": {
+    "fr": {
+      "tagline": "Nouveautés", "date": "12 octobre 2026",
+      "hero": ["Tontolo vous pose", "les bonnes questions"],
+      "sub": "Touchez vos choix, il s'occupe du reste.",
+      "steps": [
+        ["Demandez : « Écris un", "rapport Word sur la", "pollution »"],
+        ["Tontolo demande le public", "et la longueur, en puces"],
+        ["Touchez vos choix : le", "document est fait sur", "mesure"]
+      ],
+      "also": "Aussi dans cette version",
+      "items": [
+        ["Livres plus solides", ["Un chapitre qui ne compile pas est simplifié,", "le livre est quand même livré."]],
+        ["Longues discussions fluides", ["Les 120 derniers messages s'ouvrent d'abord,", "les précédents à la demande."]],
+        ["Modèles plus rapides", ["Tontolo mesure la vitesse réelle de chaque", "modèle et favorise les plus rapides."]]
+      ],
+      "footer": "Gratuit · Android · Linux"
+    },
+    "en": {
+      "tagline": "What's new", "date": "October 12, 2026",
+      "hero": ["Tontolo asks you", "the right questions"],
+      "sub": "Tap your choices, it does the rest.",
+      "steps": [
+        ["Ask: “Write a Word", "report about pollution”"],
+        ["Tontolo asks who it is for", "and how long, as chips"],
+        ["Tap your choices: the", "document is made to", "measure"]
+      ],
+      "also": "Also in this version",
+      "items": [
+        ["Sturdier books", ["A chapter that does not compile is simplified,", "the book is still delivered."]],
+        ["Smooth long chats", ["The last 120 messages open first,", "earlier ones on demand."]],
+        ["Faster models", ["Tontolo measures each model's real speed", "and favors the fastest ones."]]
+      ],
+      "footer": "Free · Android · Linux"
+    },
+    "mg": {
+      "tagline": "Vaovao", "date": "12 Oktobra 2026",
+      "hero": ["Manontany tsara", "i Tontolo"],
+      "sub": "Tsindrio ny safidinao, izy no mikarakara ny sisa.",
+      "steps": [
+        ["Angataho hoe: « Manorata", "tatitra Word momba ny", "fandotoana »"],
+        ["Anontanian'i Tontolo hoe", "ho an'iza sy halavany"],
+        ["Tsindrio ny safidinao:", "vita araka ny tianao ilay", "antontan-taratasy"]
+      ],
+      "also": "Ao amin'ity dikan-teny ity koa",
+      "items": [
+        ["Boky matanjaka kokoa", ["Toko tsy mety dia tsorina,", "omena ihany ny boky."]],
+        ["Resaka lava mandeha tsara", ["Hafatra 120 farany no misokatra aloha,", "ny teo aloha rehefa ilaina."]],
+        ["Modely haingana kokoa", ["Refesin'i Tontolo ny hafainganan'ny modely", "tsirairay, ny haingana no ankasitrahana."]]
+      ],
+      "footer": "Maimaim-poana · Android · Linux"
+    }
+  }
+}
