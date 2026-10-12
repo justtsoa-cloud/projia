@@ -17,6 +17,7 @@ canoniques) ; la persistance des conversations est faite par l'appelant
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import hashlib
 import logging
 import time
@@ -48,6 +49,36 @@ from tontolo.storage.db import Database
 log = logging.getLogger(__name__)
 
 MAX_ATTEMPTS = 8
+# Un modèle gratuit peut rester muet (file d'attente chez le fournisseur qui n'envoie que des
+# « keepalive », réponse interrompue…) : sans délai, le tour resterait bloqué indéfiniment.
+FIRST_TOKEN_TIMEOUT = 90.0   # secondes avant le premier mot (réflexion comprise)
+STALL_TIMEOUT = 60.0         # silence maximal en cours de réponse
+CALL_TIMEOUT = 240.0         # appel sans diffusion (résumés, classifieur, anciens cœurs)
+MAX_WASTED = 200.0           # temps cumulé perdu sur des modèles en échec avant d'abandonner
+
+
+async def _watched(source: AsyncIterator[dict[str, Any]], first: float, stall: float
+                   ) -> AsyncIterator[dict[str, Any]]:
+    """Relaie le flux d'un fournisseur en imposant un premier mot et un silence maximaux."""
+    it = source.__aiter__()
+    waiting = first
+    try:
+        while True:
+            try:
+                item = await asyncio.wait_for(it.__anext__(), waiting)
+            except StopAsyncIteration:
+                return
+            except TimeoutError as exc:
+                raise ProviderError("pas de réponse du modèle (délai dépassé)",
+                                    ErrorKind.NETWORK) from exc
+            if "delta" in item:
+                waiting = stall
+            yield item
+    finally:
+        aclose = getattr(it, "aclose", None)
+        if aclose is not None:
+            with contextlib.suppress(Exception):
+                await aclose()
 SHORT_WAIT = 30.0  # attente maximale avant un nouvel essai automatique (secondes)
 EST_OUTPUT_TOKENS = 1000
 OFFLINE_WAIT = 25.0  # attente maximale du retour de la connexion (secondes)
@@ -233,6 +264,7 @@ class Router:
         attempts = 0
         chain = list(decision.chain)
         idx = recoveries = 0
+        wasted = 0.0
         while idx < len(chain):
             cand = chain[idx]
             idx += 1
@@ -250,7 +282,10 @@ class Router:
                 yield {"type": "model_switched", "from": previous.model.key, "to": m.key,
                        "to_name": m.name, "reason": last_reason, "reason_code": last_code,
                        "until": last_until}
+            if wasted > MAX_WASTED:
+                break  # trop de temps perdu sur des modèles muets : mieux vaut une erreur claire
             attempts += 1
+            attempt_started = time.monotonic()
             # Résumé d'urgence (petit contexte) : non enregistré, le résumé du fil est tenu à
             # jour par la conversation elle-même (voir agent/loop.py).
             adapted, _, _ = await fit(messages, m, summary=summary, summarizer=self._summarize)
@@ -261,19 +296,32 @@ class Router:
                 result: ChatResult | None = None
                 client = self.registry.get(self.catalog.catalog.providers[m.provider])
                 if stream:
-                    async for item in client.stream(m, adapted, tools=use_tools, **params):
+                    async for item in _watched(
+                            client.stream(m, adapted, tools=use_tools, **params),
+                            float(params.get("first_token_timeout", FIRST_TOKEN_TIMEOUT)),
+                            float(params.get("stall_timeout", STALL_TIMEOUT))):
                         if "_result" in item:
                             result = item["_result"]
                         else:
                             started = True
                             yield {"type": "delta", **item["delta"]}
                 else:
-                    result = await client.chat(m, adapted, tools=use_tools, **params)
+                    try:
+                        result = await asyncio.wait_for(
+                            client.chat(m, adapted, tools=use_tools, **params),
+                            float(params.get("call_timeout", CALL_TIMEOUT)))
+                    except TimeoutError as exc:
+                        raise ProviderError("pas de réponse du modèle (délai dépassé)",
+                                            ErrorKind.NETWORK) from exc
                 if result is None:
                     raise ProviderError("Réponse vide", ErrorKind.SERVER)
                 if not (result.message.get("content") or result.message.get("tool_calls")):
                     raise ProviderError("Réponse vide", ErrorKind.SERVER)
-            except ProviderError as err:
+            except Exception as raw:
+                # Toute exception d'un fournisseur (JSON illisible, KeyError, délai…) est un
+                # échec de CE modèle : on passe au suivant au lieu de perdre la réponse.
+                err = raw if isinstance(raw, ProviderError) else ProviderError(
+                    f"{type(raw).__name__}: {raw}"[:300], ErrorKind.SERVER)
                 if err.kind == ErrorKind.NETWORK and not await self.probe():
                     # C'est l'appareil qui est hors ligne, pas le modèle : ne pas défiler toute la
                     # liste des modèles ni les pénaliser. On attend le retour de la connexion.
@@ -311,6 +359,7 @@ class Router:
                     idx -= 1       # on retente le même modèle, sans « bascule »
                     attempts -= 1
                     continue
+                wasted += time.monotonic() - attempt_started
                 until = self.quota.on_error(m, err)
                 if err.kind in (ErrorKind.SERVER, ErrorKind.NETWORK, ErrorKind.UNAVAILABLE,
                                 ErrorKind.BAD_REQUEST):

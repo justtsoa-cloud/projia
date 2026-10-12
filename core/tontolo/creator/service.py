@@ -41,7 +41,9 @@ class CreatorService:
             # arrêt si elle n'apporte rien), avec le même modèle de préférence.
             for _ in range(1 + MAX_CONTINUES):
                 finish, piece = None, ""
-                async for ev in self.router.run(convo, stream=False, forced=category,
+                # Diffusion (et non un appel unique) : un long chapitre ou document ne dépend
+                # plus d'un délai global du fournisseur ; seul un vrai silence est sanctionné.
+                async for ev in self.router.run(convo, stream=True, forced=category,
                                                 model=model or key or None,
                                                 params={"max_tokens": MAX_TOKENS,
                                                         "temperature": 0.3}):

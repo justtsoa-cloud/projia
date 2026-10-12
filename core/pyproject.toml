@@ -97,6 +97,8 @@ addopts = "-m 'not network'"
 # Gabarits XML Office Open : des lignes longues restent plus lisibles que découpées.
 "tontolo/creator/docx.py" = ["E501"]
 "tontolo/creator/office.py" = ["E501"]
+# Bancs d'essai (endurance, charge, essais réels) : scripts jetables, pas du code livré.
+"bench/**" = ["E501", "ASYNC221", "RUF059", "SIM115", "B", "SIM"]
 
 [tool.ruff.lint.flake8-bugbear]
 extend-immutable-calls = ["fastapi.File", "fastapi.Form"]

@@ -22,6 +22,9 @@ class FakeProvider:
     fail_mid_stream: set[str] = field(default_factory=set)
     chunk_delay: float = 0.0  # simule une génération lente
     last_messages: list[dict[str, Any]] = field(default_factory=list)
+    hang: set[str] = field(default_factory=set)         # modèles qui ne répondent jamais
+    stall_mid: set[str] = field(default_factory=set)    # un mot, puis silence
+    crash: dict[str, Exception] = field(default_factory=dict)  # exception inattendue
 
     def fail(self, model_id: str, *errors: ProviderError) -> None:
         self.errors.setdefault(model_id, []).extend(errors)
@@ -29,6 +32,8 @@ class FakeProvider:
     def _answer(self, model: ModelInfo, messages: list[dict[str, Any]]) -> dict[str, Any]:
         self.calls.append((model.model_id, len(messages)))
         self.last_messages = messages
+        if model.model_id in self.crash:
+            raise self.crash[model.model_id]
         queue = self.errors.get(model.model_id)
         if queue:
             raise queue.pop(0)
@@ -45,6 +50,10 @@ class FakeProvider:
         self, model: ModelInfo, messages: list[dict[str, Any]], *,
         tools: list[dict[str, Any]] | None = None, **params: Any,
     ) -> ChatResult:
+        if model.model_id in self.hang:
+            import asyncio
+
+            await asyncio.sleep(3600)
         msg = dict(self._answer(model, messages))
         finish = msg.pop("_finish", "stop")  # « length » : réponse coupée (tests)
         return ChatResult(msg, {"prompt_tokens": 10, "completion_tokens": 5}, finish)
@@ -59,9 +68,18 @@ class FakeProvider:
             from tontolo.providers.base import ErrorKind
 
             raise ProviderError("coupure", ErrorKind.RATE_LIMIT, status=429, retry_after=30)
+        if model.model_id in self.hang:
+            import asyncio
+
+            await asyncio.sleep(3600)
         msg = dict(self._answer(model, messages))
         finish = msg.pop("_finish", "stop")
         text = msg.get("content") or ""
+        if model.model_id in self.stall_mid:
+            import asyncio
+
+            yield {"delta": {"content": text[:4]}}
+            await asyncio.sleep(3600)
         for i in range(0, len(text), 8):
             if self.chunk_delay:
                 import asyncio
