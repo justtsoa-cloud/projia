@@ -162,3 +162,23 @@ async def test_slow_chapter_is_retried_then_replaced(monkeypatch: pytest.MonkeyP
         pass
     assert attempts["3"] == 2 and out.data == b"%PDF"  # deux essais, puis le livre est livré
     assert "n'a pas pu être rédigé" in out.source and "Partie 3" in out.source
+
+
+def test_failing_chapter_found_without_line_number() -> None:
+    from tontolo.creator.book import failing_chapter
+
+    chapters = ["\\chapter{A}\nbonjour\n", "\\chapter{B}\n\\begin{tcolorbox}[Livre VII]\n"]
+    log = "! Package pgfkeys Error: I do not know the key '/tcb/Livre VII' and I am going"
+    assert failing_chapter(log, [1, 3], chapters) == 1
+    assert failing_chapter(log, [1, 3]) is None  # sans chapitres, aucune déduction
+
+
+def test_plain_chapter_is_always_compilable_text() -> None:
+    from tontolo.creator.book import plain_chapter
+
+    body = ("\\chapter{X}\n\\section{Idées}\n\\begin{tcolorbox}[Livre VII]\n"
+            "Texte \\textbf{fort} & 5%\n\\end{tcolorbox}\n% note\n")
+    out = plain_chapter(body, "Titre")
+    assert out.startswith("\\chapter{Titre}") and "\\section{Idées}" in out
+    assert "tcolorbox" not in out and "Texte fort" in out
+    assert "\\&" in out and "\\%" in out

@@ -120,6 +120,23 @@ def clean_chapter(text: str, title: str) -> str:
     return body.strip() + "\n"
 
 
+def plain_chapter(body: str, title: str) -> str:
+    """Dernier recours pour un chapitre qui ne compile pas : titres et paragraphes conservés,
+    toute autre commande LaTeX retirée (le livre sort au lieu d'échouer)."""
+    out = [f"\\chapter{{{latex_escape(title)}}}"]
+    for line in body.splitlines():
+        m = re.match(r"\s*\\(section|subsection)\*?\{([^{}]*)\}", line)
+        if m:
+            out.append(f"\\{m.group(1)}{{{latex_escape(m.group(2))}}}")
+        elif not line.lstrip().startswith(("\\", "%")):
+            text = line
+            for _ in range(3):  # \textbf{x} → x (commandes imbriquées comprises)
+                text = re.sub(r"\\[A-Za-z]+\*?(?:\[[^\]]*\])?\{([^{}]*)\}", r"\1", text)
+            text = re.sub(r"\\[A-Za-z]+\*?(\[[^\]]*\])?", "", text)
+            out.append(latex_escape(text.replace("{", "").replace("}", "")))
+    return "\n".join(out).strip() + "\n"
+
+
 def assemble(title: str, chapters: list[str], language: str) -> tuple[str, list[int]]:
     """Source complet et ligne de début de chaque chapitre (pour situer une erreur)."""
     head = preamble(title, language) + "\\begin{document}\n\\maketitle\n\\tableofcontents\n"
@@ -133,8 +150,16 @@ def assemble(title: str, chapters: list[str], language: str) -> tuple[str, list[
     return "".join(parts), starts
 
 
-def failing_chapter(log: str, starts: list[int]) -> int | None:
+def failing_chapter(log: str, starts: list[int], chapters: list[str] | None = None
+                    ) -> int | None:
     m = re.search(r"\bl\.(\d+)\b", log) or re.search(r"\.tex:(\d+):", log)
+    if not m and chapters:
+        # Pas de numéro de ligne : le texte entre apostrophes de l'erreur (« key '/tcb/Livre VII' »)
+        # est cherché dans les chapitres.
+        for token in re.findall(r"'(?:/[\w.-]+/)?([^'\n]{3,60})'", log):
+            hits = [i for i, c in enumerate(chapters) if token in c]
+            if len(hits) == 1:
+                return hits[0]
     if not m or not starts:
         return None
     line = int(m.group(1))
@@ -218,6 +243,7 @@ class BookWriter:
                 t.cancel()
 
         fixes = 0
+        plain_done: dict[int, bool] = {}
         while True:
             yield {"type": "step", "step": "doc_building"}
             source, starts = assemble(title, chapters, self.lang_code)
@@ -225,11 +251,18 @@ class BookWriter:
                 pdf, _log, _ = await latex.compile_pdf(source)
                 break
             except latex.LatexError as exc:
-                if exc.retryable or fixes >= MAX_FIXES:
+                if exc.retryable:
                     raise
-                idx = failing_chapter(exc.log or str(exc), starts)
+                idx = failing_chapter(exc.log or str(exc), starts, chapters)
                 if idx is None:
                     raise
+                if fixes >= MAX_FIXES:
+                    if plain_done.get(idx):  # déjà simplifié et toujours en échec
+                        raise
+                    plain_done[idx] = True
+                    chapters[idx] = plain_chapter(chapters[idx], plan["chapters"][idx]["title"])
+                    failed.append(idx + 1)
+                    continue
                 fixes += 1
                 yield {"type": "step", "step": "doc_fixing", "n": fixes}
                 text, _, _ = await self.ask([

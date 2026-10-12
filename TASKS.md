@@ -280,6 +280,8 @@ Règle : tout test, bug trouvé et optimisation est noté ici au fur et à mesur
 - [x] B11. (essai réel R4) Après une correction échouée, « excellent mais plus court » partait en discussion (dernier fichier introuvable) → on repart du dernier fichier livré
 - [x] B12. (essai réel R4) En discussion normale, le modèle recevait les outils terminal/navigateur/écriture et tentait de créer un fichier Word par le terminal → ces outils sont réservés au mode Agent (économie d'environ 1,5 k jetons par demande)
 - [x] B13. (E5) Une discussion de milliers de messages était chargée en une seule requête par l’app → chargement par fenêtre (120 derniers, `?tail=&before=`), bouton « Messages précédents (n) » en tête, test Flutter
+- [x] B14. (essai réel R7, livre de 21 pages) Erreur LaTeX « clé inconnue /tcb/… » : la ligne fautive était perdue du journal, le chapitre n’était pas retrouvé et le livre échouait → ligne `l.N` conservée, recherche du texte fautif dans les chapitres, et dernier recours `plain_chapter` (chapitre simplifié) au lieu d’abandonner le livre
+- [x] R3 longue discussion (14 tours, prénom et ville retrouvés) et R4 chaîne de 4 corrections (aucun nom de fichier dupliqué) OK
 - [x] E2 (partiel) : R2 plan complexe, R6 projet de code, R8 outils agent OK ; R4 chaîne de corrections, R3 longue discussion, R7 livre à relancer sur le code corrigé
 
 ## Questions interactives à choix (demande de l'utilisateur, 2026-10-12)

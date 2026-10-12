@@ -38,6 +38,10 @@ def errors_from_log(log: str, limit: int = 12) -> str:
     for i, line in enumerate(lines):
         if line.startswith("!") or re.match(r"^[^ ]+\.tex:\d+:", line):
             out.extend(lines[i:i + 3])
+            # ligne du source fautive (« l.215 … ») : sert à situer le chapitre d'un livre
+            where = next((ln for ln in lines[i + 3:i + 14] if re.match(r"^l\.\d+ ", ln)), None)
+            if where:
+                out.append(where)
         if len(out) >= limit * 3:
             break
     return "\n".join(out)[:3000] or log[-1500:]
