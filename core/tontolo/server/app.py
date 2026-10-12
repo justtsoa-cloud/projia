@@ -33,6 +33,7 @@ from tontolo.agent.workspace import is_desktop
 from tontolo.app_state import Core
 from tontolo.catalog.models import Category, ModelInfo
 from tontolo.config import Settings, load_settings, save_settings
+from tontolo.creator import clarify
 from tontolo.creator import intent as file_intent
 from tontolo.memory import name_from
 from tontolo.providers.registry import ProviderRegistry
@@ -167,7 +168,7 @@ async def _last_file(core: Core, cid: str) -> tuple[str, str] | None:
     # Le dernier fichier LIVRÉ : une correction qui a échoué n'efface pas la version précédente
     # (« excellent mais plus court » après un échec doit encore partir de la dernière version).
     job: dict[str, Any] | None = None
-    for m in reversed((await core.db.get_messages(cid))[-12:]):
+    for m in reversed(await core.db.get_window(cid, 12)):
         if m.get("role") != "assistant":
             continue
         mt = re.match(r"^\[média:([0-9a-f]+)\]$", str(m.get("content") or "").strip())
@@ -705,6 +706,15 @@ def create_app(
                 prev = await _last_file(core, body.conversation_id)
                 if prev is not None and file_intent.is_revision(_text_of(body.content)):
                     file_kind, base_source = prev
+        completed: str | None = None
+        if (file_kind is None and body.category is None and body.conversation_id
+                and not _first_image(body.content)):
+            # Réponse aux questions posées avant une création : la création reprend, avec la
+            # demande d'origine complétée par les choix (« Pour qui ? → Lycéens »).
+            answer = _text_of(body.content)
+            pend = clarify.pending_creation(await core.db.get_window(body.conversation_id, 6))
+            if pend is not None and ("→" in answer or len(answer.split()) <= 12):
+                file_kind, completed = pend[0], f"{pend[1]}\n{answer}"
         if file_kind is not None:
             category = None
         elif category is None:
@@ -729,8 +739,15 @@ def create_app(
             await core.db.set_mode(cid, f"learn:{body.level or 'lycee'}" if body.mode == "learn"
                                    else f"agent:{body.agent or 'auto'}" if body.mode == "agent"
                                    else "")
+        if file_kind is not None and completed is None and base_source is None and (
+                body.mode != "learn" and not _first_image(body.content)):
+            questions = clarify.questions_for(file_kind, _text_of(body.content),
+                                              core.settings.language)
+            if questions:
+                return _turn(core, cid, _ask_turn(core, cid, body, file_kind, questions), first)
         if file_kind is not None:
-            return _turn(core, cid, _file_turn(core, body, file_kind, base_source), first)
+            return _turn(core, cid, _file_turn(core, body, file_kind, base_source, completed),
+                         first)
         if category is not None and category.value in MEDIA_TURN_KINDS:
             return _turn(core, cid, _media_turn(core, body, category), first)
         return _turn(core, cid, _text_turn(core, body, cid, category), first)
@@ -773,13 +790,21 @@ def create_app(
             async for ev in _media_turn(core, body, kind, add_user=False):
                 yield ev
 
-    async def _file_turn(core: Core, body: ChatBody, kind: str, base_source: str | None = None
-                         ) -> AsyncIterator[dict[str, Any]]:
+    async def _ask_turn(core: Core, cid: str, body: ChatBody, kind: str,
+                        questions: list[dict[str, Any]]) -> AsyncIterator[dict[str, Any]]:
+        """Création longue mal précisée : questions à choix d'abord (aucun appel de modèle)."""
+        await core.db.add_message(cid, {"role": "user", "content": body.content})
+        for m in clarify.ask_messages(kind, _text_of(body.content), questions):
+            await core.db.add_message(cid, m)
+        yield {"type": "question", "conversation_id": cid, "questions": questions}
+
+    async def _file_turn(core: Core, body: ChatBody, kind: str, base_source: str | None = None,
+                         request: str | None = None) -> AsyncIterator[dict[str, Any]]:
         """Création d'un fichier (DOCX, PDF, carte mentale…) par l'équipe de modèles :
         rédaction, vérification, correction ; le résultat est une carte « fichier »."""
         cid = str(body.conversation_id)
-        text = _text_of(body.content)
-        history = await core.db.get_messages(cid)
+        text = request or _text_of(body.content)
+        history = await core.db.get_window(cid, 12)
         context = "\n\n".join(
             f"[{m['role']}] {_text_of(m['content'])[:3000]}" for m in history[-6:]
             if m["role"] in ("user", "assistant") and not str(m["content"]).startswith("[média:")

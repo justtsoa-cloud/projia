@@ -642,7 +642,8 @@ def test_file_request_creates_downloadable_docx(client: TestClient,
     monkeypatch.setattr(CreatorService, "ask", ask)
     monkeypatch.setattr(CreatorService, "pick_reviewer", pick)
     with client.stream("POST", "/tontolo/chat", json={
-            "content": "Génère un fichier Word sur le cycle de l'eau"}) as s:
+            "content": "Génère un fichier Word de 2 pages sur le cycle de l'eau pour des "
+                       "collégiens"}) as s:
         events = [json.loads(x[5:]) for x in s.iter_lines() if x.startswith("data:")]
     steps = [e["step"] for e in events if e["type"] == "step"]
     assert steps[0] == "doc_writing" and steps[-1] == "doc_done"
@@ -904,7 +905,8 @@ def test_versions_never_share_a_filename(client: TestClient,
 
     monkeypatch.setattr(CreatorService, "ask", ask)
     monkeypatch.setattr(CreatorService, "pick_reviewer", pick)
-    first = _events(client, "/tontolo/chat", {"content": "Génère un fichier Word sur l'eau"})
+    first = _events(client, "/tontolo/chat",
+                    {"content": "Génère un fichier Word court sur l'eau pour des élèves"})
     cid = next(e["id"] for e in first if e["type"] == "conversation")
     names = [next(e for e in first if e["type"] == "done")["job"]["params"]["filename"]]
     for text in ("rajoute des exemples", "excellent mais des vraies citations"):
@@ -936,7 +938,8 @@ def test_feedback_after_a_failed_revision_starts_from_the_last_good_file(
 
     monkeypatch.setattr(CreatorService, "ask", ask)
     monkeypatch.setattr(CreatorService, "pick_reviewer", pick)
-    first = _events(client, "/tontolo/chat", {"content": "Génère un fichier Word sur l'eau"})
+    first = _events(client, "/tontolo/chat",
+                    {"content": "Génère un fichier Word court sur l'eau pour des élèves"})
     cid = next(e["id"] for e in first if e["type"] == "conversation")
     failed = _events(client, "/tontolo/chat", {"conversation_id": cid,
                                                 "content": "rajoute un exercice"})
@@ -971,3 +974,51 @@ def test_long_thread_loads_by_window(client: TestClient) -> None:
     seqs = [m["_meta"]["seq"] for m in older["messages"] + last["messages"]]
     assert seqs == sorted(set(seqs))  # aucun doublon ni trou à la jonction (sauf début de tour)
     assert len(client.get(f"/tontolo/conversations/{cid}").json()["messages"]) == total
+
+
+def test_vague_creation_asks_first_then_resumes(client: TestClient,
+                                                monkeypatch: pytest.MonkeyPatch) -> None:
+    """« Écris un rapport sur l'eau » : public et longueur demandés d'abord (sans modèle), puis
+    la réponse relance la création avec la demande complétée."""
+    from tontolo.creator.service import CreatorService
+
+    seen: list[str] = []
+
+    async def ask(self: Any, messages: Any, *, category: Any = None,
+                  model: Any = None, **_: Any) -> tuple[str, str, str]:
+        seen.append(str(messages[-1]["content"]))
+        return "# Rapport sur l'eau\n## Cycle\nTexte.", "fake:writer", "Rédacteur"
+
+    async def pick(self: Any, *, exclude: str, vision: bool = False) -> None:
+        return None
+
+    monkeypatch.setattr(CreatorService, "ask", ask)
+    monkeypatch.setattr(CreatorService, "pick_reviewer", pick)
+    first = _events(client, "/tontolo/chat", {"content": "Écris un rapport Word sur l'eau"})
+    q = next(e for e in first if e["type"] == "question")
+    assert [x["question"] for x in q["questions"]] == ["Pour quel public ?", "Quelle longueur ?"]
+    assert not seen  # aucune rédaction avant la réponse
+    cid = q["conversation_id"]
+    reopened = client.get(f"/tontolo/conversations/{cid}").json()["messages"]
+    assert any(c["function"]["name"] == "ask_user"
+               for m in reopened for c in m.get("tool_calls") or [])
+    answer = "Pour quel public ? → Élèves\nQuelle longueur ? → Courte (1-2 pages)"
+    second = _events(client, "/tontolo/chat", {"conversation_id": cid, "content": answer})
+    job = next(e for e in second if e["type"] == "done")["job"]
+    assert job["status"] == "done"
+    assert any("rapport Word sur l'eau" in x and "Élèves" in x for x in seen)
+    # Déjà précisé, en anglais : aucune question.
+    direct = _events(client, "/tontolo/chat",
+                     {"content": "Write a 3 pages Word report about water for students"})
+    assert not any(e["type"] == "question" for e in direct)
+
+
+def test_clarify_questions_by_language() -> None:
+    from tontolo.creator.clarify import questions_for
+
+    assert questions_for("docx", "Manorata tatitra momba ny rano azafady")[0]["question"] == (
+        "Ho an'iza?")
+    assert questions_for("book", "Write a book about the history of maths")[1]["options"][0] == (
+        "10 pages")
+    assert questions_for("docx", "convertis ce html en pdf") == []
+    assert questions_for("text:py", "écris un script python") == []

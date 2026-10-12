@@ -288,7 +288,8 @@ Règle : tout test, bug trouvé et optimisation est noté ici au fur et à mesur
 - [x] Outil `ask_user` (1 à 4 questions, 2 à 6 options, choix multiple possible) : le tour s'arrête sur un événement `question` ; la réponse revient comme un message normal
 - [x] Consigne système : poser les questions d'abord pour les demandes ouvertes ou complexes (projet, document, plan, code, recherche), jamais pour une demande claire ; jamais deux séries d'affilée ; pas en mode Apprendre (le tuteur interroge déjà)
 - [x] App : carte de puces (fr/en/mg), un toucher envoie si une seule question à choix unique, sinon « Envoyer mes choix » ; la carte revient à la réouverture si la question est la dernière ; pastille « attend une réponse »
-- [ ] Demandes de création de fichier (circuit créateur) : poser aussi les questions avant de lancer un livre/document long
+- [x] Demandes de création de fichier (circuit créateur) : public et longueur demandés d'abord quand ils manquent (questions fixes fr/en/mg, sans appel de modèle ; jamais pour une conversion « convertis ce HTML en PDF » ni une demande déjà détaillée) ; la réponse relance la création avec la demande complétée
+- [x] Optimisation : `_last_file` et le contexte de création lisent une fenêtre de 12 messages au lieu du fil entier
 - [ ] Texte « Autre… » libre dans la carte (aujourd'hui : l'utilisateur écrit dans le champ normal)
 - [ ] Essai réel : vérifier quels modèles gratuits appellent bien `ask_user`
 
