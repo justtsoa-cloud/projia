@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from tontolo.catalog.models import Category
-from tontolo.creator import bundle, charts, diagram, docx, latex, office, textfile
+from tontolo.creator import book, bundle, charts, diagram, docx, latex, office, textfile
 
 MAX_FIXES = 3
 CALL_TIMEOUT = 240     # rédaction ou correction d'un document long par un modèle gratuit
@@ -39,6 +39,7 @@ KINDS = {
     "chart": ("graphique", Category.CODE),
     "diagram": ("schéma", Category.CODE),
     "bundle": ("projet de plusieurs fichiers (archive .zip)", Category.CODE),
+    "book": ("livre ou long document (PDF)", Category.WRITING),
 }
 
 
@@ -195,13 +196,19 @@ class Creator:
     """Orchestration ; `ask(messages, *, category=None, model=None, exclude=())` appelle un
     modèle et renvoie (texte, clé du modèle, nom)."""
 
-    def __init__(self, ask: Ask, pick_reviewer: Callable[..., Any] | None = None) -> None:
+    def __init__(self, ask: Ask, pick_reviewer: Callable[..., Any] | None = None,
+                 ask_long: Ask | None = None) -> None:
         self.ask = ask
         self.pick_reviewer = pick_reviewer
+        self.ask_long = ask_long or ask  # chapitres de livre : délai plus long
 
     async def run(self, kind: str, request: str, *, context: str = "", language: str = "fr",
                   out: Output | None = None, base: str | None = None
                   ) -> AsyncIterator[dict[str, Any]]:
+        if base is None and (kind == "book" or (kind == "bundle" and book.wants_book(request))):
+            async for ev in self._book(kind, request, context, language, out):
+                yield ev
+            return
         what, category = kind_info(kind)
         lang = _LANG.get(language, "français")
         system = (TEXT_PROMPT.format(ext=kind[5:], language=lang) if kind.startswith("text:")
@@ -278,6 +285,32 @@ class Creator:
         assert result is not None
         result.steps = steps
         result.models = models
+        if out is not None:
+            out.__dict__.update(result.__dict__)
+        yield {"type": "step", "step": "doc_done"}
+
+    async def _book(self, kind: str, request: str, context: str, language: str,
+                    out: Output | None) -> AsyncIterator[dict[str, Any]]:
+        """Livre long : plan, chapitres en parallèle, compilation, correction ciblée."""
+        res: dict[str, Any] = {}
+        try:
+            async for ev in book.BookWriter(self.ask_long, language).run(
+                    request, context=context, out=res):
+                yield ev
+        except latex.LatexError as exc:
+            raise CreationError(f"le livre n'a pas pu être compilé : {exc}") from exc
+        name = slug(res["title"])
+        steps: list[dict[str, Any]] = [{"step": "doc_writing", "model": m}
+                                       for m in dict.fromkeys(res["models"])]
+        steps += [{"step": "doc_fixing"}] * int(res["fixes"])
+        if kind == "bundle":
+            result = Output(book.zip_files(res["files"], res["pdf"]), "application/zip",
+                            f"{name}.zip", f"{res['title']} ({len(res['files']) + 1} fichiers)",
+                            res["source"], f"{name}.tex")
+        else:
+            result = Output(res["pdf"], "application/pdf", f"{name}.pdf", res["title"],
+                            res["source"], f"{name}.tex")
+        result.steps, result.models = steps, list(dict.fromkeys(res["models"]))
         if out is not None:
             out.__dict__.update(result.__dict__)
         yield {"type": "step", "step": "doc_done"}

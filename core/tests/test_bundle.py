@@ -70,7 +70,7 @@ class Writer:
 async def _run(answers: list[str]) -> tuple[Output, Writer]:
     w = Writer(answers)
     out = Output(b"", "", "", "", "", "")
-    async for _ in Creator(w.ask).run("bundle", "livre", out=out):
+    async for _ in Creator(w.ask).run("bundle", "projet en plusieurs fichiers", out=out):
         pass
     return out, w
 

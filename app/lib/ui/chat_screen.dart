@@ -752,6 +752,8 @@ class _StatusLine extends StatelessWidget {
         ? '⚙ ${status.substring(5)}'
         : status.startsWith('offline|')
         ? context.t('offline_wait')
+        : status.startsWith('book_chapter|')
+            ? context.t('book_chapter', {'n': status.split('|')[1], 't': status.split('|')[2]})
         : status.startsWith('waiting|')
             ? context.t('waiting', {'s': status.substring(8)})
             : context.t(status);

@@ -18,6 +18,7 @@ from tontolo.storage.db import Database
 
 MAX_TOKENS = 8000
 MAX_CONTINUES = 3
+BOOK_CALL_TIMEOUT = 600  # un chapitre long, suite comprise
 
 
 class CreatorService:
@@ -30,10 +31,11 @@ class CreatorService:
         self.language = language
 
     async def ask(self, messages: list[dict[str, Any]], *, category: Category | None = None,
-                  model: str | None = None) -> tuple[str, str, str]:
+                  model: str | None = None, limit: float = CALL_TIMEOUT
+                  ) -> tuple[str, str, str]:
         text, key = "", ""
         convo = list(messages)
-        async with asyncio.timeout(CALL_TIMEOUT):
+        async with asyncio.timeout(limit):
             # Long document coupé par la limite de longueur : suite demandée (3 fois au plus,
             # arrêt si elle n'apporte rien), avec le même modèle de préférence.
             for _ in range(1 + MAX_CONTINUES):
@@ -146,7 +148,10 @@ class CreatorService:
         await self.db.upsert_job(job)
         yield {"type": "job", **job}
         out = Output(b"", "", "", "", "", "")
-        creator = Creator(self.ask, self.pick_reviewer if self.review else None)
+        async def ask_long(messages: list[dict[str, Any]], **kw: Any) -> tuple[str, str, str]:
+            return await self.ask(messages, limit=BOOK_CALL_TIMEOUT, **kw)
+
+        creator = Creator(self.ask, self.pick_reviewer if self.review else None, ask_long)
         try:
             if images:
                 # Photo jointe (exercice, document…) : lue d'abord par un modèle qui voit,

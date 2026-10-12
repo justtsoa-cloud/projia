@@ -161,9 +161,12 @@ class ChatService:
         self._bg: set[asyncio.Task[Any]] = set()
         self.db = db
         self.router = router
+        # Sans dossier de travail choisi : aucun outil de fichiers (un fichier écrit dans
+        # l'espace interne n'était jamais livré et demandait un accord inutile) ; les fichiers
+        # demandés passent par la création de fichiers.
         self.workspace: Workspace | None = None
         self.workdir = settings.data_dir / "workspace"
-        self.toolbox: ToolBox = native_tools(self.workdir)
+        self.toolbox: ToolBox = native_tools(None)
         if settings.agent.workdir:
             # Dossier disparu ou refusé : outils de base dans l'espace interne.
             with contextlib.suppress(ValueError):
@@ -189,7 +192,7 @@ class ChatService:
         if not path:
             self.workspace = None
             self.workdir = self.settings.data_dir / "workspace"
-            self.toolbox = native_tools(self.workdir)
+            self.toolbox = native_tools(None)
             return None
         root = check_workdir(path)
         self.workdir = root

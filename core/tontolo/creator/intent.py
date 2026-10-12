@@ -50,6 +50,10 @@ def detect(text: str) -> str | None:
     has_verb = re.search(rf"\b{_VERB}\b", t) is not None
     if _BUNDLE.search(t) and has_verb:
         return "bundle"  # plusieurs fichiers : livrés ensemble dans une archive .zip
+    from tontolo.creator.book import wants_book
+
+    if has_verb and wants_book(t):
+        return "book"  # livre / long document : plan puis chapitres, livré en PDF
     as_format = re.search(r"\b(en|au format|in|as|sous forme d['e]|version)\s+"
                           r"(pdf|docx|word|excel|xlsx|pptx|powerpoint|latex)\b", t)
     for kind, pattern in _FORMATS:

@@ -668,6 +668,8 @@ const Map<String, Map<String, String>> _t = {
     'user_name_help': 'Pour l\'accueil (« Bonsoir » suivi de votre prénom). Vide : prénom du compte, ou celui que vous avez donné dans une discussion (« je m\'appelle… »).',
     'greet_alone': '{g} !',
     'greet_sub_evening': 'Déjà le soir, n\'est-ce pas ?',
+    'book_outline': 'Plan du livre en préparation…',
+    'book_chapter': 'Chapitres rédigés : {n} sur {t}…',
   },
   'en': {
     'app': 'Tontolo', 'chat': 'Chat', 'creations': 'Creations', 'settings': 'Settings',
@@ -1209,6 +1211,8 @@ const Map<String, Map<String, String>> _t = {
     'user_name_help': 'For the welcome screen (“Good evening” followed by your first name). Empty: your account name, or the one you gave in a chat (“my name is…”).',
     'greet_alone': '{g}!',
     'greet_sub_evening': 'Evening already, isn\'t it?',
+    'book_outline': 'Planning the book…',
+    'book_chapter': 'Chapters written: {n} of {t}…',
   },
   'mg': {
     'app': 'Tontolo', 'chat': 'Resaka', 'creations': 'Famoronana', 'settings': 'Kirakira',
@@ -1790,6 +1794,8 @@ const Map<String, Map<String, String>> _t = {
     'user_name_help': 'Ho an\'ny fandraisana (« Manao ahoana » arahin\'ny anaranao). Raha foana: anaran\'ny kaonty, na ilay nomenao tao anaty resaka (« anarako… »).',
     'greet_alone': '{g}!',
     'greet_sub_evening': 'Hariva indray izy izany an!',
+    'book_outline': 'Omanina ny drafitry ny boky…',
+    'book_chapter': 'Toko voasoratra: {n} amin\'ny {t}…',
   },
 };
 
