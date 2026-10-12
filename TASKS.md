@@ -350,5 +350,5 @@ Contraintes : rien ne change par défaut (`orchestrate=false`), léger (asyncio,
 - [x] O2. `/tontolo/chat` : `orchestrate: bool = false` ; complexité faible → flux normal ; métriques (durée, modèles) dans les événements
 - [x] O3. tests/test_orchestrator.py + essai « code Python + explication »
 - [x] Essai réel R10 : « code + explication » (dépendance respectée, 64 s, 2 modèles) ; 3 parties en parallèle 19 s au lieu de 23 s en série, réponses justes ; « Bonjour » non orchestré
-- [ ] O4. Fusion « medium » : le petit modèle des résumés renvoie souvent une fusion trop courte → repli sur la concaténation (sûr) ; essayer un modèle d'écriture rapide
-- [ ] O5. App : interrupteur « Orchestration » en mode avancé (l'API est prête, rien n'est activé par défaut)
+- [x] O4. Fusion « medium » : petit modèle, puis modèle d’écriture si la fusion perd du contenu, puis concaténation
+- [x] O5. Réglages simples : « Tâches en plusieurs parties » (Simple / Planifier / Plusieurs modèles) ; réglages simples regroupés (Vous, Réponses, Mémoire, Espace de travail, Voix, Clés, Payant, Affichage et langue)

@@ -96,6 +96,9 @@ def test_synthesis_strategies() -> None:
     assert asyncio.run(s.merge("r", parts, "medium"))[1:] == ("medium", "fake:best")
     assert asyncio.run(ResponseSynthesizer(quick=lossy).merge("r", parts, "medium"))[1] == \
         "concat"
+    # Petit modèle trop court → modèle d'écriture essayé avant de concaténer.
+    assert asyncio.run(ResponseSynthesizer(quick=lossy, best=good).merge(
+        "r", parts, "medium"))[1:] == ("medium", "fake:best")
     assert asyncio.run(ResponseSynthesizer(best=fails).merge("r", parts, "high"))[0] == plain
 
 
@@ -181,3 +184,12 @@ def test_default_chat_is_unchanged_and_orchestration_is_opt_in(
     assert done["metrics"]["subtasks"] and done["metrics"]["seconds"] >= 0
     assert done["message"]["content"]
     assert Category.CODE.value in [s["category"] for s in done["metrics"]["subtasks"]]
+
+
+def test_orchestration_setting_applies_to_every_chat(client: TestClient) -> None:
+    client.put("/tontolo/settings", json={"orchestrate": True})
+    with client.stream("POST", "/tontolo/chat", json={
+            "content": "Calcule 12 * 7 ; traduis bonjour en anglais"}) as s:
+        events = [json.loads(x[5:]) for x in s.iter_lines() if x.startswith("data:")]
+    assert any(e["type"] == "orchestration" for e in events)
+    client.put("/tontolo/settings", json={"orchestrate": False})

@@ -49,6 +49,8 @@ class _Simple extends StatelessWidget {
       listenable: Listenable.merge([prefs, scope.updater]),
       builder: (context, _) => ListView(children: [
         if (Account.configured) ...[_Section(context.t('account')), const AccountSection()],
+        // Ordre : soi et les réponses d'abord, puis les modèles (clés, payant), puis l'affichage.
+        PersonalizationSection(header: (t) => _Section(t)),
         _Section(context.t('keys')),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -57,9 +59,7 @@ class _Simple extends StatelessWidget {
         const ProviderKeys(),
         _Section(context.t('paid_simple')),
         const PaidSimple(),
-        _Section(context.t('personalization')),
-        const PersonalizationSection(),
-        _Section(context.t('theme')),
+        _Section(context.t('group_display')),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: SegmentedButton<ThemeMode>(

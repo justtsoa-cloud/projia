@@ -48,20 +48,27 @@ class ResponseSynthesizer:
                     ) -> tuple[str, str, str]:
         """(réponse, stratégie utilisée, modèle de fusion)."""
         plain = self.concatenate(parts)
-        ask = self.best if complexity == "high" else self.quick if complexity == "medium" else None
-        if ask is None or len(parts) < 2 or not all(p.ok for p in parts):
+        if complexity == "high":
+            askers = [self.best]
+        elif complexity == "medium":
+            # Petit modèle d'abord ; s'il raccourcit trop (contenu perdu), modèle d'écriture.
+            askers = [self.quick, self.best]
+        else:
+            askers = []
+        if len(parts) < 2 or not all(p.ok for p in parts):
             return plain, "concat", ""
         messages = [
             {"role": "system", "content": SYNTH_PROMPT},
             {"role": "user", "content": f"Demande :\n{request[:6000]}\n\nRéponses :\n"
                                         f"{plain[:40_000]}"},
         ]
-        try:
-            async with asyncio.timeout(SYNTH_TIMEOUT):
-                text, model = await ask(messages)
-        except Exception:
-            return plain, "concat", ""
-        # Une fusion bien plus courte que les parties a sans doute perdu du contenu (code…).
-        if not text.strip() or len(text) < 0.4 * len(plain):
-            return plain, "concat", ""
-        return text, complexity, model
+        for ask in (a for a in askers if a is not None):
+            try:
+                async with asyncio.timeout(SYNTH_TIMEOUT):
+                    text, model = await ask(messages)
+            except Exception:
+                continue
+            # Une fusion bien plus courte que les parties a sans doute perdu du contenu.
+            if text.strip() and len(text) >= 0.4 * len(plain):
+                return text, complexity, model
+        return plain, "concat", ""

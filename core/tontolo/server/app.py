@@ -858,7 +858,8 @@ def create_app(
         if file_kind is not None:
             return _turn(core, cid, _file_turn(core, body, file_kind, base_source, completed),
                          first)
-        if (body.orchestrate and core.orchestrator is not None and category is None
+        if ((body.orchestrate or core.settings.orchestrate) and core.orchestrator is not None
+                and category is None
                 and not _first_image(body.content) and body.mode != "learn"):
             plan = await core.orchestrator.decomposer.decompose(_text_of(body.content))
             # NOTE: Choix autonome - complexité faible : aucune orchestration (zéro latence

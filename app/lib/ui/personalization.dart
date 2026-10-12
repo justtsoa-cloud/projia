@@ -8,8 +8,12 @@ import 'package:flutter/material.dart';
 import '../core/backend.dart';
 import '../main.dart';
 
+/// Réglages simples, en groupes titrés : Vous, Réponses, Mémoire, Espace de travail, Voix.
 class PersonalizationSection extends StatefulWidget {
-  const PersonalizationSection({super.key});
+  const PersonalizationSection({super.key, required this.header});
+
+  /// Titre de groupe, au style de l'écran des réglages.
+  final Widget Function(String title) header;
 
   @override
   State<PersonalizationSection> createState() => _PersonalizationSectionState();
@@ -24,6 +28,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
   bool teamReview = true;
   bool autoCompact = true;
   bool taskPlanning = true;
+  bool orchestrate = false;
   bool answerCache = true;
   int answers = 0; // réponses déjà données gardées sur l'appareil
   Map<String, dynamic>? workspace; // bureau Linux : dossier de travail de l'agent
@@ -68,6 +73,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
       teamReview = s['team_review'] != false; // absent (ancien cœur) : affiché actif
       autoCompact = s['auto_compact'] != false;
       taskPlanning = s['task_planning'] != false;
+      orchestrate = s['orchestrate'] == true;
       answerCache = ans != null && ans['enabled'] == true;
       answers = (ans?['count'] as int?) ?? -1;
       memories = (m['items'] as List).cast<Map<String, dynamic>>();
@@ -96,7 +102,10 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
   Widget build(BuildContext context) {
     final prefs = AppScope.of(context).prefs;
     final small = Theme.of(context).textTheme.bodySmall;
+    // Tâches en plusieurs parties : un seul choix lisible au lieu de deux interrupteurs.
+    final tasks = orchestrate ? 'multi' : taskPlanning ? 'plan' : 'off';
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      widget.header(context.t('group_you')),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
         child: TextField(
@@ -126,6 +135,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
           },
         ),
       ),
+      widget.header(context.t('group_answers')),
       SwitchListTile(
         secondary: const Icon(Icons.bolt_outlined),
         title: Text(context.t('speed_first')),
@@ -156,17 +166,33 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
           _call('PUT', '/tontolo/settings', {'auto_compact': v});
         },
       ),
-      SwitchListTile(
-        secondary: const Icon(Icons.account_tree_outlined),
-        title: Text(context.t('task_planning')),
-        subtitle: Text(context.t('task_planning_help'), style: small),
-        value: taskPlanning,
-        onChanged: (v) {
-          setState(() => taskPlanning = v);
-          _call('PUT', '/tontolo/settings', {'task_planning': v});
-        },
+      ListTile(
+        leading: const Icon(Icons.account_tree_outlined),
+        title: Text(context.t('tasks_mode')),
+        subtitle: Text(context.t('tasks_${tasks}_help'), style: small),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        child: SegmentedButton<String>(
+          showSelectedIcon: false,
+          segments: [
+            ButtonSegment(value: 'off', label: Text(context.t('tasks_off'))),
+            ButtonSegment(value: 'plan', label: Text(context.t('tasks_plan'))),
+            ButtonSegment(value: 'multi', label: Text(context.t('tasks_multi'))),
+          ],
+          selected: {tasks},
+          onSelectionChanged: (v) {
+            final m = v.first;
+            setState(() {
+              taskPlanning = m != 'off';
+              orchestrate = m == 'multi';
+            });
+            _call('PUT', '/tontolo/settings', {'task_planning': m != 'off', 'orchestrate': m == 'multi'});
+          },
+        ),
       ),
       if (workspace != null) ...[
+        widget.header(context.t('workspace')),
         ListTile(
           leading: const Icon(Icons.folder_special_outlined),
           title: Text(context.t('workspace')),
@@ -198,7 +224,9 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
             ),
           ),
       ],
+      widget.header(context.t('memory')),
       SwitchListTile(
+        secondary: const Icon(Icons.psychology_outlined),
         title: Text(context.t('memory')),
         subtitle: Text(context.t('memory_help'), style: small),
         value: enabled,
@@ -243,9 +271,11 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
             child: Text(context.t('answer_cache_clear'), style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ),
         ),
+      widget.header(context.t('group_voice')),
       ListenableBuilder(
         listenable: prefs,
         builder: (context, _) => ListTile(
+          leading: const Icon(Icons.record_voice_over_outlined),
           title: Text(context.t('speech_rate')),
           subtitle: Slider(
             value: prefs.speechRate, min: 0.3, max: 0.8, divisions: 10,

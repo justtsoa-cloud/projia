@@ -131,6 +131,9 @@ class Settings(BaseModel):
     auto_compact: bool = True
     # Tâches complexes : plan en étapes (en parallèle sur plusieurs modèles ou pas à pas).
     task_planning: bool = True
+    # Orchestration multi-modèles pour les demandes en plusieurs parties (sous-tâches en
+    # parallèle sur des modèles gratuits, puis fusion). Désactivée par défaut.
+    orchestrate: bool = False
     # Prénom pour l'accueil (« Bonsoir » + prénom) ; vide : compte ou mémoire, sinon aucun.
     user_name: str = Field(default="", max_length=40)
     # Mode avancé : fournisseurs personnalisés et règles de routage.
