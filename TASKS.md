@@ -281,6 +281,7 @@ Règle : tout test, bug trouvé et optimisation est noté ici au fur et à mesur
 - [x] B12. (essai réel R4) En discussion normale, le modèle recevait les outils terminal/navigateur/écriture et tentait de créer un fichier Word par le terminal → ces outils sont réservés au mode Agent (économie d'environ 1,5 k jetons par demande)
 - [x] B13. (E5) Une discussion de milliers de messages était chargée en une seule requête par l’app → chargement par fenêtre (120 derniers, `?tail=&before=`), bouton « Messages précédents (n) » en tête, test Flutter
 - [x] B14. (essai réel R7, livre de 21 pages) Erreur LaTeX « clé inconnue /tcb/… » : la ligne fautive était perdue du journal, le chapitre n’était pas retrouvé et le livre échouait → ligne `l.N` conservée, recherche du texte fautif dans les chapitres, et dernier recours `plain_chapter` (chapitre simplifié) au lieu d’abandonner le livre
+- [x] O1. (essai réel R3 : 47 s par tour, réponses de 2 à 6 k caractères d’un modèle 550B lent) Vitesse réellement observée par modèle (car./s, attente comprise, moyenne glissante) mêlée à celle du catalogue (souvent absente pour les gratuits) : le routeur favorise les modèles rapides, surtout en « réponse rapide d’bord »
 - [x] R3 longue discussion (14 tours, prénom et ville retrouvés) et R4 chaîne de 4 corrections (aucun nom de fichier dupliqué) OK
 - [x] E2 (partiel) : R2 plan complexe, R6 projet de code, R8 outils agent OK ; R4 chaîne de corrections, R3 longue discussion, R7 livre à relancer sur le code corrigé
 

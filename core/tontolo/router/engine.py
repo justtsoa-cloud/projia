@@ -379,6 +379,10 @@ class Router:
             self.offline_since = None
             self.quota.on_success(m)
             self.reliability.record(m.key, True)
+            self.reliability.record_speed(
+                m.key, len(str(result.message.get("content") or ""))
+                + len(str(result.message.get("tool_calls") or "")),
+                time.monotonic() - attempt_started)
             cost = 0.0
             if not m.is_free:
                 cost = (result.usage.get("prompt_tokens", 0) * m.price_in

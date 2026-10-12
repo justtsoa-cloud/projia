@@ -9,6 +9,7 @@ Un modèle choisi manuellement passe en tête ; la chaîne automatique suit.
 
 from __future__ import annotations
 
+import math
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -68,11 +69,26 @@ class Reliability:
         self.decay = decay
         self.table: dict[str, tuple[float, float]] = {}
         self.dirty: set[str] = set()
+        self.speeds: dict[str, float] = {}  # car./s observés (en mémoire)
 
     def get(self, key: str) -> float:
         ok, total = self.table.get(key, (0.0, 0.0))
         p_ok, p_total = RELIABILITY_PRIOR
         return (ok + p_ok) / (total + p_total)
+
+    def record_speed(self, key: str, chars: int, seconds: float) -> None:
+        """Vitesse réellement observée (caractères produits par seconde, attente comprise) :
+        les catalogues ne la donnent pas pour la plupart des modèles gratuits."""
+        if chars < 40 or seconds <= 0.05:
+            return  # trop court pour être significatif
+        cps = chars / seconds
+        prev = self.speeds.get(key)
+        self.speeds[key] = cps if prev is None else 0.7 * prev + 0.3 * cps
+
+    def speed(self, key: str) -> float | None:
+        """Vitesse observée normalisée [0, 1] (≈ 0,4 à 50 car./s, 0,86 à 200 car./s)."""
+        cps = self.speeds.get(key)
+        return None if cps is None else 1.0 - math.exp(-cps / 100.0)
 
     def record(self, key: str, success: bool) -> None:
         ok, total = self.table.get(key, (0.0, 0.0))
@@ -147,6 +163,9 @@ def rank(
                 continue
             q = m.quality.get(cat.value, m.quality.get(Category.CHAT.value, 0.0))
             s = m.speed if m.speed is not None else DEFAULT_SPEED
+            seen = reliability.speed(m.key)
+            if seen is not None:  # mesure locale : elle prime sur l'estimation du catalogue
+                s = 0.3 * s + 0.7 * seen
             if profile.latency_pref == "fast" and m.speed is not None:
                 s = min(1.0, s * 1.2)
             r = reliability.get(m.key)
