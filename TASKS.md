@@ -259,9 +259,16 @@ l'emploi ; bureau Linux = fichiers + commandes confirmées dans un dossier chois
 
 ## Tests d'endurance, de longs projets et de complexité (2026-10-12, demandés par le propriétaire)
 Règle : tout test, bug trouvé et optimisation est noté ici au fur et à mesure.
-- [ ] E1. Bancs d'essai du cœur (fournisseurs simulés) : très longue discussion (milliers de messages, images, vidéos, fichiers), nombreuses discussions, tours en parallèle, arrêt/reprise, mémoire, synchro ; mesurer temps et mémoire
+- [x] E1. (fait : core/bench/b1–b4 ; résultats dans docs/ENDURANCE.md) Bancs d'essai du cœur (fournisseurs simulés) : très longue discussion (milliers de messages, images, vidéos, fichiers), nombreuses discussions, tours en parallèle, arrêt/reprise, mémoire, synchro ; mesurer temps et mémoire
 - [ ] E2. Essais réels avec modèles gratuits : livre long, projet multi-fichiers, plan complexe en parallèle, chaîne de corrections, agent avec outils
 - [ ] E3. Robustesse : entrées extrêmes (énormes, Unicode, injections), pannes de fournisseurs, coupures réseau, base verrouillée, disque plein
 - [ ] E4. Fuites et croissance : terminaux, onglets, résultats de tâches, caches, tâches de fond, connexions
 - [ ] E5. Application : longue discussion à l'écran (défilement, mémoire), arrière-plan Android, synchro de gros volumes
 - [ ] E6. Correctifs et optimisations issus de E1–E5 (liste ci-dessous, au fil de l'eau)
+
+### Bugs trouvés et corrigés pendant les tests d'endurance
+- [x] B1. Un fournisseur qui plante avec une exception inattendue (JSON, KeyError…) faisait échouer tout le tour au lieu de basculer sur un autre modèle → bascule sur toute exception
+- [x] B2. Un fournisseur qui n'envoie que des signaux de maintien (ex. OpenRouter en file d'attente) bloquait le tour indéfiniment → premier mot sous 90 s, silence max 60 s, 200 s cumulées perdues au plus
+- [x] B3. Créations longues (chapitres) : appel unique soumis au délai global de 120 s du fournisseur → diffusion
+- [ ] B4. Résumé de fil jeté si un message arrive pendant le résumé (starvation en usage rapide) → comparer le préfixe résumé au lieu de la révision entière
+- [ ] B5. Fil long jamais résumé (importé) : tout l'historique est envoyé au premier tour → fenêtre bornée sans résumé
