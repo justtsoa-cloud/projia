@@ -295,6 +295,6 @@ Règle : tout test, bug trouvé et optimisation est noté ici au fur et à mesur
 - [x] Essai émulateur : carte affichée, choix envoyés, création relancée avec la demande complétée
 - [x] Bug trouvé à l'essai : questions dans la langue de l'interface (malgache) pour une demande en français → langue détectée sur la demande
 - [x] Bug trouvé à l'essai (malgache) : « Manorata tatitra Word… » non reconnu comme création (verbes malgaches manorata, amboary, vokary, avoahy ; « amin'ny pdf ») ; consigne : ne jamais écrire les questions en texte quand ask_user est disponible
-- [ ] Texte « Autre… » libre dans la carte (aujourd'hui : l'utilisateur écrit dans le champ normal)
+- [x] Champ libre « Autre précision (facultatif)… » dans la carte (ajouté à la réponse) — après 0.5.6
 - [ ] Essai réel : vérifier quels modèles gratuits appellent bien `ask_user`
 

@@ -10,9 +10,10 @@ class QuestionCard extends StatefulWidget {
   final void Function(String text) onSend;
 
   /// Réponse envoyée : une ligne « question → choix » par question répondue.
-  static String compose(List<AskedQuestion> qs, List<Set<String>> picked) => [
+  static String compose(List<AskedQuestion> qs, List<Set<String>> picked, [String other = '']) => [
         for (var i = 0; i < qs.length; i++)
           if (picked[i].isNotEmpty) '${qs[i].question} → ${picked[i].join(', ')}',
+        if (other.trim().isNotEmpty) other.trim(),
       ].join('\n');
 
   @override
@@ -21,6 +22,15 @@ class QuestionCard extends StatefulWidget {
 
 class _QuestionCardState extends State<QuestionCard> {
   late List<Set<String>> picked = [for (final _ in widget.questions) <String>{}];
+  final other = TextEditingController(); // précision libre, en plus des choix
+
+  @override
+  void dispose() {
+    other.dispose();
+    super.dispose();
+  }
+
+  void _send() => widget.onSend(QuestionCard.compose(widget.questions, picked, other.text));
 
   @override
   void didUpdateWidget(QuestionCard old) {
@@ -41,15 +51,13 @@ class _QuestionCardState extends State<QuestionCard> {
       }
     });
     // Une seule question à choix unique : un toucher suffit.
-    if (widget.questions.length == 1 && !q.multiple) {
-      widget.onSend(QuestionCard.compose(widget.questions, picked));
-    }
+    if (widget.questions.length == 1 && !q.multiple && other.text.trim().isEmpty) _send();
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final any = picked.any((p) => p.isNotEmpty);
+    final any = picked.any((p) => p.isNotEmpty) || other.text.trim().isNotEmpty;
     final single = widget.questions.length == 1 && !widget.questions.first.multiple;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -75,14 +83,26 @@ class _QuestionCardState extends State<QuestionCard> {
               ),
           ]),
         ],
-        if (!single) ...[
+        const SizedBox(height: 10),
+        TextField(
+          controller: other,
+          minLines: 1,
+          maxLines: 3,
+          textInputAction: TextInputAction.send,
+          onChanged: (_) => setState(() {}),
+          onSubmitted: (_) => any ? _send() : null,
+          decoration: InputDecoration(
+            isDense: true,
+            hintText: context.t('ask_other'),
+            border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+          ),
+        ),
+        if (!single || other.text.trim().isNotEmpty) ...[
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerRight,
             child: FilledButton(
-              onPressed: any
-                  ? () => widget.onSend(QuestionCard.compose(widget.questions, picked))
-                  : null,
+              onPressed: any ? _send : null,
               child: Text(context.t('ask_send')),
             ),
           ),

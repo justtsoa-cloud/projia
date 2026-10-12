@@ -19,6 +19,7 @@ void main() {
     final text = QuestionCard.compose(qs, [{'Élèves'}, {'Courte', 'Longue'}]);
     expect(text, 'Pour qui ? → Élèves\nLongueur ? → Courte, Longue');
     expect(QuestionCard.compose(qs, [{}, {'Courte'}]), 'Longueur ? → Courte');
+    expect(QuestionCard.compose(qs, [{'Pro'}, {}], ' avec des chiffres '), 'Pour qui ? → Pro\navec des chiffres');
   });
 
   testWidgets('une seule question à choix unique : un toucher envoie', (tester) async {
