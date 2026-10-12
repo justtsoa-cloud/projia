@@ -309,6 +309,6 @@ Philosophie gardée : gratuit d'abord, clés de l'utilisateur, rien ne passe par
 - [ ] F3. Descriptions des fournisseurs en anglais et malgache (aujourd'hui en français pour tous)
 - [x] M1. Mémoire sémantique unifiée : un même index local (vecteurs de trigrammes, sans dépendance, toutes langues) pour les souvenirs ET les réponses déjà données
 - [x] M2. Cache sémantique : question quasi identique, sans dépendance au temps ni au contexte → réponse réutilisée immédiatement (« déjà répondu le … », Régénérer contourne) ; question proche → réponse antérieure fournie en contexte ; jamais pour l'actualité, les fichiers, les photos, le mode Apprendre ; effacé avec la discussion ; réglage « Réutiliser les réponses » + Vider
-- [ ] A1. Mode avancé : fournisseurs personnalisés compatibles OpenAI (HTTPS obligatoire, hôte épinglé, test de connexion, clé dans le stockage sécurisé)
-- [ ] A2. Mode avancé : enchaînements de modèles définis par l'utilisateur (par catégorie), fournisseurs exclus/préférés
-- [ ] A3. Mode avancé : délais du routeur réglables dans des bornes sûres ; export/import des réglages avancés sans les clés
+- [x] A1. Mode avancé : fournisseurs personnalisés compatibles OpenAI (HTTPS obligatoire, hôte épinglé, test de connexion, clé dans le stockage sécurisé)
+- [x] A2. Mode avancé : enchaînements de modèles définis par l'utilisateur (par catégorie), fournisseurs exclus/préférés
+- [x] A3. Mode avancé : délais du routeur réglables dans des bornes sûres ; export/import des réglages avancés sans les clés

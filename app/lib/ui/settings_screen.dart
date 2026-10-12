@@ -14,6 +14,7 @@ import '../core/updater.dart';
 import '../main.dart';
 import 'about_screen.dart';
 import 'account_section.dart';
+import 'advanced_routing.dart';
 import 'personalization.dart';
 import 'message_view.dart' show openSafeLink;
 import 'status_screen.dart';
@@ -622,6 +623,7 @@ class _AdvancedState extends State<_Advanced> {
             ),
           ),
       ],
+      AdvancedRouting(header: (t) => _Section(t)),
       _Section(context.t('mcp')),
       for (final (i, srv) in mcpServers.indexed)
         SwitchListTile(
