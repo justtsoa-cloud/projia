@@ -5,6 +5,29 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.5.9] - 2026-10-12
+
+### Ajouté
+- Orchestration multi-modèles : Réglages › Réponses › « Tâches en plusieurs parties » (Simple /
+  Planifier / Plusieurs modèles). En « Plusieurs modèles », les parties d’une demande
+  (« écris le code ; explique-le ; traduis… ») sont confiées en même temps à des modèles
+  gratuits, celles qui dépendent d’une autre passent après avec son résultat, puis tout est
+  réuni. Une demande simple suit le flux habituel. Aussi disponible par l’API
+  (`orchestrate=true`), avec les mesures (durées, modèles). Désactivée par défaut.
+- Réglages simples regroupés : Vous, Réponses, Mémoire, Espace de travail, Voix, Clés
+  gratuites, Modèles payants, Affichage et langue.
+
+### Sécurité
+- Fichier de clés de repli (sans trousseau) chiffré, ancien fichier migré automatiquement.
+- WebSockets limités (clients simultanés, tentatives par minute ; terminal : taille et débit
+  des messages).
+- MCP : interpréteurs de commandes, élévation de droits, outils destructeurs, code en ligne
+  et variables dangereuses refusés ; tailles bornées ; depuis un autre appareil, serveurs
+  HTTPS publics seulement. Audit dans `docs/SECURITY_AUDIT.md`.
+
+### Corrigé
+- « Artificial Analysis (classements) » traduit, sans « 0 modèle gratuit » trompeur.
+
 ## [0.5.8] - 2026-10-12
 
 ### Ajouté

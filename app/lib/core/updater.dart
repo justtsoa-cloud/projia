@@ -21,7 +21,7 @@ import 'storage_dirs.dart';
 import '../l10n/strings.dart';
 import 'prefs.dart';
 
-const appVersion = '0.5.8';
+const appVersion = '0.5.9';
 const repo = 'raantss18/tontolo';
 
 enum UpdateStatus { idle, checking, downloading, ready, failed, upToDate }

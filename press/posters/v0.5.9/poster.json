@@ -1,0 +1,56 @@
+{
+  "shot": "tasks",
+  "lang": {
+    "fr": {
+      "tagline": "Nouveautés", "date": "12 octobre 2026",
+      "hero": ["Plusieurs modèles,", "une seule réponse"],
+      "sub": "Les demandes en plusieurs parties vont plus vite.",
+      "steps": [
+        ["Réglages › Réponses :", "« Plusieurs modèles »"],
+        ["Demandez : « écris le code ;", "explique-le ; traduis le", "titre »"],
+        ["Chaque partie va à un", "modèle gratuit, en même", "temps, puis tout est réuni"]
+      ],
+      "also": "Aussi dans cette version",
+      "items": [
+        ["Réglages plus clairs", ["Vous, Réponses, Mémoire, Voix,", "Clés, Affichage : tout est groupé."]],
+        ["Sécurité renforcée", ["Clés de repli chiffrées, connexions", "limitées, serveurs MCP vérifiés."]],
+        ["Notes partagées", ["Les pouces levés et baissés améliorent", "le choix des modèles pour tous."]]
+      ],
+      "footer": "Gratuit · Android · Linux"
+    },
+    "en": {
+      "tagline": "What's new", "date": "October 12, 2026",
+      "hero": ["Several models,", "one answer"],
+      "sub": "Multi-part requests get done faster.",
+      "steps": [
+        ["Settings › Answers:", "“Several models”"],
+        ["Ask: “write the code;", "explain it; translate the", "title”"],
+        ["Each part goes to a free", "model, all at once, then", "everything is put together"]
+      ],
+      "also": "Also in this version",
+      "items": [
+        ["Clearer settings", ["You, Answers, Memory, Voice,", "Keys, Display: all grouped."]],
+        ["Stronger security", ["Encrypted fallback keys, limited", "connections, checked MCP servers."]],
+        ["Shared ratings", ["Thumbs up and down now improve", "model choice for everyone."]]
+      ],
+      "footer": "Free · Android · Linux"
+    },
+    "mg": {
+      "tagline": "Vaovao", "date": "12 Oktobra 2026",
+      "hero": ["Modely maro,", "valiny iray"],
+      "sub": "Haingana kokoa ny fangatahana misy ampahany maro.",
+      "steps": [
+        ["Kirakira › Valiny:", "« Modely maro »"],
+        ["Angataho: « soraty ny", "kaody; hazavao; adikao ny", "lohateny »"],
+        ["Samy omena modely maimaim-", "poana miaraka ny ampahany,", "avy eo atambatra"]
+      ],
+      "also": "Ao amin'ity dikan-teny ity koa",
+      "items": [
+        ["Kirakira mazava kokoa", ["Ianao, Valiny, Fitadidiana, Feo,", "Fanalahidy, Fisehoana: voavondrona."]],
+        ["Fiarovana matanjaka kokoa", ["Fanalahidy voaaro, fifandraisana", "voafetra, mpizara MCP voazaha."]],
+        ["Naoty zaraina", ["Manatsara ny safidy modely ho an'ny", "rehetra ny ankihibe ambony sy ambany."]]
+      ],
+      "footer": "Maimaim-poana · Android · Linux"
+    }
+  }
+}

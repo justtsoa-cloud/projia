@@ -209,7 +209,8 @@ class _ProviderKeysState extends State<ProviderKeys> {
     if (b.state != BackendState.ready) return;
     final data = await b.getJson('/tontolo/providers') as List;
     final list = data.cast<Map<String, dynamic>>()
-      ..add({'id': 'artificial-analysis', 'name': 'Artificial Analysis (classements)',
+      ..add({'id': 'artificial-analysis', 'name': mounted ? context.t('aa_name') : 'Artificial Analysis',
+             'description': mounted ? context.t('aa_help') : null,
              'key_url': 'https://artificialanalysis.ai/insights', 'has_key': false, 'free_models': 0});
     list.sort((a, b) => (b['free_models'] as int).compareTo(a['free_models'] as int));
     if (mounted) setState(() => providers = list.where((p) => p['id'] != 'local').toList());

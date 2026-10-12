@@ -14,6 +14,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.5.9': [
+    NewsItem(Icons.hub_outlined, 'Plusieurs modèles, une seule réponse',
+        'Réglages › Réponses › « Plusieurs modèles » : les parties d\'une demande (« écris le code ; explique-le ; traduis le titre ») sont confiées en même temps à des modèles gratuits, puis réunies. Une demande simple reste inchangée.',
+        'Several models, one answer', 'Settings › Answers › “Several models”: the parts of a request (“write the code; explain it; translate the title”) go to free models at the same time, then are put together. A simple request is unchanged.',
+        mg: 'Modely maro, valiny iray', mgText: 'Kirakira › Valiny › « Modely maro »: omena modely maimaim-poana miaraka ny ampahany amin\'ny fangatahana (« soraty ny kaody; hazavao; adikao ny lohateny »), avy eo atambatra. Tsy miova ny fangatahana tsotra.'),
+    NewsItem(Icons.shield_outlined, 'Réglages plus clairs, sécurité renforcée',
+        'Les réglages simples sont regroupés (Vous, Réponses, Mémoire, Voix…). Les clés de repli sont chiffrées, les connexions limitées et les serveurs MCP vérifiés.',
+        'Clearer settings, stronger security', 'Simple settings are grouped (You, Answers, Memory, Voice…). Fallback keys are encrypted, connections are limited and MCP servers are checked.',
+        mg: 'Kirakira mazava kokoa, fiarovana matanjaka kokoa', mgText: 'Voavondrona ny kirakira tsotra (Ianao, Valiny, Fitadidiana, Feo…). Voaaro ny fanalahidy, voafetra ny fifandraisana ary voazaha ny mpizara MCP.'),
+  ],
   '0.5.8': [
     NewsItem(Icons.thumbs_up_down_outlined, 'Notez chaque réponse',
         'Touchez 👍 ou 👎 sous une réponse : Tontolo favorise les modèles qui réussissent ce type de demande. Après un 👎, dites ce qui n\'allait pas ou réessayez avec un autre modèle. Seule la note est partagée (statistiques anonymes), jamais le texte.',
