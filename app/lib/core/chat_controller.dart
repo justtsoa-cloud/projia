@@ -643,8 +643,8 @@ class ChatController extends ChangeNotifier {
           // Création de fichier : rédaction, construction, relecture, corrections.
           status = '${ev['step']}' == 'doc_done'
               ? null
-              : '${ev['step']}' == 'book_chapter'
-                  ? 'book_chapter|${ev['n']}|${ev['total']}'
+              : '${ev['step']}' == 'book_chapter' || '${ev['step']}' == 'slides_section'
+                  ? '${ev['step']}|${ev['n']}|${ev['total']}'
                   : '${ev['step']}';
         case 'review':
           // Équipe de modèles : verdict du second modèle sur la réponse qui vient d'arriver.

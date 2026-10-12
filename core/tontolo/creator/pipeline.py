@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from tontolo.catalog.models import Category
-from tontolo.creator import book, bundle, charts, diagram, docx, latex, office, textfile
+from tontolo.creator import book, bundle, charts, diagram, docx, latex, office, slides, textfile
 from tontolo.creator.errors import CreationError
 
 MAX_FIXES = 3
@@ -236,6 +236,10 @@ class Creator:
             async for ev in self._book(kind, request, context, language, out, store):
                 yield ev
             return
+        if base is None and kind == "beamer":
+            async for ev in self._slides(request, context, language, out, store):
+                yield ev
+            return
         what, category = kind_info(kind)
         lang = _LANG.get(language, "français")
         system = (TEXT_PROMPT.format(ext=kind[5:], language=lang) if kind.startswith("text:")
@@ -351,6 +355,27 @@ class Creator:
             result = Output(res["pdf"], "application/pdf", f"{name}.pdf", res["title"],
                             res["source"], f"{name}.tex")
         result.steps, result.models = steps, list(dict.fromkeys(res["models"]))
+        if out is not None:
+            out.__dict__.update(result.__dict__)
+        yield {"type": "step", "step": "doc_done"}
+
+    async def _slides(self, request: str, context: str, language: str, out: Output | None,
+                      store: Callable[[str, str, str], Any] | None = None
+                      ) -> AsyncIterator[dict[str, Any]]:
+        """Présentation Beamer : plan, sections en parallèle, compilation, correction ciblée."""
+        res: dict[str, Any] = {}
+        try:
+            async for ev in slides.SlidesWriter(self.ask_long, language, store).run(
+                    request, context=context, out=res):
+                yield ev
+        except latex.LatexError as exc:
+            raise CreationError(f"la présentation n'a pas pu être compilée : {exc}") from exc
+        name = slug(res["title"])
+        result = Output(res["pdf"], "application/pdf", f"{name}.pdf", res["title"],
+                        res["source"], f"{name}.tex")
+        result.steps = [{"step": "doc_writing", "model": m} for m in dict.fromkeys(res["models"])]
+        result.steps += [{"step": "doc_fixing"}] * int(res["fixes"])
+        result.models = list(dict.fromkeys(res["models"]))
         if out is not None:
             out.__dict__.update(result.__dict__)
         yield {"type": "step", "step": "doc_done"}

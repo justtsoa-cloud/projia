@@ -361,7 +361,8 @@ Contraintes : rien ne change par défaut (`orchestrate=false`), léger (asyncio,
 - [x] « Équipe de modèles » renommée « Vérification par un second modèle » (distincte de « Plusieurs modèles » et du mode Agent)
 - [x] B23. Mode Apprendre : « crée un quizz de 10 questions » donnait un quiz en texte (non interactif) et lançait la vérification par un second modèle → consigne ferme « bloc ```quiz » ; un quiz (ou des fiches) écrit en texte est converti en bloc JSON validé avant l'enregistrement ; pas de relecture sur un quiz
 - [x] Création longue (Beamer, document tiré d'un long fichier) : délai des chapitres de livre ; source raté gardé dans les résultats intermédiaires
-- [ ] Essai réel : livre LaTeX de 328 pages → présentation Beamer
+- [x] B24. Beamer d'un seul trait trop long et fragile (essai réel : délai dépassé après plusieurs modèles) → rédacteur par sections comme les livres : plan, sections en parallèle, préambule fixe, [fragile] ajouté automatiquement, correction ciblée, section simplifiée en dernier recours
+- [ ] Essai réel : livre LaTeX de 328 pages → présentation Beamer (nouveau rédacteur)
 
 ## Analyse externe (v0.5.8) — tri (2026-10-12)
 Déjà fait (rien à refaire) : secrets.json chiffré, WebSockets limités (file bornée à 200 depuis longtemps + connexions et débit en 0.5.9), MCP validé (commandes dangereuses, code en ligne, tailles, SSRF à distance), fuzz des entrées (tests/test_fuzz_api.py), essais réels de bout en bout (bench/real_e2e.py), bancs de charge (bench/ + docs/ENDURANCE.md), CONTRIBUTING.md et docs/ARCHITECTURE.md présents, export d'une discussion (HTML), catalogue en cache hors ligne. Chiffres réels : 385 tests cœur + 58 Flutter (et non 92), roue 265 Ko.
