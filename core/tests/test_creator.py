@@ -104,16 +104,16 @@ async def _run(models: FakeModels, kind: str) -> tuple[Output, list[str]]:
 
 
 async def test_fix_loop_feeds_errors_back() -> None:
-    models = FakeModels(["Pas de titre", "# Mon document\nTexte."])
+    models = FakeModels(["trop court", "# Mon document\nTexte " + "développé " * 12])
     out, steps = await _run(models, "docx")
     assert out.filename == "mon-document.docx" and docx.check(out.data) == []
     assert "doc_fixing" in steps and steps[-1] == "doc_done"
-    assert "titre" in str(models.calls[1]["last"])  # le problème a été renvoyé au rédacteur
+    assert "trop court" in str(models.calls[1]["last"])  # le problème a été renvoyé au rédacteur
     assert [s["step"] for s in out.steps] == ["doc_writing", "doc_fixing", "doc_reviewing"]
 
 
 async def test_review_by_other_model_triggers_fix() -> None:
-    models = FakeModels(["# A\nx", "# A\nx corrigé"],
+    models = FakeModels(["# A\n" + "x" * 70, "# A\n" + "x corrigé " * 10],
                         review='{"ok": false, "issues": ["il manque une conclusion"]}')
     out, steps = await _run(models, "docx")
     assert steps.count("doc_reviewing") == 1 and "doc_fixing" in steps
@@ -139,7 +139,7 @@ async def test_latex_error_log_is_sent_back(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 async def test_unbuildable_file_is_never_delivered() -> None:
-    models = FakeModels(["sans titre"] * 5)
+    models = FakeModels(["vide"] * 5)
     with pytest.raises(CreationError):
         await _run(models, "docx")
 
@@ -237,3 +237,13 @@ def test_text_tool_calls_become_real_calls() -> None:
     assert json.loads(calls[0]["function"]["arguments"]) == {
         "query": "Einstein letter to Born 1926"}
     assert extract_text_tool_calls("Bonjour", {"web_search"}) == ("Bonjour", [])
+
+
+def test_docx_markdown_is_made_acceptable() -> None:
+    ensure = docx.ensure_title
+    assert ensure("Voici la version corrigée :\n\n# Mon titre\nTexte").startswith("# Mon titre")
+    assert ensure("## Partie un\nTexte\n## Partie deux").startswith("# Partie un\nTexte")
+    assert ensure("**Le cycle de l'eau**\n\nUn texte.").startswith("# Le cycle de l'eau\n")
+    assert ensure("- puce\n- puce").startswith("# Document\n- puce")
+    title, _ = docx.markdown_to_body(ensure("Intro sans titre\n- a\n- b"))
+    assert title == "Intro sans titre"

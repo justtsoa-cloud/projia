@@ -116,7 +116,7 @@ def test_one_confirmation_at_a_time(client: TestClient, fake: FakeProvider,
 
     for mid in ("coder-pro", "chatty", "small", "vision-x", "paid-genius"):
         fake.behaviors[mid] = act
-    events = _chat(client, "/tontolo/chat", {"content": "mets notes en v2"})
+    events = _chat(client, "/tontolo/chat", {"content": "mets notes en v2", "mode": "agent"})
     conf = next(e for e in events if e["type"] == "tool_confirmation")
     assert [c["name"] for c in conf["calls"]] == ["edit_file"]  # une seule à la fois
     assert "+v2" in conf["calls"][0]["preview"]
@@ -187,3 +187,24 @@ async def test_tool_conversation_is_per_task() -> None:
 
     await asyncio.gather(asyncio.create_task(turn("A")), asyncio.create_task(turn("B")))
     assert seen == {"A": "A", "B": "B"}
+
+
+def test_power_tools_only_in_agent_mode(client: TestClient, fake: FakeProvider,
+                                        tmp_path: Path) -> None:
+    assert client.put("/tontolo/workspace", json={"path": str(tmp_path)}).status_code == 200
+    seen: list[set[str]] = []
+
+    orig = fake.stream
+
+    async def spy(model: Any, messages: Any, *, tools: Any = None, **kw: Any) -> Any:
+        seen.append({t["function"]["name"] for t in tools or []})
+        async for item in orig(model, messages, tools=tools, **kw):
+            yield item
+
+    fake.stream = spy  # type: ignore[method-assign]
+    _chat(client, "/tontolo/chat", {"content": "Quelle est la capitale de la France ? Réponds."})
+    _chat(client, "/tontolo/chat", {"content": "Liste mes fichiers", "mode": "agent"})
+    general, agent = seen[0], seen[-1]
+    assert {"web_search", "calculator", "read_file", "list_dir"} <= general
+    assert not general & {"run_command", "write_file", "edit_file", "terminal_send"}
+    assert {"run_command", "write_file", "edit_file"} <= agent

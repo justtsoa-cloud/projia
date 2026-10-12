@@ -322,10 +322,12 @@ class Creator:
 
     async def _build(self, kind: str, source: str) -> tuple[Output, list[str]]:
         if kind == "docx":
+            source = docx.ensure_title(source)
             title, _ = docx.markdown_to_body(source)
-            if not title:
+            if len(source.split("\n", 1)[-1].strip()) < 5:  # un titre seul n'est pas un document
                 return Output(b"", "", "", "", source, ""), [
-                    "le document doit commencer par un titre « # … »"]
+                    "le document est vide ou trop court : rédige le contenu complet, en "
+                    "Markdown, en commençant par « # Titre »"]
             data = docx.build(source)
             return Output(data, "application/vnd.openxmlformats-officedocument."
                           "wordprocessingml.document", f"{slug(title)}.docx", title, source,

@@ -276,3 +276,6 @@ Règle : tout test, bug trouvé et optimisation est noté ici au fur et à mesur
 - [x] B7. Fuite : les tours terminés (et tous leurs événements) s'accumulaient en mémoire tant que personne ne les relisait → nettoyage à chaque nouveau tour
 - [x] B8. Texte avec demi-paire Unicode (« \ud800 ») dans un message ou une réponse de modèle : échec de l'enregistrement / du flux (réponse perdue) → assaini partout
 - [x] B9. Entrées malformées → 500 : image_url sans url, catégorie inconnue (chat et catalogue), contenu invalide, message de plusieurs Mo → validation 4xx (message ≤ 1,5 M de caractères)
+- [x] B10. (essai réel R4) Une correction de document échouait : le modèle ne commençait pas par « # Titre » après 3 reprises → Markdown rendu acceptable (introduction retirée, premier titre ou première ligne promu en titre), un titre seul reste refusé
+- [x] B11. (essai réel R4) Après une correction échouée, « excellent mais plus court » partait en discussion (dernier fichier introuvable) → on repart du dernier fichier livré
+- [x] B12. (essai réel R4) En discussion normale, le modèle recevait les outils terminal/navigateur/écriture et tentait de créer un fichier Word par le terminal → ces outils sont réservés au mode Agent (économie d'environ 1,5 k jetons par demande)

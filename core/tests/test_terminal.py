@@ -148,7 +148,7 @@ def test_agent_reads_terminal_and_sees_its_commands(client: TestClient, fake: Fa
         with client.stream("POST", url, json=payload) as s:
             return [json.loads(x[5:]) for x in s.iter_lines() if x.startswith("data:")]
 
-    ev = events("/tontolo/chat", {"content": "liste les fichiers"})
+    ev = events("/tontolo/chat", {"content": "liste les fichiers", "mode": "agent"})
     conf = next(e for e in ev if e["type"] == "tool_confirmation")
     cid = conf["conversation_id"]
     ev = events(f"/tontolo/chat/{cid}/resume", {"approved": True})

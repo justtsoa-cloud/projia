@@ -913,3 +913,36 @@ def test_versions_never_share_a_filename(client: TestClient,
         names.append(job["params"]["filename"])
         assert job["params"]["revision"] is True  # corrigé, pas recréé de zéro
     assert names == ["cours-sur-l-eau.docx", "cours-sur-l-eau-v2.docx", "cours-sur-l-eau-v3.docx"]
+
+
+def test_feedback_after_a_failed_revision_starts_from_the_last_good_file(
+        client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Cas réel (essai de bout en bout) : la 1re correction échoue, « excellent mais plus
+    court » partait en discussion au lieu de reprendre la dernière version livrée."""
+    from tontolo.creator.pipeline import CreationError
+    from tontolo.creator.service import CreatorService
+
+    state = {"n": 0}
+
+    async def ask(self: Any, messages: Any, *, category: Any = None, model: Any = None,
+                  limit: float = 0) -> tuple[str, str, str]:
+        state["n"] += 1
+        if state["n"] in (2, 3, 4, 5, 6):  # la correction échoue (et ses reprises)
+            raise CreationError("modèle indisponible")
+        return "# Cours sur l'eau\n## Cycle\nTexte du cours.", "fake:writer", "Rédacteur"
+
+    async def pick(self: Any, *, exclude: str, vision: bool = False) -> None:
+        return None
+
+    monkeypatch.setattr(CreatorService, "ask", ask)
+    monkeypatch.setattr(CreatorService, "pick_reviewer", pick)
+    first = _events(client, "/tontolo/chat", {"content": "Génère un fichier Word sur l'eau"})
+    cid = next(e["id"] for e in first if e["type"] == "conversation")
+    failed = _events(client, "/tontolo/chat", {"conversation_id": cid,
+                                                "content": "rajoute un exercice"})
+    assert next(e for e in failed if e["type"] == "done")["job"]["status"] == "failed"
+    state["n"] = 10
+    ok = _events(client, "/tontolo/chat", {"conversation_id": cid,
+                                            "content": "excellent mais plus court"})
+    job = next(e for e in ok if e["type"] == "done")["job"]
+    assert job["status"] == "done" and job["params"]["revision"] is True

@@ -128,6 +128,8 @@ THREAD_SUMMARY_PROMPT = (
 KEEP_RECENT = 12       # messages toujours envoyés mot pour mot
 SUMMARIZE_AFTER = 30   # messages non résumés au-delà desquels le début du fil est résumé
 KEEP_IMAGES = 2        # messages avec photo envoyés en image (les plus récents)
+# Outils réservés au mode Agent (actions sur l'ordinateur ; chacun demande une confirmation).
+POWER_TOOLS = frozenset({"run_command", "write_file", "edit_file", "undo_last_change"})
 SUMMARY_CHUNK_CHARS = 18_000  # taille d'un bloc de résumé roulant
 SUMMARY_CHUNKS = 4            # blocs résumés par passage (le reste au tour suivant)
 NO_SUMMARY_WINDOW = 40        # sans résumé, un fil long n'envoie que ses derniers messages
@@ -725,11 +727,18 @@ class ChatService:
     ) -> AsyncIterator[dict[str, Any]]:
         started = time.monotonic()
         CURRENT.set(cid)  # propre à ce tour : deux discussions en parallèle ne se mêlent pas
+        mode = await self.db.get_mode(cid)
         box = await self.toolbox_with_mcp() if use_tools else ToolBox()
+        if not mode.startswith("agent"):
+            # Hors mode Agent : pas de terminal, de navigateur ni d'écriture de fichiers. Ces
+            # outils alourdissent chaque demande et détournent le modèle (qui tentait de créer
+            # un fichier Word par le terminal) ; la création de fichiers a son propre circuit.
+            box = ToolBox({n: t for n, t in box.tools.items() if n not in POWER_TOOLS
+                           and not n.startswith(("browser_", "terminal_"))})
         tools = box.schemas() or None
         searched = False
         done_calls: dict[str, str] = {}  # appel d'outil identique déjà fait → même résultat
-        agent = agent_of(await self.db.get_mode(cid))
+        agent = agent_of(mode)
         max_iterations = self.settings.agent.max_iterations
         max_seconds = self.settings.agent.max_seconds
         if agent is not None:

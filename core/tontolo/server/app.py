@@ -164,16 +164,25 @@ async def _english_prompt(core: Core, text: str) -> str:
 
 async def _last_file(core: Core, cid: str) -> tuple[str, str] | None:
     """(format, source) du fichier créé par la DERNIÈRE réponse de la conversation."""
-    last = next((m for m in reversed(await core.db.get_messages(cid))
-                 if m.get("role") == "assistant"), None)
-    mt = re.match(r"^\[média:([0-9a-f]+)\]$", str((last or {}).get("content") or "").strip())
-    if not mt:
+    # Le dernier fichier LIVRÉ : une correction qui a échoué n'efface pas la version précédente
+    # (« excellent mais plus court » après un échec doit encore partir de la dernière version).
+    job: dict[str, Any] | None = None
+    for m in reversed((await core.db.get_messages(cid))[-12:]):
+        if m.get("role") != "assistant":
+            continue
+        mt = re.match(r"^\[média:([0-9a-f]+)\]$", str(m.get("content") or "").strip())
+        if not mt:
+            return None  # la discussion a continué en texte : on ne corrige plus un fichier
+        found = await core.db.get_job(mt.group(1))
+        if (not found or found.get("conversation_id") != cid
+                or found.get("kind") != "file_gen"):
+            return None
+        if found.get("status") == "done":
+            job = found
+            break  # échec : on remonte à la version précédente
+    if job is None:
         return None
-    job = await core.db.get_job(mt.group(1))
-    params = (job or {}).get("params") or {}
-    if (not job or job.get("conversation_id") != cid
-            or job.get("kind") != "file_gen" or job.get("status") != "done"):
-        return None
+    params = job.get("params") or {}
     src = params.get("source_path") or job.get("result_path")
     path = Path(str(src or ""))
     text = ""

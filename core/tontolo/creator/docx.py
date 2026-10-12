@@ -160,6 +160,29 @@ def _table(rows: list[list[str]]) -> str:
     return "".join(out)
 
 
+def ensure_title(md: str, fallback: str = "Document") -> str:
+    """Rend le Markdown d'un modèle acceptable : retire une phrase d'introduction avant le
+    premier titre (« Voici la version corrigée : »), et si le texte n'a pas de titre « # »,
+    fait du premier titre (ou de la première ligne courte) le titre du document."""
+    text = (md or "").replace("\r\n", "\n").strip()
+    lines = text.split("\n")
+    h1 = next((i for i, ln in enumerate(lines) if re.match(r"^#\s+\S", ln)), None)
+    if h1 is not None:
+        return "\n".join(lines[h1:]) + "\n"
+    first_heading = next((i for i, ln in enumerate(lines) if re.match(r"^#{2,6}\s+\S", ln)),
+                         None)
+    if first_heading is not None:
+        title = re.sub(r"^#+\s+", "", lines[first_heading]).strip()
+        return f"# {title}\n" + "\n".join(lines[first_heading + 1:]) + "\n"
+    for i, ln in enumerate(lines):
+        clean = re.sub(r"[*_`]+", "", ln).strip().rstrip(":")
+        if clean and len(clean) <= 100 and not re.match(r"^([-*+]|\d+[.)]|\|)", clean):
+            return f"# {clean}\n" + "\n".join(lines[i + 1:]) + "\n"
+        if clean:
+            break
+    return f"# {fallback}\n{text}\n"
+
+
 def markdown_to_body(md: str) -> tuple[str, str]:
     """(titre, corps XML). Le premier titre « # » devient le titre du document."""
     lines = md.replace("\r\n", "\n").split("\n")
