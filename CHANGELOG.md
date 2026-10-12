@@ -5,6 +5,31 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.5.7] - 2026-10-12
+
+### Ajouté
+- Réponses déjà données : la même question (même autrement formulée) reçoit une réponse
+  immédiate, sans quota, marquée « Déjà répondu le … ». Jamais pour l’actualité, la météo,
+  les prix, une question personnelle ou liée au fil, des nombres différents, une autre
+  langue, une photo ou le mode Apprendre. Une question proche reçoit l’ancienne réponse comme
+  aide, sans recopie. Régénérer contourne toujours le cache. Effacer une discussion efface
+  ses réponses. Réglage et bouton Vider dans Personnalisation. Rien ne quitte l’appareil.
+- Mémoire et cache réunis dans un même index local : les souvenirs sont retrouvés par le
+  sens (accents, pluriels, autre tournure), plus seulement par les mêmes mots.
+- 7 fournisseurs : Cerebras, SambaNova, GitHub Models, Together (modèles « Free ») gratuits
+  avec clé ; Moonshot (Kimi), Qwen, Perplexity payants (seulement si leur prix est connu).
+  Groq, Mistral, Gemini, NVIDIA et Hugging Face proposent maintenant tous leurs modèles
+  dès que la clé est ajoutée. Adresses codées en dur : une liste en ligne ne peut jamais
+  détourner une clé.
+- Mode avancé :
+  - fournisseurs personnalisés compatibles OpenAI : connexion testée avant l’ajout, HTTPS
+    obligatoire et hôte épinglé ; HTTP seulement vers le réseau local, sans clé ;
+  - fournisseurs exclus et enchaînements de modèles par type de demande ;
+  - délais du routeur réglables dans des bornes sûres ;
+  - export et import des réglages, jamais les clés.
+  L’ajout de fournisseurs et l’import sont refusés depuis un client distant.
+- Noms et descriptions des fournisseurs en anglais et en malgache.
+
 ## [0.5.6] - 2026-10-12
 
 ### Ajouté

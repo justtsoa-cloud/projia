@@ -14,6 +14,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.5.7': [
+    NewsItem(Icons.history, 'Déjà répondu ? Réponse immédiate',
+        'Reposez une question, même autrement : Tontolo reprend sa réponse aussitôt, sans quota, et l\'indique (« Déjà répondu le … »). Jamais pour l\'actualité ni une question personnelle. Régénérer en donne une nouvelle. Tout reste sur l\'appareil.',
+        'Already answered? Instant answer', 'Ask a question again, even worded differently: Tontolo reuses its answer at once, with no quota used, and says so (“Already answered on …”). Never for news or a personal question. Regenerate gives a fresh one. Everything stays on the device.',
+        mg: 'Efa novaliana? Valiny avy hatrany', mgText: 'Avereno ny fanontaniana, na amin\'ny teny hafa aza: averin\'i Tontolo avy hatrany ny valiny, tsy mandany quota, ary lazainy izany (« Efa novaliana tamin\'ny … »). Tsy atao mihitsy ho an\'ny vaovao na fanontaniana manokana. Ny « Avereno » no manome vaovao. Ao amin\'ny fitaovana daholo ny zava-drehetra.'),
+    NewsItem(Icons.hub_outlined, 'Plus de fournisseurs, mode avancé plus souple',
+        'Cerebras, SambaNova, GitHub Models, Together gratuits ; Kimi, Qwen, Perplexity payants. En mode avancé : vos propres fournisseurs compatibles OpenAI (testés et protégés), vos enchaînements de modèles, des fournisseurs exclus, des délais réglables, l\'export des réglages sans clé.',
+        'More providers, more flexible advanced mode', 'Cerebras, SambaNova, GitHub Models, Together free; Kimi, Qwen, Perplexity paid. In advanced mode: your own OpenAI-compatible providers (tested and protected), your model chains, excluded providers, adjustable timeouts, settings export without keys.',
+        mg: 'Mpamatsy maro kokoa, fomba mandroso malefaka kokoa', mgText: 'Cerebras, SambaNova, GitHub Models, Together maimaim-poana; Kimi, Qwen, Perplexity mandoa vola. Amin\'ny fomba mandroso: ny mpamatsinao manokana mifanaraka amin\'ny OpenAI (voazaha sy voaaro), ny filaharan\'ny modely, mpamatsy tsy ampiasaina, fe-potoana azo ovaina, famoahana ny kirakira tsy misy fanalahidy.'),
+  ],
   '0.5.6': [
     NewsItem(Icons.quiz_outlined, 'Tontolo vous pose les bonnes questions',
         'Pour une demande ouverte (« Écris un rapport Word sur la pollution »), Tontolo demande d\'abord le public et la longueur, en puces à toucher. Touchez vos choix : le document est fait sur mesure.',

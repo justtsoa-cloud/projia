@@ -1,0 +1,56 @@
+{
+  "shot": "cache",
+  "lang": {
+    "fr": {
+      "tagline": "Nouveautés", "date": "12 octobre 2026",
+      "hero": ["Déjà répondu ?", "Réponse immédiate"],
+      "sub": "Tontolo se souvient de ce qu'il vous a dit.",
+      "steps": [
+        ["Posez une question :", "« Qu'est-ce qu'un nombre", "premier ? »"],
+        ["Reposez-la plus tard,", "même autrement formulée"],
+        ["Réponse immédiate, sans", "quota. Régénérer pour", "une nouvelle"]
+      ],
+      "also": "Aussi dans cette version",
+      "items": [
+        ["7 fournisseurs de plus", ["Cerebras, SambaNova, GitHub Models… gratuits ;", "Kimi, Qwen, Perplexity payants."]],
+        ["Mode avancé plus souple", ["Vos fournisseurs, vos enchaînements de", "modèles, vos délais. Toujours sûr."]],
+        ["Mémoire plus fine", ["Vos souvenirs sont retrouvés par le sens,", "pas seulement par les mêmes mots."]]
+      ],
+      "footer": "Gratuit · Android · Linux"
+    },
+    "en": {
+      "tagline": "What's new", "date": "October 12, 2026",
+      "hero": ["Already answered?", "Instant answer"],
+      "sub": "Tontolo remembers what it told you.",
+      "steps": [
+        ["Ask a question:", "“What is a prime", "number?”"],
+        ["Ask it again later,", "even worded differently"],
+        ["Instant answer, no quota", "used. Regenerate for a", "fresh one"]
+      ],
+      "also": "Also in this version",
+      "items": [
+        ["7 more providers", ["Cerebras, SambaNova, GitHub Models… free;", "Kimi, Qwen, Perplexity paid."]],
+        ["More flexible advanced mode", ["Your providers, your model chains,", "your timeouts. Still safe."]],
+        ["Sharper memory", ["Your memories are found by meaning,", "not only by the same words."]]
+      ],
+      "footer": "Free · Android · Linux"
+    },
+    "mg": {
+      "tagline": "Vaovao", "date": "12 Oktobra 2026",
+      "hero": ["Efa novaliana?", "Valiny avy hatrany"],
+      "sub": "Tadidin'i Tontolo izay efa nolazainy taminao.",
+      "steps": [
+        ["Mametraha fanontaniana:", "« Inona no atao hoe isa", "voalohany? »"],
+        ["Avereno any aoriana,", "na amin'ny teny hafa aza"],
+        ["Valiny avy hatrany, tsy", "mandany quota. Avereno", "raha mila vaovao"]
+      ],
+      "also": "Ao amin'ity dikan-teny ity koa",
+      "items": [
+        ["Mpamatsy 7 fanampiny", ["Cerebras, SambaNova, GitHub Models… maimaim-poana;", "Kimi, Qwen, Perplexity mandoa vola."]],
+        ["Fomba mandroso malefaka kokoa", ["Ny mpamatsinao, ny filaharan'ny modely,", "ny fe-potoana. Azo antoka foana."]],
+        ["Fitadidiana marina kokoa", ["Hita araka ny heviny ny fahatsiarovanao,", "fa tsy amin'ny teny mitovy ihany."]]
+      ],
+      "footer": "Maimaim-poana · Android · Linux"
+    }
+  }
+}
