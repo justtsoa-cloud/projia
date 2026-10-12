@@ -14,7 +14,7 @@ class DelayedBackend extends Backend {
   @override
   Future<dynamic> getJson(String path, [Map<String, dynamic>? query]) {
     if (path.endsWith('/documents')) return Future.value(<dynamic>[]);
-    return (responses[path] ??= Completer<dynamic>()).future;
+    return (responses[path.split('?').first] ??= Completer<dynamic>()).future;
   }
 }
 
@@ -58,6 +58,34 @@ void main() {
     expect(chat.conversationId, isNull);
     expect(chat.messages, isEmpty);
     expect(chat.busy, isFalse);
+    chat.dispose();
+  });
+
+  test('fil long : fenêtre récente, puis messages précédents ajoutés en tête', () async {
+    SharedPreferences.setMockInitialValues({});
+    final backend = DelayedBackend(await Prefs.load());
+    final chat = ChatController(backend);
+    final opening = chat.open('a');
+    backend.responses['/tontolo/conversations/a']!.complete({
+      'total': 4,
+      'messages': [
+        {'role': 'user', 'content': 'trois', '_meta': {'seq': 3}},
+        {'role': 'assistant', 'content': 'quatre', '_meta': {'seq': 4}},
+      ],
+    });
+    await opening;
+    expect(chat.earlierLeft, 2);
+    backend.responses['/tontolo/conversations/a'] = Completer<dynamic>()
+      ..complete({
+        'total': 4,
+        'messages': [
+          {'role': 'user', 'content': 'un', '_meta': {'seq': 1}},
+          {'role': 'assistant', 'content': 'deux', '_meta': {'seq': 2}},
+        ],
+      });
+    await chat.loadEarlier();
+    expect(chat.messages.map((m) => m.text), ['un', 'deux', 'trois', 'quatre']);
+    expect(chat.earlierLeft, 0);
     chat.dispose();
   });
 }

@@ -279,3 +279,5 @@ Règle : tout test, bug trouvé et optimisation est noté ici au fur et à mesur
 - [x] B10. (essai réel R4) Une correction de document échouait : le modèle ne commençait pas par « # Titre » après 3 reprises → Markdown rendu acceptable (introduction retirée, premier titre ou première ligne promu en titre), un titre seul reste refusé
 - [x] B11. (essai réel R4) Après une correction échouée, « excellent mais plus court » partait en discussion (dernier fichier introuvable) → on repart du dernier fichier livré
 - [x] B12. (essai réel R4) En discussion normale, le modèle recevait les outils terminal/navigateur/écriture et tentait de créer un fichier Word par le terminal → ces outils sont réservés au mode Agent (économie d'environ 1,5 k jetons par demande)
+- [x] B13. (E5) Une discussion de milliers de messages était chargée en une seule requête par l’app → chargement par fenêtre (120 derniers, `?tail=&before=`), bouton « Messages précédents (n) » en tête, test Flutter
+- [x] E2 (partiel) : R2 plan complexe, R6 projet de code, R8 outils agent OK ; R4 chaîne de corrections, R3 longue discussion, R7 livre à relancer sur le code corrigé

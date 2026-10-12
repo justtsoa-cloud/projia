@@ -470,8 +470,23 @@ class _ChatScreenState extends State<ChatScreen> {
                         child: ListView.builder(
                         controller: scroll,
                         padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemCount: chat.messages.length,
+                        itemCount: chat.messages.length + (chat.earlierLeft > 0 ? 1 : 0),
                         itemBuilder: (context, i) {
+                          if (chat.earlierLeft > 0) {
+                            if (i == 0) {
+                              return Center(
+                                child: TextButton(
+                                  onPressed: chat.loadingEarlier ? null : chat.loadEarlier,
+                                  child: chat.loadingEarlier
+                                      ? const SizedBox(
+                                          width: 18, height: 18,
+                                          child: CircularProgressIndicator(strokeWidth: 2))
+                                      : Text(context.t('earlier', {'n': '${chat.earlierLeft}'})),
+                                ),
+                              );
+                            }
+                            i -= 1;
+                          }
                           final m = chat.messages[i];
                           if (m.role == 'notice') return _Notice(m.text, onRetry: chat.retry);
                           final isLast = i == chat.messages.length - 1;

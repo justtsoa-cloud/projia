@@ -265,6 +265,8 @@ class ChatController extends ChangeNotifier {
     planSteps.clear();
     _modeChanged = false;
     messages.clear();
+    earlierLeft = 0;
+    loadingEarlier = false;
     busy = false;
     pending = null;
     status = null;
@@ -278,8 +280,10 @@ class ChatController extends ChangeNotifier {
     busy = true;
     notifyListeners();
     try {
-      final data = await backend.getJson('/tontolo/conversations/$id') as Map<String, dynamic>;
+      final data = await backend.getJson('/tontolo/conversations/$id?tail=$pageSize')
+          as Map<String, dynamic>;
       if (epoch != _epoch) return;
+      earlierLeft = _earlierCount(data);
       if (data.containsKey('mode')) {
         final mode = '${data['mode']}';
         learn = mode.startsWith('learn');
@@ -300,6 +304,49 @@ class ChatController extends ChangeNotifier {
       busy = false;
       messages.add(ChatMessage(role: 'notice', text: 'error|$e'));
       notifyListeners();
+    }
+  }
+
+  /// Messages chargés à l'ouverture : les plus récents seulement (fils de milliers de messages).
+  static const pageSize = 120;
+
+  /// Nombre de messages plus anciens encore sur le cœur (0 = tout est affiché).
+  int earlierLeft = 0;
+  bool loadingEarlier = false;
+
+  int _earlierCount(Map<String, dynamic> data) {
+    final total = data['total'];
+    final got = (data['messages'] as List).length;
+    return total is int && total > got ? total - got : 0;
+  }
+
+  /// Ajoute en tête la page précédente de la discussion.
+  Future<void> loadEarlier() async {
+    final id = conversationId;
+    final first = messages.where((m) => m.seq != null).map((m) => m.seq!).fold<int?>(
+        null, (a, b) => a == null || b < a ? b : a);
+    if (id == null || first == null || loadingEarlier || earlierLeft <= 0) return;
+    final epoch = _epoch;
+    loadingEarlier = true;
+    notifyListeners();
+    try {
+      final data = await backend.getJson('/tontolo/conversations/$id?tail=$pageSize&before=$first')
+          as Map<String, dynamic>;
+      if (epoch != _epoch) return;
+      final keep = List<ChatMessage>.of(messages);
+      messages.clear();
+      await _loadMessages((data['messages'] as List).cast<Map<String, dynamic>>());
+      if (epoch != _epoch) return;
+      messages.addAll(keep);
+      final got = (data['messages'] as List).length;
+      earlierLeft = earlierLeft > got ? earlierLeft - got : 0;
+    } catch (_) {
+      // la page reste disponible : l'utilisateur peut réessayer
+    } finally {
+      if (epoch == _epoch) {
+        loadingEarlier = false;
+        notifyListeners();
+      }
     }
   }
 
