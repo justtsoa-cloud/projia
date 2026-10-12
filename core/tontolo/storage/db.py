@@ -419,6 +419,34 @@ class Database:
             out.append(msg)
         return out
 
+    async def count_messages(self, cid: str) -> int:
+        row = await self._fetchone("SELECT COUNT(*) AS n FROM messages WHERE conversation_id = ?",
+                                   (cid,))
+        return int(row["n"]) if row else 0
+
+    async def get_window(self, cid: str, n: int, before_seq: int | None = None
+                         ) -> list[dict[str, Any]]:
+        """Les `n` derniers messages (ou les `n` qui précèdent `before_seq`), dans l'ordre.
+        Un fil de plusieurs milliers de messages (photos comprises) ne se charge plus d'un bloc :
+        l'application affiche la fin et va chercher le début à la demande."""
+        sql = "SELECT uid, seq, body, model, created_at FROM messages WHERE conversation_id = ? "
+        args: list[Any] = [cid]
+        if before_seq is not None:
+            sql += "AND seq < ? "
+            args.append(before_seq)
+        sql += "ORDER BY seq DESC LIMIT ?"
+        args.append(max(1, min(n, 1000)))
+        rows = list(reversed(await self._fetchall(sql, args)))
+        out = []
+        for r in rows:
+            msg = json.loads(r["body"])
+            msg["_meta"] = {"uid": r["uid"], "seq": r["seq"], "model": r["model"],
+                            "created_at": r["created_at"]}
+            out.append(msg)
+        # le morceau commence sur une demande de l'utilisateur (jamais sur un résultat d'outil)
+        first_user = next((i for i, m in enumerate(out) if m.get("role") == "user"), 0)
+        return out[first_user:] if len(out) > 1 else out
+
     # --- Préférences de modèle (F8) -----------------------------------
 
     async def set_preference(

@@ -946,3 +946,28 @@ def test_feedback_after_a_failed_revision_starts_from_the_last_good_file(
                                             "content": "excellent mais plus court"})
     job = next(e for e in ok if e["type"] == "done")["job"]
     assert job["status"] == "done" and job["params"]["revision"] is True
+
+
+def test_long_thread_loads_by_window(client: TestClient) -> None:
+    core = client.app.state.core  # type: ignore[attr-defined]
+    first = _events(client, "/tontolo/chat", {"content": "début"})
+    cid = next(e["id"] for e in first if e["type"] == "conversation")
+
+    async def fill() -> None:
+        for i in range(150):
+            await core.db.add_message(cid, {"role": "user", "content": f"q{i}"})
+            await core.db.add_message(cid, {"role": "tool", "name": "x", "content": f"t{i}",
+                                            "tool_call_id": str(i)})
+            await core.db.add_message(cid, {"role": "assistant", "content": f"r{i}"})
+
+    client.portal.call(fill)  # type: ignore[attr-defined]
+    total = 2 + 450
+    last = client.get(f"/tontolo/conversations/{cid}", params={"tail": 100}).json()
+    assert last["total"] == total and last["messages"][0]["role"] == "user"
+    assert last["messages"][-1]["_meta"]["seq"] == total and len(last["messages"]) <= 100
+    older = client.get(f"/tontolo/conversations/{cid}", params={
+        "tail": 100, "before": last["messages"][0]["_meta"]["seq"]}).json()
+    assert older["messages"][-1]["_meta"]["seq"] < last["messages"][0]["_meta"]["seq"]
+    seqs = [m["_meta"]["seq"] for m in older["messages"] + last["messages"]]
+    assert seqs == sorted(set(seqs))  # aucun doublon ni trou à la jonction (sauf début de tour)
+    assert len(client.get(f"/tontolo/conversations/{cid}").json()["messages"]) == total

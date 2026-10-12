@@ -961,12 +961,17 @@ def create_app(
 
     @app.get("/tontolo/conversations/{cid}")
     async def conversation(request: Request, cid: str, after: int = 0,
-                           limit: int | None = None) -> dict[str, Any]:
+                           limit: int | None = None, tail: int | None = None,
+                           before: int | None = None) -> dict[str, Any]:
+        """`tail=N` : les N derniers messages ; `before=seq&tail=N` : les N précédents (début
+        d'un long fil chargé à la demande). `total` : nombre de messages du fil."""
         db = core_of(request).db
         if not await db.conversation_exists(cid):
             raise HTTPException(404, "Conversation introuvable")
         summary, covered = await db.get_summary(cid)
-        return {"id": cid, "messages": await db.get_messages(cid, after, limit),
+        messages = (await db.get_window(cid, tail, before) if tail
+                    else await db.get_messages(cid, after, limit))
+        return {"id": cid, "messages": messages, "total": await db.count_messages(cid),
                 "mode": await db.get_mode(cid), "summary": summary, "summary_covered": covered,
                 "plan": planner.public(await db.get_plan(cid)),
                 "active": core_of(request).turns.active(cid) is not None}
