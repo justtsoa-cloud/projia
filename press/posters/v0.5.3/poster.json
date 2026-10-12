@@ -1,0 +1,56 @@
+{
+  "shot": "book",
+  "lang": {
+    "fr": {
+      "tagline": "Nouveautés", "date": "12 octobre 2026",
+      "hero": ["Des livres de", "200 pages"],
+      "sub": "Un plan, des chapitres en parallèle, un PDF.",
+      "steps": [
+        ["Demandez un livre : « Génère", "un livre de 200 pages sur… »"],
+        ["Tontolo établit le plan, puis", "rédige les chapitres en parallèle"],
+        ["Vous recevez le PDF ; chaque", "chapitre est visible dans", "Résultats intermédiaires"]
+      ],
+      "also": "Aussi dans cette version",
+      "items": [
+        ["Fini « puis-je écrire un fichier ? »", ["Les fichiers demandés sont créés", "et livrés directement."]],
+        ["Sélecteur de mode à icônes", ["Seul le mode actif affiche", "son nom."]],
+        ["Poster de version", ["Illustré, dans « Nouveautés » :", "touchez pour agrandir ou partager."]]
+      ],
+      "footer": "Gratuit · Android · Linux"
+    },
+    "en": {
+      "tagline": "What's new", "date": "October 12, 2026",
+      "hero": ["Books of", "200 pages"],
+      "sub": "A plan, parallel chapters, one PDF.",
+      "steps": [
+        ["Ask for a book: “Generate a", "200-page book about…”"],
+        ["Tontolo plans it, then writes", "the chapters in parallel"],
+        ["You get the PDF; each chapter", "shows in Intermediate", "results"]
+      ],
+      "also": "Also in this version",
+      "items": [
+        ["No more “may I write a file?”", ["Requested files are created", "and delivered directly."]],
+        ["Mode switch with icons", ["Only the active mode shows", "its name."]],
+        ["Version poster", ["Illustrated, in “What's new”:", "tap to enlarge or share."]]
+      ],
+      "footer": "Free · Android · Linux"
+    },
+    "mg": {
+      "tagline": "Vaovao", "date": "12 Oktobra 2026",
+      "hero": ["Boky", "200 pejy"],
+      "sub": "Drafitra, toko miaraka, PDF iray.",
+      "steps": [
+        ["Angataho boky: « Mamorona", "boky 200 pejy momba… »"],
+        ["Manao drafitra i Tontolo, avy", "eo manoratra ny toko miaraka"],
+        ["Mahazo PDF ianao; hita ao", "amin'ny Vokatra mpanelanelana", "ny toko tsirairay"]
+      ],
+      "also": "Ao amin'ity dikan-teny ity koa",
+      "items": [
+        ["Tsy misy « hanoratra rakitra? » intsony", ["Foronina sy omena mivantana", "ny rakitra angatahana."]],
+        ["Fomba misy sary kely", ["Ny anaran'ny fomba mavitrika", "ihany no aseho."]],
+        ["Sary fanehoana ny dikan-teny", ["Misy sary, ao amin'ny « Vaovao »:", "tsindrio hanalehibe na hizara."]]
+      ],
+      "footer": "Maimaim-poana · Android · Linux"
+    }
+  }
+}

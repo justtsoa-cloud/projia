@@ -14,6 +14,20 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.5.3': [
+    NewsItem(Icons.menu_book_outlined, 'Des livres de 200 pages',
+        'Demandez « Génère un livre de 200 pages sur… » : Tontolo établit le plan, rédige les chapitres en parallèle, compile le PDF et vous le livre. Chaque chapitre apparaît dans « Résultats intermédiaires » dès qu\'il est écrit.',
+        'Books of 200 pages', 'Ask “Generate a 200-page book about…”: Tontolo plans it, writes the chapters in parallel, builds the PDF and delivers it. Each chapter shows up in “Intermediate results” as soon as it is written.',
+        mg: 'Boky 200 pejy', mgText: 'Angataho hoe « Mamorona boky 200 pejy momba… »: manao drafitra i Tontolo, manoratra ny toko miaraka, manamboatra ny PDF ary manome azy aminao. Miseho ao amin\'ny « Vokatra mpanelanelana » avy hatrany ny toko tsirairay.'),
+    NewsItem(Icons.task_alt_outlined, 'Fini la demande « écrire un fichier ? »',
+        'Les fichiers demandés sont créés et livrés directement. Le sélecteur Général / Apprendre / Agent ne montre plus que le nom du mode actif.',
+        'No more “may I write a file?”', 'Requested files are created and delivered directly. The General / Learn / Agent switch now shows only the active mode\'s name.',
+        mg: 'Tsy misy fangatahana « hanoratra rakitra? » intsony', mgText: 'Foronina sy omena mivantana ny rakitra angatahana. Ny anaran\'ny fomba mavitrika ihany no aseho ao amin\'ny Ankapobeny / Mianatra / Agent.'),
+    NewsItem(Icons.photo_library_outlined, 'Un poster pour chaque version',
+        'Cette fenêtre montre maintenant un poster illustré de la version, avec le changement majeur en exemple. Touchez-le pour l\'agrandir ou le partager.',
+        'A poster for each version', 'This window now shows an illustrated poster of the version, with the major change as an example. Tap it to enlarge or share it.',
+        mg: 'Sary fanehoana isaky ny dikan-teny', mgText: 'Mampiseho sary fanehoana misy sary ny dikan-teny ity varavarankely ity, miaraka amin\'ny fanovana lehibe ho ohatra. Tsindrio izy hanalehibe na hizara azy.'),
+  ],
   '0.5.2': [
     NewsItem(Icons.waving_hand_outlined, 'Un accueil qui vous salue',
         'Chaque nouvelle discussion vous accueille selon l\'heure, avec votre prénom (Réglages › Personnalisation), et propose des idées qui changent, dont la reprise de votre dernière discussion.',

@@ -5,6 +5,33 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.5.3] - 2026-10-12
+
+### Ajouté
+- Livres et longs documents : « Génère un livre de 200 pages sur… » (ou « je veux un livre
+  de… ») établit un plan, rédige les chapitres en parallèle sur plusieurs modèles, compile
+  le PDF et corrige seulement le chapitre fautif. Livré en PDF, ou en archive .zip (un
+  fichier par chapitre + PDF) si plusieurs fichiers sont demandés. Le plan et chaque
+  chapitre apparaissent dans « Résultats intermédiaires » dès qu’ils sont écrits ; un
+  chapitre muet est réessayé puis marqué « à refaire » au lieu de perdre le livre.
+- Poster de version illustré (français, anglais, malgache), montré dans « Nouveautés » et
+  joint à chaque release.
+- Sélecteur Général / Apprendre / Agent : seul le mode actif affiche son nom.
+- Accueil : salutations malgaches selon l’heure (Salama, Manao ahoana).
+
+### Corrigé
+- Tontolo ne demande plus « puis-je écrire un fichier ? » pour un fichier qui n’était jamais
+  livré : sans dossier de travail choisi, l’agent n’a plus d’outil d’écriture ; les fichiers
+  demandés passent par la création de fichiers.
+- Accueil : le prénom s’affiche dès le démarrage à froid.
+
+### Sécurité
+- Terminal : jeton obligatoire, processus fils récoltés. Navigateur de l’agent : jamais
+  l’API de Tontolo ni les métadonnées cloud. Créations synchronisées : type de contenu
+  validé, pages actives servies en téléchargement (CSP sandbox, nosniff). LaTeX : lecture et
+  exécution de fichiers refusées (\\openin5, \\read, \\InputIfFileExists…). Plafond global
+  de 300 Mo pour les résultats de tâches.
+
 ## [0.5.2] - 2026-10-12
 
 ### Ajouté

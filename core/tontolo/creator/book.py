@@ -27,6 +27,8 @@ MAX_PAGES = 300
 PAGES_PER_CHAPTER = 7
 WORDS_PER_PAGE = 400
 PARALLEL = 3
+_LABELS = {"fr": ("Plan du livre", "Chapitre"), "en": ("Book outline", "Chapter"),
+           "mg": ("Drafitry ny boky", "Toko")}
 MAX_FIXES = 3
 CHAPTER_DEADLINE = 480.0   # secondes par tentative ; au-delà, on abandonne et on réessaie
 CHAPTER_TRIES = 2          # puis un chapitre « à refaire » plutôt qu'un livre perdu
@@ -160,7 +162,8 @@ class BookWriter:
         title = plan["title"]
         outline = "\n".join(f"{i + 1}. {c['title']} — {c['summary']}"
                             for i, c in enumerate(plan["chapters"]))
-        self._keep("part", f"Plan du livre — {title}", f"# {title}\n\n{outline}")
+        label_plan, label_chapter = _LABELS.get(self.lang_code, _LABELS["fr"])
+        self._keep("part", f"{label_plan} — {title}", f"# {title}\n\n{outline}")
         words = max(800, pages * WORDS_PER_PAGE // len(plan["chapters"]))
         chapters: list[str] = [""] * len(plan["chapters"])
         models: list[str] = []
@@ -194,7 +197,7 @@ class BookWriter:
                         continue  # le routeur choisit un autre modèle à la nouvelle tentative
                     chapters[i] = clean_chapter(text, ch["title"])
                     models.append(key)
-                    self._keep("part", f"Chapitre {i + 1} — {ch['title']}", chapters[i])
+                    self._keep("part", f"{label_chapter} {i + 1} — {ch['title']}", chapters[i])
                     return
                 failed.append(i + 1)
                 chapters[i] = (f"\\chapter{{{latex_escape(ch['title'])}}}\n"

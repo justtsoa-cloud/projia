@@ -250,3 +250,9 @@ l'emploi ; bureau Linux = fichiers + commandes confirmées dans un dossier chois
 - [x] LaTeX : lecture/exécution de fichiers refusées (\openin5, \read, \InputIfFileExists, \directlua… ; faille de frontière de mot corrigée)
 - [x] Résultats de tâches : plafond global de 300 Mo ; planification plus sobre (plus de déclenchement sur la seule longueur)
 - [x] Sélecteur de mode : seul le mode actif affiche son nom (icônes pour les autres)
+
+## v0.5.3 (2026-10-12)
+- [x] Bug « Tontolo demande toujours d'écrire un fichier » (livre de 200 pages) : cause = outil d'écriture de l'espace interne (fichier jamais livré, rien dans les résultats) → retiré sans dossier de travail ; les livres passent par un rédacteur dédié (plan, chapitres en parallèle, PDF/zip), résultats visibles en direct, demandes sans verbe reconnues, chapitre muet réessayé puis marqué « à refaire »
+- [x] Poster 0.5.2 (fr, en, mg) ; système de poster par version (build_poster.py, exigé par la release, affiche embarquée dans « Nouveautés »)
+- [ ] Poster 0.5.3 + publication 0.5.3 ; ajouter les posters à la release 0.5.2 déjà publiée
+- [ ] A20 (pastilles d'activité) reste à faire après 0.5.3

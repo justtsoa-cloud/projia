@@ -127,6 +127,11 @@ async def test_chapters_are_kept_as_they_arrive(monkeypatch: pytest.MonkeyPatch)
     titles = [t for _, t, _ in kept]
     assert titles[0].startswith("Plan du livre")
     assert sum(t.startswith("Chapitre") for t in titles) == 4
+    kept.clear()
+    async for _ in Creator(w.ask).run("book", "livre de 30 pages", out=out, language="mg",
+                                      store=lambda k, t, c: kept.append((k, t, c))):
+        pass
+    assert kept[0][1].startswith("Drafitry ny boky") and kept[1][1].startswith("Toko")
     assert all(k == "part" for k, _, _ in kept)
 
 
