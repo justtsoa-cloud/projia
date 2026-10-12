@@ -131,3 +131,47 @@ def test_media_served_safely(client: TestClient, tmp_path: Path) -> None:
     assert "attachment" in r.headers["content-disposition"]
     assert r.headers["x-content-type-options"] == "nosniff"
     assert "sandbox" in r.headers["content-security-policy"]
+
+
+def test_connected_address_is_checked_after_connection() -> None:
+    """DNS rebinding : la vérification porte aussi sur l'adresse réellement connectée."""
+    from tontolo.security import assert_public_peer, connected_ip
+
+    class Stream:
+        def __init__(self, ip: str) -> None:
+            self.ip = ip
+
+        def get_extra_info(self, name: str) -> tuple[str, int] | None:
+            return (self.ip, 443) if name == "server_addr" else None
+
+    class Resp:
+        def __init__(self, ip: str | None) -> None:
+            self.extensions = {"network_stream": Stream(ip)} if ip else {}
+
+    assert connected_ip(Resp("93.184.216.34")) == "93.184.216.34"
+    assert_public_peer(Resp("93.184.216.34"))
+    assert_public_peer(Resp(None))  # pas d'information (tests, simulateurs) : rien à refuser
+    for ip in ("127.0.0.1", "10.0.0.2", "169.254.169.254", "::1", "::ffff:127.0.0.1"):
+        with pytest.raises(PermissionError):
+            assert_public_peer(Resp(ip))
+
+
+async def test_real_connection_exposes_the_peer_address() -> None:
+    """Sur une vraie connexion (serveur local), httpx donne bien l'adresse connectée."""
+    import asyncio
+
+    import httpx
+
+    from tontolo.security import connected_ip
+
+    async def handle(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+        await reader.readuntil(b"\r\n\r\n")
+        writer.write(b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok")
+        await writer.drain()
+        writer.close()
+
+    server = await asyncio.start_server(handle, "127.0.0.1", 0)
+    port = server.sockets[0].getsockname()[1]
+    async with server, httpx.AsyncClient() as c, \
+            c.stream("GET", f"http://127.0.0.1:{port}/") as resp:
+        assert connected_ip(resp) == "127.0.0.1"

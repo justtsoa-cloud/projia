@@ -1643,16 +1643,21 @@ def create_app(
         return {"conversations": await db.export_conversations(since), "until": until}
 
     @app.post("/tontolo/cloud/import")
-    async def cloud_import(request: Request) -> dict[str, int]:
+    async def cloud_import(request: Request) -> dict[str, Any]:
         body = await request.json()
         db = core_of(request).db
-        applied = 0
-        for conv in (body.get("conversations") or [])[:5000]:
+        applied, rejected = 0, 0
+        reasons: list[str] = []
+        items = body.get("conversations") if isinstance(body, dict) else None
+        for conv in (items if isinstance(items, list) else [])[:5000]:
             try:
                 applied += await db.replace_conversation(conv)
-            except (KeyError, TypeError, ValueError):
-                continue  # élément illisible : ignoré, les autres sont appliqués
-        return {"applied": applied}
+            except (KeyError, TypeError, ValueError) as exc:
+                # Élément refusé : signalé (jamais en silence), les autres sont appliqués.
+                rejected += 1
+                if len(reasons) < 10:
+                    reasons.append(str(exc)[:120])
+        return {"applied": applied, "rejected": rejected, "reasons": reasons}
 
     @app.get("/tontolo/cloud/creations")
     async def cloud_creations(request: Request, since: float = 0) -> dict[str, Any]:

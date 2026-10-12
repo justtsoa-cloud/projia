@@ -143,8 +143,29 @@ def has_key(provider: str) -> bool:
     return bool(get_key(provider))
 
 
+_REDACT = [
+    # Clés préfixées (OpenAI sk-/sk-proj-, Anthropic sk-ant-, OpenRouter sk-or-, Groq gsk_,
+    # NVIDIA nvapi-, Hugging Face hf_, Stripe pk_/sk_…) : début gardé pour s'y retrouver.
+    (re.compile(r"((?:sk|gsk|nvapi|hf|pk|rk)[-_](?:ant-|or-|proj-|live-|test-)?"
+                r"[A-Za-z0-9_\-]{4})[A-Za-z0-9_\-]{8,}"), r"\1…"),
+    (re.compile(r"(AIza[A-Za-z0-9_\-]{4})[A-Za-z0-9_\-]{20,}"), r"\1…"),            # Google
+    (re.compile(r"\b((?:ghp|gho|ghs|ghu|ghr)_[A-Za-z0-9]{4})[A-Za-z0-9]{16,}"), r"\1…"),
+    (re.compile(r"\b(github_pat_[A-Za-z0-9]{4})[A-Za-z0-9_]{20,}"), r"\1…"),        # GitHub
+    (re.compile(r"\b(xox[abposr]-[A-Za-z0-9]{2})[A-Za-z0-9-]{8,}"), r"\1…"),        # Slack
+    (re.compile(r"\b(AKIA)[0-9A-Z]{16}\b"), r"\1…"),                               # AWS
+    (re.compile(r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}"),
+     "[jeton JWT masqué]"),
+    (re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----"),
+     "[clé privée masquée]"),
+    (re.compile(r"(Bearer\s+\S{4})\S+", re.I), r"\1…"),
+    # « api_key=… », « "token": "…" », « password: … »
+    (re.compile(r"((?:api[_-]?key|token|secret|password|passwd|authorization)[\"']?\s*[:=]\s*"
+                r"[\"']?)([^\s\"',;]{6})[^\s\"',;]{4,}", re.I), r"\1\2…"),
+]
+
+
 def redact(text: str) -> str:
-    """Masque tout ce qui ressemble à une clé dans un message de journal."""
-    text = re.sub(r"((?:sk|gsk|nvapi|hf|pk)[-_][A-Za-z0-9_\-]{4})[A-Za-z0-9_\-]{8,}", r"\1…", text)
-    text = re.sub(r"(AIza[A-Za-z0-9_\-]{4})[A-Za-z0-9_\-]{20,}", r"\1…", text)
-    return re.sub(r"(Bearer\s+\S{4})\S+", r"\1…", text)
+    """Masque tout ce qui ressemble à une clé ou un secret dans un message de journal."""
+    for rx, repl in _REDACT:
+        text = rx.sub(repl, text)
+    return text

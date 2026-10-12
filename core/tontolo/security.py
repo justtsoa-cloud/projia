@@ -72,6 +72,25 @@ async def assert_public_url(url: str) -> None:
             raise PermissionError("adresse privée ou locale refusée")
 
 
+def connected_ip(resp: object) -> str | None:
+    """Adresse IP à laquelle la réponse a VRAIMENT été servie (httpcore), ou None."""
+    try:
+        stream = resp.extensions.get("network_stream")  # type: ignore[attr-defined]
+        addr = stream.get_extra_info("server_addr") if stream is not None else None
+    except Exception:
+        return None
+    return str(addr[0]) if addr else None
+
+
+def assert_public_peer(resp: object) -> None:
+    """Contre le « DNS rebinding » : un nom peut résoudre vers une adresse publique lors de la
+    vérification, puis vers 127.0.0.1 au moment de la connexion. On contrôle donc aussi
+    l'adresse effectivement connectée, avant de lire le moindre octet."""
+    ip = connected_ip(resp)
+    if ip is not None and not _ip_is_public(ip):
+        raise PermissionError("adresse privée ou locale refusée (après connexion)")
+
+
 class ProviderPins:
     """Épinglage TOFU des hôtes des fournisseurs (fichier JSON dans le dossier de données)."""
 

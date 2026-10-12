@@ -53,3 +53,23 @@ def test_tampering_or_missing_key_is_refused(home: Path, monkeypatch: pytest.Mon
             vault.decrypt(bad, home / "k")
         with pytest.raises(ValueError):
             vault.decrypt(blob, home / "absente")
+
+
+def test_redact_covers_common_secret_formats() -> None:
+    samples = [
+        "sk-ant-api03-abcdefghijklmnopqrstuvwxyz0123456789", "sk-or-v1-0123456789abcdef0123456789",
+        "sk-proj-abcdefghijklmnopqrstuvwxyz", "gsk_abcdefghijklmnopqrstuvwxyz0123",
+        "AIzaSyA-abcdefghijklmnopqrstuvwxyz012", "ghp_abcdefghijklmnopqrstuvwxyz0123456789",
+        "github_pat_11ABCDEFG0123456789_abcdefghijklmnopqrstuvwxyz",
+        "xoxb-1234567890-abcdefghijkl", "AKIAABCDEFGHIJKLMNOP",
+        "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N",
+        "nvapi-abcdefghijklmnopqrstuvwxyz", "hf_abcdefghijklmnopqrstuvwxyz",
+    ]
+    for secret in samples:
+        out = secrets.redact(f"erreur avec {secret} ici")
+        assert secret not in out and "ici" in out, secret
+    assert "hunter2pass" not in secrets.redact('{"password": "hunter2password"}')
+    assert "VGhpcyBpcyBhIHByaXZhdGU" not in secrets.redact(
+        "-----BEGIN OPENSSH PRIVATE KEY-----\nVGhpcyBpcyBhIHByaXZhdGU\n"
+        "-----END OPENSSH PRIVATE KEY-----")
+    assert secrets.redact("Bonjour, rien à masquer.") == "Bonjour, rien à masquer."

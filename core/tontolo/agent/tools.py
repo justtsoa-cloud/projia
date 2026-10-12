@@ -265,12 +265,13 @@ MAX_FETCH_BYTES = 2 * 1024 * 1024
 async def safe_get(url: str, max_redirects: int = 5) -> tuple[bytes, str]:
     """GET protégé contre la SSRF : chaque saut de redirection est revérifié
     (pas d'adresse privée, locale ou de métadonnées) et la taille est plafonnée."""
-    from tontolo.security import assert_public_url
+    from tontolo.security import assert_public_peer, assert_public_url
 
     for _ in range(max_redirects + 1):
         await assert_public_url(url)
         async with http.client().stream("GET", url, timeout=20,
                                         follow_redirects=False) as resp:
+            assert_public_peer(resp)  # adresse réellement connectée (anti DNS rebinding)
             if resp.is_redirect and resp.headers.get("location"):
                 url = str(resp.url.join(resp.headers["location"]))
                 continue

@@ -366,9 +366,10 @@ Contraintes : rien ne change par défaut (`orchestrate=false`), léger (asyncio,
 ## Analyse externe (v0.5.8) — tri (2026-10-12)
 Déjà fait (rien à refaire) : secrets.json chiffré, WebSockets limités (file bornée à 200 depuis longtemps + connexions et débit en 0.5.9), MCP validé (commandes dangereuses, code en ligne, tailles, SSRF à distance), fuzz des entrées (tests/test_fuzz_api.py), essais réels de bout en bout (bench/real_e2e.py), bancs de charge (bench/ + docs/ENDURANCE.md), CONTRIBUTING.md et docs/ARCHITECTURE.md présents, export d'une discussion (HTML), catalogue en cache hors ligne. Chiffres réels : 385 tests cœur + 58 Flutter (et non 92), roue 265 Ko.
 Inexact : pièces jointes envoyées en multipart (pas en base64), historique du terminal jamais écrit sur disque, import cloud en SQL paramétré.
-- [ ] R1 (P0). SSRF : vérifier l'adresse RÉELLEMENT connectée (anti « DNS rebinding » entre la vérification et la connexion) pour fetch_url, le navigateur et MCP HTTP
-- [ ] R2 (P0). Masquage des clés élargi (sk-ant, sk-or, ghp_/github_pat_, xox*, JWT, AKIA, clés privées, AIza complète) + tests
-- [ ] R3 (P0). Import cloud : validation stricte (schéma) et rapport des éléments refusés au lieu d'un silence
+- [x] R1 (P0). SSRF : vérifier l'adresse RÉELLEMENT connectée (anti « DNS rebinding » entre la vérification et la connexion) pour fetch_url, le navigateur et MCP HTTP
+- [x] R2 (P0). Masquage des clés élargi (sk-ant, sk-or, ghp_/github_pat_, xox*, JWT, AKIA, clés privées, AIza complète) + tests
+- [x] R3 (P0). Import cloud : validation stricte (schéma) et rapport des éléments refusés au lieu d'un silence
+- [x] Trouvé en route (R3) : une conversation synchronisée à moitié invalide effaçait les messages existants avant d'échouer → tout est vérifié avant d'écrire
 - [ ] R4 (P1). Mises à jour Linux signées (ed25519) : la CI signe SHA256SUMS, l'application vérifie avec la clé publique intégrée (Android : déjà protégé par la signature APK vérifiée par le système)
 - [ ] R5 (P1). OpenAPI local (/openapi.json avec jeton) + docs/API.md généré
 - [ ] R6 (P1). Métriques locales /tontolo/metrics (format Prometheus : tours, erreurs, latences par modèle), rien n'est envoyé

@@ -616,14 +616,27 @@ def test_cloud_sync_whole_conversations(client: TestClient, tmp_path: Any) -> No
     # Même conversation, modifiée « ailleurs » : plus récente → remplace (sans doublons).
     newer = {**conv, "title": "Depuis le téléphone", "updated_at": conv["updated_at"] + 10,
              "messages": conv["messages"][:1]}
-    assert client.post("/tontolo/cloud/import", json={"conversations": [newer]}).json() == {
-        "applied": 1}
+    assert client.post("/tontolo/cloud/import", json={"conversations": [newer]}).json()[
+        "applied"] == 1
     got = client.get(f"/tontolo/conversations/{conv['id']}").json()["messages"]
     assert len(got) == 1
     # Version plus ancienne : ignorée ; élément illisible : ignoré.
     old = {**conv, "updated_at": conv["updated_at"] - 100}
-    assert client.post("/tontolo/cloud/import", json={"conversations": [old, {"x": 1}]}
-                       ).json() == {"applied": 0}
+    report = client.post("/tontolo/cloud/import", json={"conversations": [old, {"x": 1}]}).json()
+    assert report["applied"] == 0 and report["rejected"] == 1 and report["reasons"]
+    # Conversation à moitié invalide : refusée en entier, l'existante n'est jamais effacée.
+    broken = {**newer, "updated_at": newer["updated_at"] + 10,
+              "messages": [*conv["messages"][:1], {"uid": "x", "seq": "pas un nombre"}]}
+    assert client.post("/tontolo/cloud/import", json={"conversations": [broken]}).json()[
+        "rejected"] == 1
+    assert len(client.get(f"/tontolo/conversations/{conv['id']}").json()["messages"]) == 1
+    for bad in ({"id": "../x", "updated_at": 1, "created_at": 1},
+                {"id": "a", "updated_at": -5, "created_at": 1},
+                {"id": "a", "updated_at": 2, "created_at": 1, "messages": [
+                    {"uid": "u", "seq": 0, "role": "admin", "body": "{}", "created_at": 1,
+                     "updated_at": 1}]}):
+        assert client.post("/tontolo/cloud/import", json={"conversations": [bad]}).json()[
+            "rejected"] == 1
     assert client.get("/tontolo/cloud/export",
                       params={"since": exported["until"] + 20}).json()["conversations"] == []
 

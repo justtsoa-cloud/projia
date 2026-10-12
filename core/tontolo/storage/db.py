@@ -8,6 +8,8 @@ restent sur disque : la base ne contient que leur chemin.
 from __future__ import annotations
 
 import json
+import math
+import re
 import time
 import uuid
 from collections.abc import Iterable
@@ -860,7 +862,11 @@ class Database:
         return out
 
     async def replace_conversation(self, conv: dict[str, Any]) -> bool:
-        """Applique une conversation venue d'un autre appareil si elle est plus récente."""
+        """Applique une conversation venue d'un autre appareil si elle est plus récente.
+        Tout est vérifié AVANT d'écrire (jamais de conversation à moitié remplacée)."""
+        problem = sync_problem(conv)
+        if problem:
+            raise ValueError(problem)
         cid = str(conv["id"])
         row = await self._fetchone("SELECT updated_at FROM conversations WHERE id = ?", (cid,))
         if row is not None and float(row["updated_at"]) >= float(conv["updated_at"]):
@@ -886,6 +892,51 @@ class Database:
                  m.get("model"), float(m["created_at"]), float(m["updated_at"])))
         await self.conn.commit()
         return True
+
+
+_SYNC_ROLES = frozenset({"user", "assistant", "tool", "system"})
+_SYNC_ID = re.compile(r"^[\w-]{1,64}$")
+
+
+def _finite(x: Any) -> bool:
+    return isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x) and x >= 0
+
+
+def sync_problem(conv: Any) -> str | None:
+    """Raison du refus d'une conversation synchronisée, ou None si elle est bien formée."""
+    if not isinstance(conv, dict):
+        return "élément qui n'est pas une conversation"
+    if not isinstance(conv.get("id"), str) or not _SYNC_ID.match(conv["id"]):
+        return "identifiant invalide"
+    if not _finite(conv.get("updated_at")) or not _finite(conv.get("created_at")):
+        return "dates invalides"
+    messages = conv.get("messages") or []
+    if not isinstance(messages, list) or len(messages) > 50_000:
+        return "liste de messages invalide"
+    for m in messages:
+        if not isinstance(m, dict):
+            return "message illisible"
+        if not isinstance(m.get("uid"), str) or not _SYNC_ID.match(m["uid"]):
+            return "identifiant de message invalide"
+        if not isinstance(m.get("seq"), int) or isinstance(m["seq"], bool) or m["seq"] < 0:
+            return "position de message invalide"
+        if m.get("role") not in _SYNC_ROLES:
+            return "rôle de message invalide"
+        body = m.get("body")
+        if not isinstance(body, str) or len(body) > 5_000_000:
+            return "contenu de message invalide"
+        try:
+            parsed = json.loads(body)
+        except ValueError:
+            return "contenu de message illisible"
+        if not isinstance(parsed, dict) or parsed.get("role") != m["role"]:
+            return "contenu de message incohérent"
+        if not _finite(m.get("created_at")) or not _finite(m.get("updated_at")):
+            return "dates de message invalides"
+        if m.get("model") is not None and (not isinstance(m["model"], str)
+                                           or len(m["model"]) > 200):
+            return "modèle de message invalide"
+    return None
 
 
 def _job_row(row: aiosqlite.Row) -> dict[str, Any]:
