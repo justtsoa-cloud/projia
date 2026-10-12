@@ -25,6 +25,7 @@ import unicodedata
 from collections.abc import Awaitable, Callable
 from typing import Any
 
+from tontolo import semantic
 from tontolo.config import Settings
 from tontolo.storage.db import Database
 
@@ -34,6 +35,7 @@ Quick = Callable[[list[dict[str, Any]]], Awaitable[str | None]]
 
 EXTRACT_EVERY = 4          # extraction automatique tous les N messages utilisateur
 SIMILAR = 0.75             # seuil de fusion de deux souvenirs
+RECALL_NEAR = 0.35         # sens proche suffisant pour rappeler un souvenir sans mot commun
 
 _EXPLICIT = re.compile(
     r"^\s*(?:souviens[- ]toi|rappelle[- ]toi|retiens|m[ée]morise|note|n'oublie pas)\s+"
@@ -189,10 +191,14 @@ class MemoryService:
         if not mems:
             return []
         q = tokens(query)
+        qv = semantic.vector(query)
         now = time.time()
+        # Même index que le cache de réponses : mots communs OU sens proche (variantes,
+        # accents, pluriels, autre tournure).
+        near = {int(m["id"]): semantic.cosine(qv, semantic.vector(m["text"])) for m in mems}
 
         def score(m: dict[str, Any]) -> float:
-            overlap = len(q & tokens(m["text"])) / (len(q) or 1)
+            overlap = max(len(q & tokens(m["text"])) / (len(q) or 1), near[int(m["id"])])
             recency = 1.0 / (1.0 + (now - float(m["updated_at"])) / (30 * 86400))
             base = 1.0 if m["kind"] == "instruction" else 0.0
             return base + 2.0 * overlap + 0.3 * recency + 0.05 * min(int(m["uses"]), 10)
@@ -200,7 +206,8 @@ class MemoryService:
         chosen: list[dict[str, Any]] = []
         used = 0
         for m in sorted(mems, key=score, reverse=True):
-            if m["kind"] != "instruction" and not (q & tokens(m["text"])):
+            if (m["kind"] != "instruction" and not (q & tokens(m["text"]))
+                    and near[int(m["id"])] < RECALL_NEAR):
                 continue  # sans rapport avec la demande : on ne l'injecte pas
             if used + len(m["text"]) > self.settings.memory_budget_chars:
                 continue

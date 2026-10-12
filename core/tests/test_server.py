@@ -1033,3 +1033,11 @@ def test_clarify_follows_the_request_language_not_the_interface() -> None:
     assert language_of("Word pollution", "mg") == "mg"  # rien de net : langue de l'interface
     assert questions_for("docx", "Ecris un rapport Word sur la pollution", "mg")[0][
         "question"] == "Pour quel public ?"
+
+
+def test_answers_endpoints(client: TestClient) -> None:
+    info = client.get("/tontolo/answers").json()
+    assert info == {"enabled": True, "count": 0}
+    assert client.delete("/tontolo/answers").json() == {"removed": 0}
+    off = client.put("/tontolo/settings", json={"answer_cache": False}).json()
+    assert off["answer_cache"] is False

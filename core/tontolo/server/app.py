@@ -1395,6 +1395,19 @@ def create_app(
 
     # --- Dépenses, synchronisation, MCP, mise à jour ---------------------
 
+    @app.get("/tontolo/answers")
+    async def answers_info(request: Request) -> dict[str, Any]:
+        """Réponses déjà données gardées sur l'appareil (cache sémantique)."""
+        core = core_of(request)
+        return {"enabled": core.settings.answer_cache, "count": await core.db.count_answers()}
+
+    @app.delete("/tontolo/answers")
+    async def answers_clear(request: Request) -> dict[str, int]:
+        core = core_of(request)
+        removed = await core.db.delete_answers()
+        core.chat.answers.invalidate()
+        return {"removed": removed}
+
     @app.get("/tontolo/memory")
     async def memory_list(request: Request) -> dict[str, Any]:
         core = core_of(request)

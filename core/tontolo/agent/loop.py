@@ -48,6 +48,7 @@ from tontolo.catalog.models import Category
 from tontolo.config import Settings
 from tontolo.memory import MemoryService, explicit_memory
 from tontolo.router.engine import Router
+from tontolo.semantic import AnswerIndex, context_block
 from tontolo.storage.db import Database
 
 # Discussion du tour en cours (onglet du navigateur, terminal) : une valeur par tâche.
@@ -180,6 +181,7 @@ class ChatService:
                  mcp: McpManager | None = None, memory: MemoryService | None = None) -> None:
         self.settings = settings
         self.memory = memory or MemoryService(settings, db, router.quick)
+        self.answers = AnswerIndex(db)
         self._bg: set[asyncio.Task[Any]] = set()
         self.db = db
         self.router = router
@@ -360,6 +362,19 @@ class ChatService:
         if fact and self.memory.enabled and await self.memory.remember(
                 fact, kind="explicit", source=conversation_id):
             yield {"type": "memory_saved", "text": fact}
+        if (isinstance(content, str) and model is None and forced is None and not fact
+                and self.settings.answer_cache
+                and not await self.db.get_mode(conversation_id)):
+            hit = await self.answers.reusable(content)
+            if hit is not None:  # même question, déjà répondue : aucun appel de modèle
+                msg = {"role": "assistant", "content": hit["answer"]}
+                saved = await self.db.add_message(conversation_id, msg, model=hit["model"])
+                yield {"type": "cached", "created_at": hit["created_at"],
+                       "question": hit["question"][:300]}
+                yield {"type": "done", "message": msg, "model": hit["model"],
+                       "name": self._model_name(hit["model"]), "cached": True,
+                       "uid": saved["uid"], "conversation_id": conversation_id}
+                return
         if isinstance(content, str) and self.settings.task_planning:
             async for ev in self._prepare_plan(conversation_id, content):
                 yield ev
@@ -532,6 +547,8 @@ class ChatService:
             yield {"type": "error", "message": "Rien à régénérer."}
             return
         await self.db.truncate_after(conversation_id, last_user)
+        await self.db.delete_answers(conversation_id)  # réponse jugée insuffisante
+        self.answers.invalidate()
         async for ev in self._loop(conversation_id, model=model):
             yield ev
 
@@ -672,6 +689,8 @@ class ChatService:
             return
         await self.db.edit_message(conversation_id, seq, {"role": "user", "content": content})
         await self.db.truncate_after(conversation_id, seq)
+        await self.db.delete_answers(conversation_id)
+        self.answers.invalidate()
         async for ev in self._loop(conversation_id, model=model):
             yield ev
 
@@ -786,6 +805,12 @@ class ChatService:
                 await self.memory.recall(question, thread=cid))
             if mem_block is not None:
                 messages.append(mem_block)
+            if self.settings.answer_cache and not mode and step == 0:
+                # Même index que la mémoire : une réponse déjà donnée à une question voisine
+                # (autre discussion) aide le modèle, sans être recopiée.
+                related = await self.answers.related(question, cid)
+                if related is not None:
+                    messages.append(context_block(related))
             folder_block = await self._folder_block(cid)
             if folder_block is not None:
                 messages.append(folder_block)
@@ -845,6 +870,14 @@ class ChatService:
             yield {**final, "uid": saved["uid"], "conversation_id": cid}
             calls = msg.get("tool_calls") or []
             if not calls:
+                last_user: dict[str, Any] = next(
+                    (m for m in reversed(history) if m.get("role") == "user"), {})
+                if (self.settings.answer_cache and not mode and not done_calls and not searched
+                        and step == 0 and isinstance(last_user.get("content"), str)
+                        and (plan is None or plan.get("status") != "active")):
+                    # réponse directe à une question en texte seul, sans outil ni recherche web
+                    await self.answers.add(cid, question, str(msg.get("content") or ""),
+                                           str(final.get("model") or ""))
                 plan_ev = await self._finish_plan_turn(cid, str(msg.get("content") or ""))
                 if plan_ev is not None:
                     yield plan_ev

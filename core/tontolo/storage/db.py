@@ -124,6 +124,18 @@ CREATE TABLE IF NOT EXISTS documents (
     created_at REAL NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_documents_conv ON documents(conversation_id);
+
+CREATE TABLE IF NOT EXISTS answers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    conversation_id TEXT NOT NULL,
+    question TEXT NOT NULL,
+    answer TEXT NOT NULL,
+    model TEXT NOT NULL DEFAULT '',
+    vec TEXT NOT NULL,
+    created_at REAL NOT NULL,
+    uses INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_answers_conv ON answers(conversation_id);
 """
 
 
@@ -331,11 +343,48 @@ class Database:
         await self.conn.commit()
 
     async def delete_conversation(self, cid: str) -> None:
-        # Suppression logique : propagée par la synchronisation.
+        # Suppression logique : propagée par la synchronisation. Les réponses mémorisées
+        # (cache sémantique) de la discussion partent avec elle.
+        await self.conn.execute("DELETE FROM answers WHERE conversation_id = ?", (cid,))
         await self.conn.execute(
             "UPDATE conversations SET deleted = 1, updated_at = ? WHERE id = ?", (now(), cid)
         )
         await self.conn.commit()
+
+    # --- Réponses déjà données (cache sémantique, local, jamais synchronisé) ---------------
+
+    async def add_answer(self, cid: str, question: str, answer: str, model: str, vec: str,
+                         keep: int) -> None:
+        await self.conn.execute(
+            "INSERT INTO answers(conversation_id, question, answer, model, vec, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?)", (cid, question, answer, model, vec, now()))
+        # Taille bornée : les moins utilisées puis les plus anciennes partent.
+        await self.conn.execute(
+            "DELETE FROM answers WHERE id NOT IN (SELECT id FROM answers "
+            "ORDER BY uses DESC, created_at DESC LIMIT ?)", (keep,))
+        await self.conn.commit()
+
+    async def list_answers(self) -> list[dict[str, Any]]:
+        rows = await self._fetchall(
+            "SELECT a.id, a.conversation_id, a.question, a.answer, a.model, a.vec, "
+            "a.created_at, a.uses FROM answers a JOIN conversations c "
+            "ON c.id = a.conversation_id WHERE c.deleted = 0")
+        return [dict(r) for r in rows]
+
+    async def touch_answer(self, answer_id: int) -> None:
+        await self.conn.execute("UPDATE answers SET uses = uses + 1 WHERE id = ?", (answer_id,))
+        await self.conn.commit()
+
+    async def delete_answers(self, cid: str | None = None) -> int:
+        """Réponses d'une discussion (régénérée, modifiée) ou toutes (`cid` None)."""
+        cur = await (self.conn.execute("DELETE FROM answers WHERE conversation_id = ?", (cid,))
+                     if cid else self.conn.execute("DELETE FROM answers"))
+        await self.conn.commit()
+        return cur.rowcount
+
+    async def count_answers(self) -> int:
+        row = await self._fetchone("SELECT COUNT(*) AS n FROM answers")
+        return int(row["n"]) if row else 0
 
     async def conversation_revision(self, cid: str) -> float | None:
         row = await self._fetchone(

@@ -76,6 +76,9 @@ class Settings(BaseModel):
     # Mémoire à long terme (locale) et instructions personnalisées.
     memory_enabled: bool = True
     memory_max_items: int = 60
+    # Réponses déjà données réutilisées (question quasi identique) ou fournies en contexte
+    # (question voisine) : index local, jamais synchronisé (voir tontolo/semantic.py).
+    answer_cache: bool = True
     memory_budget_chars: int = 1500
     custom_instructions: str = ""
     # Téléchargement et installation automatiques des nouvelles versions.
