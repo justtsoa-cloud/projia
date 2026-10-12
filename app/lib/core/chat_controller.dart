@@ -707,6 +707,9 @@ class ChatController extends ChangeNotifier {
           status = 'tool|${ev['name']}';
         case 'tool_result':
           status = null;
+        case 'orchestration':
+          // Demande en plusieurs parties : confiées en même temps à plusieurs modèles.
+          status = 'orchestrating|${(ev['subtasks'] as List?)?.length ?? 2}';
         case 'plan':
           plan = (ev['plan'] as Map?)?.cast<String, dynamic>();
           if (plan?['status'] != 'active') planSteps.clear();

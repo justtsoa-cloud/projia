@@ -322,7 +322,7 @@ Principe : rien de ce qui est écrit ne quitte l'appareil ; seule la note (modè
 - [x] N4. Supabase : table `ratings` (insertion seule, une note par appareil et par réponse) + fonction `model_scores()` agrégée (appareils distincts, seuil minimal) lisible par l'app ; script SQL et docs/STATS.md
 - [x] N5. App : 👍/👎 sous chaque réponse ; envoi groupé avec les statistiques quotidiennes (file d'attente locale, rien sans accord) ; « Voir ce qui est envoyé » montre les notes
 - [x] N6. Retour global : l'app récupère `model_scores()` une fois par jour et le transmet au cœur → bonus/malus collectif borné (plus faible que le local)
-- [ ] N7. Le propriétaire exécute docs/stats/supabase_ratings.sql dans Supabase (0.5.8 publiée sans : les notes agissent sur chaque appareil et attendent en file, 500 au plus, jusqu'à la création de la table)
+- [x] N7. SQL des notes exécuté par le propriétaire ; vérifié : model_scores() répond (200), lecture directe de ratings refusée (401)
 - [x] Essai émulateur : 👍/👎 visibles, panneau des raisons (malgache), « autre modèle » (ling-3.1-flash → Qwen3.6), note enregistrée ; QR « À propos » lu depuis l'écran (zbarimg)
 - [x] Q1. QR code vers le téléchargement : généré par script (`qrencode`), vérifié par lecture (`zbarimg`) ; dans « À propos » (dernière version) et sur le poster de chaque version (page de cette version)
 - [x] R. Version 0.5.8 : CHANGELOG, nouveautés fr/en/mg, poster (avec QR), tests, essais émulateur

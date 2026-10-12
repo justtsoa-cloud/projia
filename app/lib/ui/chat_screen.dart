@@ -855,6 +855,8 @@ class _StatusLine extends StatelessWidget {
             ? context.t('book_chapter', {'n': status.split('|')[1], 't': status.split('|')[2]})
         : status.startsWith('waiting|')
             ? context.t('waiting', {'s': status.substring(8)})
+        : status.startsWith('orchestrating|')
+            ? context.t('orchestrating', {'n': status.substring(14)})
             : context.t(status);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
