@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 def data_dir() -> Path:
@@ -62,6 +62,41 @@ class ServerSettings(BaseModel):
     token: str | None = None
 
 
+class CustomProvider(BaseModel):
+    """Fournisseur compatible OpenAI ajouté par l'utilisateur (mode avancé, réglable sur
+    l'appareil seulement). Clé dans le stockage sécurisé, jamais ici ; envoyée uniquement en
+    HTTPS à l'hôte épinglé. Un serveur local en HTTP (réseau privé) fonctionne sans clé."""
+
+    id: str = Field(pattern=r"^custom-[a-z0-9-]{1,40}$")
+    name: str = Field(min_length=1, max_length=60)
+    base_url: str = Field(max_length=300, pattern=r"^https?://[^\s]+$")
+    free: bool = True
+    needs_key: bool = True
+    # Prix en USD par million de jetons : obligatoires pour un fournisseur payant (sans prix,
+    # le plafond de dépense ne pourrait pas être garanti).
+    price_in_per_m: float = Field(default=0.0, ge=0, le=1000)
+    price_out_per_m: float = Field(default=0.0, ge=0, le=1000)
+
+
+class RoutingRules(BaseModel):
+    """Souplesse du mode avancé, toujours dans des bornes sûres."""
+
+    # Fournisseurs jamais utilisés (même s'ils ont une clé).
+    excluded_providers: list[str] = Field(default_factory=list, max_length=200)
+    # Enchaînements choisis par catégorie (« code » → [modèle1, modèle2…]) : essayés d'abord,
+    # dans cet ordre, puis le choix automatique habituel prend le relais.
+    chains: dict[str, list[str]] = Field(default_factory=dict, max_length=30)
+    # Délais du routeur (secondes) ; None = valeurs par défaut.
+    first_token_s: float | None = Field(default=None, ge=20, le=300)
+    stall_s: float | None = Field(default=None, ge=15, le=180)
+    think_s: float | None = Field(default=None, ge=60, le=600)
+
+    @field_validator("chains")
+    @classmethod
+    def _short_chains(cls, v: dict[str, list[str]]) -> dict[str, list[str]]:
+        return {str(k)[:40]: [str(x)[:200] for x in items][:10] for k, items in v.items()}
+
+
 class Settings(BaseModel):
     catalog_ttl_hours: float = 6.0
     weights: Weights = Field(default_factory=Weights)
@@ -98,6 +133,9 @@ class Settings(BaseModel):
     task_planning: bool = True
     # Prénom pour l'accueil (« Bonsoir » + prénom) ; vide : compte ou mémoire, sinon aucun.
     user_name: str = Field(default="", max_length=40)
+    # Mode avancé : fournisseurs personnalisés et règles de routage.
+    custom_providers: list[CustomProvider] = Field(default_factory=list, max_length=20)
+    routing: RoutingRules = Field(default_factory=RoutingRules)
 
     @property
     def data_dir(self) -> Path:

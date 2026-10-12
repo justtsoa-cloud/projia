@@ -25,7 +25,7 @@ from tontolo.catalog.sources import (
     pollinations,
     rankings,
 )
-from tontolo.config import Settings
+from tontolo.config import CustomProvider, Settings
 from tontolo.media.providers import LOCAL_TTS_MODEL
 from tontolo.storage.db import Database
 
@@ -135,6 +135,12 @@ class CatalogService:
         providers.update({pid: paid.public(p) for pid, p in paid.PROVIDERS.items()})
         for pid, p in keyed.PROVIDERS.items():  # adresse intégrée prioritaire sur la liste en ligne
             providers[pid] = {**providers.get(pid, {}), **keyed.public(p), "keyless": False}
+        for cp in self.settings.custom_providers:  # mode avancé : ajoutés par l'utilisateur
+            providers[cp.id] = custom_public(cp)
+        try:
+            models += await self._discover_custom(cache, ttl)
+        except Exception as exc:
+            log.warning("Fournisseurs personnalisés : %r", exc)
         try:  # gratuits avec clé : tous les modèles de l'offre, dès que la clé est là
             known = {m.key for m in models}
             models += [m for m in await keyed.discover(cache, ttl) if m.key not in known]
@@ -164,6 +170,23 @@ class CatalogService:
             for cb in self._listeners:
                 cb(changes)
         return changes
+
+    async def _discover_custom(self, cache: SourceCache, ttl: float) -> list[ModelInfo]:
+        """Modèles des fournisseurs personnalisés (`GET /models`, clé envoyée seulement en HTTPS
+        à l'hôte épinglé ; serveur local HTTP : sans clé)."""
+        out: list[ModelInfo] = []
+        for cp in self.settings.custom_providers:
+            headers: dict[str, str] = {}
+            key = secrets.get_key(cp.id)
+            if cp.needs_key:
+                if not key or not security.key_allowed(cp.id, cp.base_url):
+                    continue
+                headers["Authorization"] = f"Bearer {key}"
+            entry = await cache.fetch_json(f"provider_models_{cp.id}",
+                                           f"{cp.base_url.rstrip('/')}/models", ttl=ttl,
+                                           headers=headers)
+            out += custom_models(cp, entry.data if entry else None)
+        return out
 
     def _record(self, catalog: Catalog, cache: SourceCache) -> list[dict[str, Any]]:
         prev = cache.get("catalog_snapshot")
@@ -221,3 +244,26 @@ def dump(models: list[ModelInfo]) -> str:
 
 async def _none() -> list[Any]:
     return []
+
+
+def custom_public(cp: CustomProvider) -> dict[str, Any]:
+    return {"id": cp.id, "name": cp.name, "base_url": cp.base_url.rstrip("/"),
+            "keyless": not cp.needs_key, "custom": True, "paid": not cp.free,
+            "description": "Fournisseur personnalisé (mode avancé)."}
+
+
+def custom_models(cp: CustomProvider, data: Any) -> list[ModelInfo]:
+    """Modèles listés par un fournisseur personnalisé (mêmes filtres que les intégrés)."""
+    rows = keyed._rows(data)
+    out: list[ModelInfo] = []
+    for r in rows[:500]:
+        mid = str(r.get("id") or "")
+        if not mid or len(mid) > 200 or keyed._NOT_CHAT.search(mid):
+            continue
+        out.append(ModelInfo(
+            provider=cp.id, model_id=mid, name=str(r.get("name") or mid),
+            context_length=int(r.get("context_length") or 0), supports_tools=True,
+            is_free=cp.free, needs_key=cp.needs_key,
+            price_in=0.0 if cp.free else cp.price_in_per_m / 1e6,
+            price_out=0.0 if cp.free else cp.price_out_per_m / 1e6))
+    return out

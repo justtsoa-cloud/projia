@@ -309,6 +309,7 @@ class Router:
             adapted, _, _ = await fit(messages, m, summary=summary, summarizer=self._summarize)
             use_tools = tools if (tools and m.supports_tools) else None
             api_params = {k: v for k, v in params.items() if k not in CONTROL_PARAMS}
+            limits = self.settings.routing  # délais réglés en mode avancé (bornés)
             self.quota.record_request(m)
             started = False
             try:
@@ -317,9 +318,10 @@ class Router:
                 if stream:
                     async for item in _watched(
                             client.stream(m, adapted, tools=use_tools, **api_params),
-                            float(params.get("first_token_timeout", FIRST_TOKEN_TIMEOUT)),
-                            float(params.get("stall_timeout", STALL_TIMEOUT)),
-                            float(params.get("think_timeout", THINK_TIMEOUT))):
+                            float(params.get("first_token_timeout",
+                                             limits.first_token_s or FIRST_TOKEN_TIMEOUT)),
+                            float(params.get("stall_timeout", limits.stall_s or STALL_TIMEOUT)),
+                            float(params.get("think_timeout", limits.think_s or THINK_TIMEOUT))):
                         if "_result" in item:
                             result = item["_result"]
                         else:

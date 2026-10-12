@@ -12,6 +12,7 @@ import base64
 import binascii
 import contextlib
 import hmac
+import ipaddress
 import json
 import re
 import time
@@ -20,19 +21,20 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlsplit
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from tontolo import __version__, documents, importer, secrets
+from tontolo import __version__, documents, importer, secrets, security
 from tontolo.agent import planner
 from tontolo.agent.loop import dumps
 from tontolo.agent.mcp_client import load_config, save_config
 from tontolo.agent.workspace import is_desktop
 from tontolo.app_state import Core
 from tontolo.catalog.models import Category, ModelInfo
-from tontolo.config import Settings, load_settings, save_settings
+from tontolo.config import CustomProvider, Settings, load_settings, save_settings
 from tontolo.creator import clarify
 from tontolo.creator import intent as file_intent
 from tontolo.memory import name_from
@@ -418,6 +420,16 @@ class PrefBody(SafeModel):
     scope_key: str = ""
     model: str | None = None         # None ou « auto » : retour en Auto
     strict: bool = False
+
+
+class CustomProviderBody(SafeModel):
+    name: str = Field(min_length=1, max_length=60)
+    base_url: str = Field(min_length=8, max_length=300)
+    free: bool = True
+    needs_key: bool = True
+    price_in_per_m: float = Field(default=0.0, ge=0, le=1000)
+    price_out_per_m: float = Field(default=0.0, ge=0, le=1000)
+    key: str | None = Field(default=None, max_length=500)
 
 
 class KeyBody(SafeModel):
@@ -1321,6 +1333,7 @@ def create_app(
         core = core_of(request)
         patch = await request.json()
         patch.pop("server", None)  # jamais modifiable à distance
+        patch.pop("custom_providers", None)  # points d'accès dédiés, sur l'appareil seulement
         if isinstance(patch.get("agent"), dict):
             patch["agent"].pop("workdir", None)  # dossier des outils fichiers : local seulement
         merged = core.settings.model_dump(mode="json")
@@ -1594,10 +1607,111 @@ def create_app(
 
     # --- Espace de travail du bureau (fichiers et commandes, avec garde-fous) ---------
 
-    def _local_only(request: Request, core: Core) -> None:
+    def _local_only(request: Request, core: Core, what: str = "Espace de travail") -> None:
         if not (request.client is not None and request.client.host in ("127.0.0.1", "::1")
                 and core.settings.server.host in LOOPBACK):
-            raise HTTPException(403, "Espace de travail : configuration locale uniquement")
+            raise HTTPException(403, f"{what} : configuration locale uniquement")
+
+    # --- Mode avancé : fournisseurs personnalisés, export / import des réglages ----------
+
+    @app.get("/tontolo/custom-providers")
+    async def custom_list(request: Request) -> list[dict[str, Any]]:
+        core = core_of(request)
+        counts: dict[str, int] = {}
+        for m in core.catalog.catalog.models.values():
+            counts[m.provider] = counts.get(m.provider, 0) + 1
+        return [{**cp.model_dump(), "has_key": secrets.has_key(cp.id),
+                 "models": counts.get(cp.id, 0)} for cp in core.settings.custom_providers]
+
+    @app.post("/tontolo/custom-providers")
+    async def custom_add(request: Request, body: CustomProviderBody) -> dict[str, Any]:
+        core = core_of(request)
+        _local_only(request, core, "Fournisseurs personnalisés")
+        if len(core.settings.custom_providers) >= 20:
+            raise HTTPException(400, "20 fournisseurs personnalisés au plus")
+        base = body.base_url.strip().rstrip("/")
+        problem = await _custom_url_problem(base, body.needs_key)
+        if problem:
+            raise HTTPException(400, problem)
+        if not body.free and (body.price_in_per_m <= 0 or body.price_out_per_m <= 0):
+            raise HTTPException(400, "Fournisseur payant : indiquez ses prix (sinon le plafond "
+                                     "de dépense ne peut pas être garanti)")
+        key = (body.key or "").strip()
+        if body.needs_key and not key:
+            raise HTTPException(400, "Clé requise")
+        slug = re.sub(r"[^a-z0-9]+", "-", body.name.lower()).strip("-")[:30] or "fournisseur"
+        pid, n = f"custom-{slug}", 2
+        taken = {cp.id for cp in core.settings.custom_providers} | set(
+            core.catalog.catalog.providers)
+        while pid in taken:
+            pid, n = f"custom-{slug}-{n}", n + 1
+        cp = CustomProvider(id=pid, name=body.name.strip()[:60], base_url=base, free=body.free,
+                            needs_key=body.needs_key, price_in_per_m=body.price_in_per_m,
+                            price_out_per_m=body.price_out_per_m)
+        found = await _custom_probe(cp, key)
+        if isinstance(found, str):
+            raise HTTPException(400, found)
+        security.pins().reset(pid)
+        if key:
+            if not key_allowed(pid, base):  # épingle l'hôte maintenant
+                raise HTTPException(400, "Adresse refusée pour une clé (HTTPS requis)")
+            secrets.set_key(pid, key)
+        core.settings.custom_providers.append(cp)
+        save_settings(core.settings)
+        core.router.registry.reset()
+        await core.catalog.refresh()
+        return {"id": pid, "models": found}
+
+    @app.delete("/tontolo/custom-providers/{pid}")
+    async def custom_delete(request: Request, pid: str) -> dict[str, bool]:
+        core = core_of(request)
+        _local_only(request, core, "Fournisseurs personnalisés")
+        before = len(core.settings.custom_providers)
+        core.settings.custom_providers = [cp for cp in core.settings.custom_providers
+                                          if cp.id != pid]
+        if len(core.settings.custom_providers) == before:
+            raise HTTPException(404, "Fournisseur inconnu")
+        save_settings(core.settings)
+        secrets.delete_key(pid)
+        security.pins().reset(pid)
+        core.router.registry.reset()
+        await core.catalog.refresh()
+        return {"ok": True}
+
+    @app.get("/tontolo/settings/export")
+    async def settings_export(request: Request) -> dict[str, Any]:
+        """Réglages à sauvegarder ou copier sur un autre appareil : jamais de clé ni de jeton."""
+        data = core_of(request).settings.model_dump(mode="json")
+        data.pop("server", None)
+        return {"tontolo_settings": 1, "settings": data}
+
+    @app.post("/tontolo/settings/import")
+    async def settings_import(request: Request) -> dict[str, Any]:
+        core = core_of(request)
+        _local_only(request, core, "Import des réglages")
+        body = await request.json()
+        data = body.get("settings") if isinstance(body, dict) else None
+        if not isinstance(data, dict) or body.get("tontolo_settings") != 1:
+            raise HTTPException(400, "Fichier de réglages Tontolo attendu")
+        data.pop("server", None)
+        if isinstance(data.get("agent"), dict):
+            data["agent"].pop("workdir", None)
+        merged = core.settings.model_dump(mode="json")
+        merged.update(data)
+        try:
+            new = Settings.model_validate(merged)
+        except ValueError as exc:
+            raise HTTPException(400, f"Réglages invalides : {str(exc)[:300]}") from exc
+        for cp in new.custom_providers:  # mêmes garde-fous qu'à l'ajout manuel
+            if await _custom_url_problem(cp.base_url, cp.needs_key):
+                raise HTTPException(400, f"Adresse refusée : {cp.name}")
+        for field_name in type(new).model_fields:
+            if field_name != "server":
+                setattr(core.settings, field_name, getattr(new, field_name))
+        save_settings(core.settings)
+        core.router.registry.reset()
+        core.catalog.refresh_in_background()
+        return await get_settings(request)
 
     def _workspace_json(core: Core) -> dict[str, Any]:
         ws = core.chat.workspace
@@ -1766,6 +1880,54 @@ ATTRIBUTIONS = [
     {"name": "Pollinations", "url": "https://pollinations.ai/",
      "use": "Texte et images sans clé"},
 ]
+
+
+async def _custom_url_problem(base: str, needs_key: bool) -> str | None:
+    """Adresse d'un fournisseur personnalisé : HTTPS public, ou serveur local en HTTP sans clé.
+    Jamais d'adresse de métadonnées ni de schéma exotique."""
+    parts = urlsplit(base)
+    if parts.scheme not in ("https", "http") or not parts.hostname or parts.username:
+        return "Adresse http(s) attendue, sans identifiants dans l'URL"
+    host = parts.hostname
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        ip = None
+    if ip is not None and (ip.is_link_local or ip.is_multicast or ip.is_reserved
+                           or ip.is_unspecified):
+        return "Adresse réservée refusée"
+    if host.endswith((".internal", "metadata.google.internal")):
+        return "Adresse interne refusée"
+    if parts.scheme == "http":
+        local = host in LOOPBACK or host.endswith(".local") or (ip is not None and ip.is_private)
+        if not local:
+            return "HTTPS obligatoire (HTTP seulement pour un serveur du réseau local)"
+        if needs_key:
+            return "Une clé n'est jamais envoyée en HTTP : utilisez HTTPS ou « sans clé »"
+    return None
+
+
+async def _custom_probe(cp: Any, key: str) -> int | str:
+    """Test de connexion : nombre de modèles de discussion listés, ou message d'erreur."""
+    from tontolo import http
+    from tontolo.catalog.service import custom_models
+
+    headers = {"Authorization": f"Bearer {key}"} if key else {}
+    try:
+        resp = await http.client().get(f"{cp.base_url}/models", headers=headers, timeout=15,
+                                       follow_redirects=False)
+    except Exception as exc:
+        return f"Connexion impossible : {type(exc).__name__}"
+    if resp.status_code in (401, 403):
+        return "Clé refusée par le fournisseur"
+    if resp.status_code != 200:
+        return f"Réponse inattendue ({resp.status_code}) : est-ce une API compatible OpenAI ?"
+    try:
+        data = resp.json()
+    except ValueError:
+        return "Réponse illisible : est-ce une API compatible OpenAI ?"
+    found = len(custom_models(cp, data))
+    return found if found else "Aucun modèle de discussion trouvé à cette adresse"
 
 
 async def _validate_key(core: Core, provider: str, key: str) -> tuple[bool, str]:

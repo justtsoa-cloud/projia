@@ -156,8 +156,10 @@ def rank(
 
     def collect(cat: Category) -> list[Candidate]:
         cands = []
+        excluded = set(settings.routing.excluded_providers)
         for m in catalog.models.values():
-            if m.provider not in usable or not paid_allowed(m, settings):
+            if (m.provider not in usable or m.provider in excluded
+                    or not paid_allowed(m, settings)):
                 continue
             if not _eligible(m, profile, cat):
                 continue
@@ -206,5 +208,11 @@ def rank(
                 elif preference.strict:
                     ready = []  # mode strict : attendre plutôt que basculer
                     decision.waiting.insert(0, pref_c)
+    chain = settings.routing.chains.get(category.value) or []
+    if chain and not (preference and preference.strict):
+        # Enchaînement choisi par l'utilisateur : ses modèles d'abord, dans son ordre (ceux qui
+        # sont disponibles), puis le classement automatique.
+        first = [c for key in chain for c in ready if c.model.key == key]
+        ready = first + [c for c in ready if c not in first]
     decision.chain = ready
     return decision
