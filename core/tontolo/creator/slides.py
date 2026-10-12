@@ -120,8 +120,14 @@ def clean_section(text: str, title: str) -> str:
 
 def plain_section(body: str, title: str) -> str:
     """Dernier recours : le texte de la section, sans commande, en diapositives simples."""
-    text = re.sub(r"\\begin\{lstlisting\}.*?\\end\{lstlisting\}", " ", body, flags=re.S)
-    text = re.sub(r"\\begin\{tikzpicture\}.*?\\end\{tikzpicture\}", " ", text, flags=re.S)
+    text = re.sub(r"\\begin\{(lstlisting|verbatim|tikzpicture)\}.*?\\end\{\1\}", " ", body,
+                  flags=re.S)
+    # Titres de diapositives et de blocs gardés comme repères ; environnements retirés.
+    text = re.sub(r"\\begin\{(?:frame|block|exampleblock|alertblock)\}(?:\[[^\]]*\])?"
+                  r"\{([^{}]*)\}", r" \1 : ", text)
+    text = re.sub(r"\\(?:begin|end)\{[^{}]*\}(?:\[[^\]]*\])?(?:\{[^{}]*\})?", " ", text)
+    text = re.sub(r"\\(?:frametitle|section|subsection)\*?\{([^{}]*)\}", r" \1 : ", text)
+    text = re.sub(r"\\item\b", " • ", text)
     for _ in range(3):
         text = re.sub(r"\\[A-Za-z]+\*?(?:\[[^\]]*\])?\{([^{}]*)\}", r"\1", text)
     text = re.sub(r"\\[A-Za-z]+\*?|[{}$&%#_^~\\]", " ", text)  # aucune commande ne reste
