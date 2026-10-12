@@ -2,7 +2,7 @@
 
 Ordre de lecture : variable d'environnement `<FOURNISSEUR>_API_KEY` (ou fichier
 `.env` du dossier courant), trousseau du système (`keyring`, KWallet/Secret
-Service), puis fichier `secrets.json` en mode 0600 dans le dossier de données.
+Service), puis fichier `secrets.json` CHIFFRÉ, en mode 0600, dans le dossier de données.
 Sous Android, l'application Flutter garde les clés dans le Keystore
 (`flutter_secure_storage`) et les transmet au cœur au démarrage, en mémoire.
 
@@ -19,6 +19,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from tontolo import vault
 from tontolo.config import data_dir
 
 log = logging.getLogger(__name__)
@@ -36,24 +37,36 @@ def _secrets_file() -> Path:
     return data_dir() / "secrets.json"
 
 
+def _key_file() -> Path:
+    return data_dir() / "secrets.key"
+
+
 def _read_file() -> dict[str, str]:
+    """Fichier de repli, chiffré (voir `tontolo.vault`). Un ancien fichier en clair est lu
+    puis réécrit chiffré (migration transparente)."""
     path = _secrets_file()
     if not path.exists():
         return {}
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-        return {str(k): str(v) for k, v in data.items()}
-    except (OSError, ValueError):
-        log.warning("Fichier de secrets illisible : ignoré")
+        blob = json.loads(path.read_text(encoding="utf-8"))
+        if vault.is_encrypted(blob):
+            return vault.decrypt(blob, _key_file())
+        data = {str(k): str(v) for k, v in blob.items()}
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
+        log.warning("Fichier de secrets illisible ou altéré : ignoré")
         return {}
+    if data:
+        with contextlib.suppress(OSError):
+            _write_file(data)  # ancien format en clair : chiffré dès la première lecture
+    return data
 
 
 def _write_file(data: dict[str, str]) -> None:
     path = _secrets_file()
-    tmp = path.with_suffix(".tmp")
+    tmp = path.with_name(path.name + ".tmp")  # propre à chaque fichier (clé et secrets)
     fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w", encoding="utf-8") as fh:
-        json.dump(data, fh)
+        json.dump(vault.encrypt(data, _key_file()), fh)
     tmp.replace(path)
 
 

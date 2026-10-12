@@ -343,7 +343,7 @@ Outils gratuits, locaux d'abord ; rien n'est exécuté depuis une pièce jointe.
 ## Orchestration multi-modèles et durcissement (demande du 2026-10-12)
 Contraintes : rien ne change par défaut (`orchestrate=false`), léger (asyncio, httpx, re), modèles gratuits seulement, sécurité d'abord.
 - [ ] S1. Audit secrets.py / server/app.py / WebSockets / MCP ; bandit
-- [ ] S2. secrets.json chiffré en repli (Fernet si `cryptography` présent, sinon chiffrement léger stdlib), migration transparente des fichiers existants
+- [x] S2. secrets.json chiffré en repli (Fernet si `cryptography` présent, sinon chiffrement léger stdlib), migration transparente des fichiers existants
 - [ ] S3. Limitation de débit des WebSockets (connexions et messages)
 - [ ] S4. MCP durci : commandes dangereuses refusées, taille des requêtes bornée, configuration stdio réservée à l'appareil
 - [ ] O1. Paquet `orchestrator/` : TaskDecomposer (regex, repli Ollama local), ResponseSynthesizer (low/medium/high), HierarchicalPipeline (cache, gather, délais, replis, routeur existant)
