@@ -136,6 +136,16 @@ CREATE TABLE IF NOT EXISTS answers (
     uses INTEGER NOT NULL DEFAULT 0
 );
 CREATE INDEX IF NOT EXISTS idx_answers_conv ON answers(conversation_id);
+
+CREATE TABLE IF NOT EXISTS feedback (
+    uid TEXT PRIMARY KEY,
+    conversation_id TEXT NOT NULL,
+    model TEXT NOT NULL,
+    category TEXT NOT NULL,
+    rating INTEGER NOT NULL CHECK (rating IN (-1, 1)),
+    reason TEXT NOT NULL DEFAULT '',
+    created_at REAL NOT NULL
+);
 """
 
 
@@ -381,6 +391,50 @@ class Database:
                      if cid else self.conn.execute("DELETE FROM answers"))
         await self.conn.commit()
         return cur.rowcount
+
+    async def delete_answer_text(self, answer: str) -> None:
+        """Une réponse jugée mauvaise n'est plus jamais réutilisée (cache sémantique)."""
+        await self.conn.execute("DELETE FROM answers WHERE answer = ?", (answer,))
+        await self.conn.commit()
+
+    # --- Notes des réponses (👍 / 👎) -------------------------------------------------
+
+    async def message_by_uid(self, uid: str) -> dict[str, Any] | None:
+        row = await self._fetchone(
+            "SELECT uid, conversation_id, seq, body, model FROM messages WHERE uid = ?", (uid,))
+        if row is None:
+            return None
+        msg = json.loads(row["body"])
+        msg["_meta"] = {"uid": row["uid"], "seq": row["seq"], "model": row["model"],
+                        "conversation_id": row["conversation_id"]}
+        return msg
+
+    async def set_feedback(self, uid: str, cid: str, model: str, category: str, rating: int,
+                           reason: str) -> None:
+        await self.conn.execute(
+            "INSERT INTO feedback(uid, conversation_id, model, category, rating, reason, "
+            "created_at) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(uid) DO UPDATE SET "
+            "rating = excluded.rating, reason = excluded.reason, created_at = excluded.created_at",
+            (uid, cid, model, category, rating, reason, now()))
+        await self.conn.commit()
+
+    async def delete_feedback(self, uid: str) -> None:
+        await self.conn.execute("DELETE FROM feedback WHERE uid = ?", (uid,))
+        await self.conn.commit()
+
+    async def feedback_of(self, cid: str) -> dict[str, int]:
+        rows = await self._fetchall(
+            "SELECT uid, rating FROM feedback WHERE conversation_id = ?", (cid,))
+        return {str(r["uid"]): int(r["rating"]) for r in rows}
+
+    async def feedback_totals(self) -> list[tuple[str, str, int, int]]:
+        """(modèle, catégorie, 👍, 👎) sur les 180 derniers jours."""
+        rows = await self._fetchall(
+            "SELECT model, category, SUM(rating = 1) AS up, SUM(rating = -1) AS down "
+            "FROM feedback WHERE created_at > ? GROUP BY model, category",
+            (now() - 180 * 86400,))
+        return [(str(r["model"]), str(r["category"]), int(r["up"] or 0), int(r["down"] or 0))
+                for r in rows]
 
     async def count_answers(self) -> int:
         row = await self._fetchone("SELECT COUNT(*) AS n FROM answers")

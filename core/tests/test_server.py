@@ -1041,3 +1041,20 @@ def test_answers_endpoints(client: TestClient) -> None:
     assert client.delete("/tontolo/answers").json() == {"removed": 0}
     off = client.put("/tontolo/settings", json={"answer_cache": False}).json()
     assert off["answer_cache"] is False
+
+
+def test_feedback_endpoints(client: TestClient) -> None:
+    ev = _events(client, "/tontolo/chat", {"content": "Dis bonjour"})
+    done = next(e for e in ev if e["type"] == "done")
+    cid = done["conversation_id"]
+    r = client.post("/tontolo/feedback", json={"uid": done["uid"], "rating": -1,
+                                                "reason": "too_long"})
+    assert r.status_code == 200 and r.json()["rating"] == -1 and r.json()["model"]
+    assert client.get(f"/tontolo/conversations/{cid}").json()["feedback"] == {done["uid"]: -1}
+    assert client.post("/tontolo/feedback", json={"uid": "0" * 32, "rating": 1}).status_code == 404
+    for bad in ({"uid": "../x", "rating": 1}, {"uid": done["uid"], "rating": 5},
+                {"uid": done["uid"], "rating": 1, "reason": "<script>"}):
+        assert client.post("/tontolo/feedback", json=bad).status_code in (400, 422)
+    kept = client.put("/tontolo/feedback/global", json={"scores": [
+        {"model": done["model"], "category": "chat", "score": 0.5, "devices": 9}]}).json()
+    assert kept == {"kept": 1}

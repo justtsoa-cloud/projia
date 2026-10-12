@@ -19,6 +19,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import hashlib
+import json
 import logging
 import time
 from collections.abc import AsyncIterator
@@ -97,6 +98,7 @@ async def _watched(source: AsyncIterator[dict[str, Any]], first: float, stall: f
         if aclose is not None:
             with contextlib.suppress(Exception):
                 await aclose()
+GLOBAL_MIN_DEVICES = 5  # notes collectives prises en compte à partir de 5 appareils
 SHORT_WAIT = 30.0  # attente maximale avant un nouvel essai automatique (secondes)
 EST_OUTPUT_TOKENS = 1000
 OFFLINE_WAIT = 25.0  # attente maximale du retour de la connexion (secondes)
@@ -149,6 +151,10 @@ class Router:
         if self.db is not None:
             self.quota.load(await self.db.load_quotas())
             self.reliability.table.update(await self.db.load_reliability())
+            self.reliability.set_votes(await self.db.feedback_totals())
+            raw = await self.db.kv_get("global_scores")
+            if raw:
+                self.set_global_scores(json.loads(raw))
 
     async def persist(self) -> None:
         if self.db is None:
@@ -159,6 +165,23 @@ class Router:
             ok, total = self.reliability.table[k]
             await self.db.save_reliability(k, ok, total)
         self.reliability.dirty.clear()
+
+    def set_global_scores(self, rows: list[dict[str, Any]]) -> int:
+        """Notes collectives anonymes (fonction Supabase `model_scores`, transmise par l'app) :
+        score borné à [-1, 1], seulement au-delà d'un nombre minimal d'appareils."""
+        scores: dict[tuple[str, str], float] = {}
+        for r in rows[:5000] if isinstance(rows, list) else []:
+            if not isinstance(r, dict):
+                continue
+            try:
+                model, cat = str(r["model"])[:200], str(r.get("category") or "*")[:40]
+                score, n = float(r["score"]), int(r.get("devices") or 0)
+            except (KeyError, TypeError, ValueError):
+                continue
+            if n >= GLOBAL_MIN_DEVICES and -1.0 <= score <= 1.0:
+                scores[(model, cat)] = score
+        self.reliability.global_scores = scores
+        return len(scores)
 
     def approve_paid(self, conversation_id: str) -> None:
         self._paid_ok.add(conversation_id)
@@ -189,6 +212,7 @@ class Router:
         self, messages: list[dict[str, Any]], *, conversation_id: str | None = None,
         model: str | None = None, tools_available: bool = False,
         forced: Category | str | None = None, strict: bool = False,
+        avoid: frozenset[str] = frozenset(),
     ) -> RouteDecision:
         prof = await self.profile(messages, conversation_id=conversation_id,
                                   tools_available=tools_available, forced=forced)
@@ -205,7 +229,7 @@ class Router:
                                    prof.category)
         return rank(self.catalog.catalog, prof, usable=self.catalog.usable_providers(),
                     quota=self.quota, reliability=self.reliability, settings=self.settings,
-                    preference=pref)
+                    preference=pref, avoid=avoid)
 
     # --- Exécution -------------------------------------------------------
 
@@ -221,6 +245,7 @@ class Router:
         strict: bool = False,
         summary: str | None = None,
         params: dict[str, Any] | None = None,
+        avoid: frozenset[str] = frozenset(),
     ) -> AsyncIterator[dict[str, Any]]:
         """Exécute un tour ; si tous les modèles sont en attente pour quelques secondes
         seulement, attend puis réessaie une fois au lieu d'afficher une erreur."""
@@ -228,6 +253,7 @@ class Router:
             async for ev in self._run_once(
                 messages, conversation_id=conversation_id, tools=tools, stream=stream,
                 model=model, forced=forced, strict=strict, summary=summary, params=params,
+                avoid=avoid,
             ):
                 wait = self._short_wait(ev) if round_ == 0 else None
                 if wait is not None:
@@ -256,10 +282,12 @@ class Router:
         strict: bool,
         summary: str | None,
         params: dict[str, Any] | None,
+        avoid: frozenset[str] = frozenset(),
     ) -> AsyncIterator[dict[str, Any]]:
         params = params or {}
         decision = await self.decide(messages, conversation_id=conversation_id, model=model,
-                                     tools_available=bool(tools), forced=forced, strict=strict)
+                                     tools_available=bool(tools), forced=forced, strict=strict,
+                                     avoid=avoid)
         prof = decision.profile
         conv_key = conversation_id or "_"
         if not decision.chain:

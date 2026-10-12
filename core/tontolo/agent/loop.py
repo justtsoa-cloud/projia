@@ -47,6 +47,7 @@ from tontolo.agent.workspace import (
 from tontolo.catalog.models import Category
 from tontolo.config import Settings
 from tontolo.memory import MemoryService, explicit_memory
+from tontolo.router.classifier import classify
 from tontolo.router.engine import Router
 from tontolo.semantic import AnswerIndex, context_block
 from tontolo.storage.db import Database
@@ -539,6 +540,7 @@ class ChatService:
 
     async def regenerate(
         self, conversation_id: str, *, model: str | None = None,
+        avoid: frozenset[str] = frozenset(),
     ) -> AsyncIterator[dict[str, Any]]:
         """Régénère la dernière réponse (éventuellement avec un autre modèle)."""
         history = await self.db.get_messages(conversation_id)
@@ -549,8 +551,28 @@ class ChatService:
         await self.db.truncate_after(conversation_id, last_user)
         await self.db.delete_answers(conversation_id)  # réponse jugée insuffisante
         self.answers.invalidate()
-        async for ev in self._loop(conversation_id, model=model):
+        async for ev in self._loop(conversation_id, model=model, avoid=avoid):
             yield ev
+
+    async def rate(self, uid: str, rating: int, reason: str = "") -> dict[str, Any] | None:
+        """Note 👍 (1) / 👎 (-1) d'une réponse, 0 pour l'annuler. Récompense ou pénalise le
+        modèle pour ce type de demande ; une réponse 👎 ne sera plus jamais réutilisée."""
+        msg = await self.db.message_by_uid(uid)
+        if msg is None or msg.get("role") != "assistant":
+            return None
+        meta = msg["_meta"]
+        model, cid = str(meta.get("model") or ""), str(meta["conversation_id"])
+        history = await self.db.get_window(cid, 40, before_seq=int(meta["seq"]))
+        category = classify(history).category.value if history else "chat"
+        if rating == 0:
+            await self.db.delete_feedback(uid)
+        else:
+            await self.db.set_feedback(uid, cid, model, category, rating, reason[:40])
+        if rating < 0:
+            await self.db.delete_answer_text(str(msg.get("content") or ""))
+            self.answers.invalidate()
+        self.router.reliability.set_votes(await self.db.feedback_totals())
+        return {"model": model, "category": category, "rating": rating}
 
     async def _documents_block(self, cid: str, question: str) -> dict[str, Any] | None:
         """Extraits des documents joints utiles à la question, à citer « [nom, p. N] »."""
@@ -752,6 +774,7 @@ class ChatService:
     async def _loop(
         self, cid: str, *, model: str | None = None, forced: Category | str | None = None,
         strict: bool = False, use_tools: bool = True, auto_approve: bool = False,
+        avoid: frozenset[str] = frozenset(),
     ) -> AsyncIterator[dict[str, Any]]:
         started = time.monotonic()
         CURRENT.set(cid)  # propre à ce tour : deux discussions en parallèle ne se mêlent pas
@@ -848,7 +871,7 @@ class ChatService:
             async for ev in self.router.run(messages, conversation_id=cid,
                                             tools=None if final_turn else tools,
                                             model=model, forced=forced, strict=strict,
-                                            summary=None):
+                                            summary=None, avoid=avoid):
                 if ev["type"] == "done":
                     final = ev
                 else:

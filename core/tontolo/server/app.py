@@ -398,6 +398,14 @@ class MemoryBody(SafeModel):
 class ResumeBody(SafeModel):
     approved: bool
     model: str | None = None
+    avoid_model: str | None = Field(default=None, max_length=200)  # « autre modèle » après 👎
+
+
+class FeedbackBody(SafeModel):
+    uid: str = Field(min_length=8, max_length=64, pattern=r"^[0-9a-f]+$")
+    rating: int = Field(ge=-1, le=1)
+    reason: str = Field(default="", max_length=40,
+                        pattern=r"^(|inexact|off_topic|too_long|too_short|language|other)$")
 
 
 class ImportBody(SafeModel):
@@ -909,7 +917,9 @@ def create_app(
                 media_body = ChatBody(conversation_id=cid, content=last_user["content"],
                                       model=body.model if body else None)
                 return _turn(core, cid, _media_turn(core, media_body, kind, add_user=False))
-        return _turn(core, cid, core.chat.regenerate(cid, model=body.model if body else None))
+        avoid = frozenset({body.avoid_model}) if body and body.avoid_model else frozenset()
+        return _turn(core, cid, core.chat.regenerate(cid, model=body.model if body else None,
+                                                     avoid=avoid))
 
     @app.post("/tontolo/chat/{cid}/edit")
     async def edit_message(request: Request, cid: str, body: EditBody) -> StreamingResponse:
@@ -1010,6 +1020,7 @@ def create_app(
         messages = (await db.get_window(cid, tail, before) if tail
                     else await db.get_messages(cid, after, limit))
         return {"id": cid, "messages": messages, "total": await db.count_messages(cid),
+                "feedback": await db.feedback_of(cid),
                 "mode": await db.get_mode(cid), "summary": summary, "summary_covered": covered,
                 "plan": planner.public(await db.get_plan(cid)),
                 "active": core_of(request).turns.active(cid) is not None}
@@ -1408,6 +1419,27 @@ def create_app(
         return {"ok": True}
 
     # --- Dépenses, synchronisation, MCP, mise à jour ---------------------
+
+    @app.post("/tontolo/feedback")
+    async def feedback(request: Request, body: FeedbackBody) -> dict[str, Any]:
+        """👍 / 👎 sur une réponse (0 : annuler). Renvoie le modèle et le type de demande, que
+        l'application peut partager anonymement (jamais le texte)."""
+        out = await core_of(request).chat.rate(body.uid, body.rating, body.reason)
+        if out is None:
+            raise HTTPException(404, "Réponse introuvable")
+        return out
+
+    @app.put("/tontolo/feedback/global")
+    async def feedback_global(request: Request) -> dict[str, int]:
+        """Notes collectives anonymes (fonction Supabase `model_scores`), relayées par l'app."""
+        core = core_of(request)
+        body = await request.json()
+        rows = body.get("scores") if isinstance(body, dict) else None
+        kept = core.router.set_global_scores(rows if isinstance(rows, list) else [])
+        await core.db.kv_set("global_scores", json.dumps(
+            [{"model": m, "category": c, "score": v, "devices": 999}
+             for (m, c), v in core.router.reliability.global_scores.items()]))
+        return {"kept": kept}
 
     @app.get("/tontolo/answers")
     async def answers_info(request: Request) -> dict[str, Any]:

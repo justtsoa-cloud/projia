@@ -33,6 +33,7 @@ class Candidate:
     reliability: float
     preferred: bool = False
     available_at: float = 0.0
+    feedback: float = 0.0  # récompense (+) ou pénalité (−) venue des notes 👍/👎
 
     def reason(self, category: Category) -> dict[str, Any]:
         return {
@@ -40,6 +41,7 @@ class Candidate:
             "quality": round(self.quality, 3), "speed": round(self.speed, 3),
             "reliability": round(self.reliability, 3), "preferred": self.preferred,
             "free": self.model.is_free, "provisional": self.model.provisional,
+            "feedback": round(self.feedback, 3),
         }
 
 
@@ -70,11 +72,29 @@ class Reliability:
         self.table: dict[str, tuple[float, float]] = {}
         self.dirty: set[str] = set()
         self.speeds: dict[str, float] = {}  # car./s observés (en mémoire)
+        self.votes: dict[tuple[str, str], tuple[int, int]] = {}   # notes locales (👍, 👎)
+        self.global_scores: dict[tuple[str, str], float] = {}     # notes collectives [-1, 1]
 
     def get(self, key: str) -> float:
         ok, total = self.table.get(key, (0.0, 0.0))
         p_ok, p_total = RELIABILITY_PRIOR
         return (ok + p_ok) / (total + p_total)
+
+    def set_votes(self, rows: list[tuple[str, str, int, int]]) -> None:
+        self.votes = {(m, c): (up, down) for m, c, up, down in rows}
+
+    def feedback(self, key: str, category: str) -> float:
+        """Récompense ou pénalité bornée d'un modèle pour un type de demande :
+        - notes de CET appareil (fortes, immédiates) : même type de demande, puis tous types ;
+        - notes collectives anonymes (plus faibles), si assez d'appareils ont noté.
+        Jamais assez pour écarter seul un bon modèle : +0,15 au plus, −0,18 au plus."""
+        same = self.votes.get((key, category), (0, 0))
+        allc = [v for (k, _), v in self.votes.items() if k == key]
+        net_cat = same[0] - same[1]
+        net_all = sum(u for u, _ in allc) - sum(d for _, d in allc)
+        local = 0.10 * math.tanh(net_cat / 3) + 0.05 * math.tanh(net_all / 5)
+        glob = self.global_scores.get((key, category), self.global_scores.get((key, "*"), 0.0))
+        return max(-0.18, min(0.15, local + 0.06 * glob))
 
     def record_speed(self, key: str, chars: int, seconds: float) -> None:
         """Vitesse réellement observée (caractères produits par seconde, attente comprise) :
@@ -145,6 +165,7 @@ def rank(
     settings: Settings,
     preference: Preference | None = None,
     now: float | None = None,
+    avoid: frozenset[str] = frozenset(),
 ) -> RouteDecision:
     now = now or time.time()
     w = settings.weights
@@ -158,7 +179,7 @@ def rank(
         cands = []
         excluded = set(settings.routing.excluded_providers)
         for m in catalog.models.values():
-            if (m.provider not in usable or m.provider in excluded
+            if (m.provider not in usable or m.provider in excluded or m.key in avoid
                     or not paid_allowed(m, settings)):
                 continue
             if not _eligible(m, profile, cat):
@@ -177,8 +198,10 @@ def rank(
             elif m.provider in LOCAL_LLM_PROVIDERS:
                 penalty += 0.25  # modèles sur l'appareil : derniers recours (et hors ligne)
             penalty += 0.15 * quota.pressure(m, now)
-            score = w_q * q + w_s * s + w_r * r - penalty
-            cands.append(Candidate(m, score, q, s, r, available_at=quota.available_at(m, now)))
+            fb = reliability.feedback(m.key, cat.value)
+            score = w_q * q + w_s * s + w_r * r - penalty + fb
+            cands.append(Candidate(m, score, q, s, r, available_at=quota.available_at(m, now),
+                                   feedback=fb))
         return cands
 
     cands = collect(category)
