@@ -214,6 +214,11 @@ class Creator:
                   else WRITER_PROMPTS[kind].format(
                       language=lang, babel={"en": "english"}.get(language, "french")))
         user = request if not context else f"{request}\n\nContexte de la discussion :\n{context}"
+        if re.search(r"citation|citer|quote|citat", request, re.I):
+            # Un modèle ne peut pas vérifier une source : jamais de citation inventée.
+            user += ("\n\nRègle : n'invente AUCUNE citation. Ne mets entre guillemets que ce dont "
+                     "tu es certain (auteur, œuvre, année) ; sinon résume l'idée sans guillemets "
+                     "et marque-la « (≈) » pour dire que la formulation est à vérifier.")
         if base:
             # Révision : on part de la version précédente, entière, dans le même format.
             user = (f"Voici la version actuelle du fichier :\n{base[:20000]}\n\nModifie-la selon "

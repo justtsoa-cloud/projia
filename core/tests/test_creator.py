@@ -210,3 +210,30 @@ async def test_writer_failure_is_retried_once() -> None:
 
     out, _ = await _run(Flaky(["# Plan\ntexte"]), "docx")
     assert out.filename == "plan.docx"
+
+
+def test_feedback_after_a_file_is_a_revision() -> None:
+    for yes in ("excellent mais des vraies citations", "rajoute des exemples", "plus court",
+                "trop long, résume", "en couleur", "parfait mais en anglais",
+                "Great but with real quotes", "mets des citations exactes"):
+        assert intent.is_revision(yes), yes
+    for no in ("merci", "Super !", "ok", "je ne comprends pas la partie Popper",
+               "pourquoi Kuhn parle de paradigmes", "c'est quoi la falsification ?",
+               "Quelle est la capitale de la France", ""):
+        assert not intent.is_revision(no), no
+
+
+def test_text_tool_calls_become_real_calls() -> None:
+    from tontolo.agent.tools import extract_text_tool_calls
+
+    text = ('Je détaille avec les sources\n<tool_call>web_search\n<arg_key>query</arg_key>\n'
+            '<arg_value>Einstein letter to Born 1926</arg_value>\n</tool_call>\n'
+            '<tool_call>inconnu\n<arg_key>x</arg_key><arg_value>1</arg_value></tool_call>\n'
+            '<tool_call>{"name": "calculator", "arguments": {"expression": "2+2"}}</tool_call>\n'
+            '<tool_call>web_search\n<arg_key>query</arg_key><arg_value>tronqué')
+    clean, calls = extract_text_tool_calls(text, {"web_search", "calculator"})
+    assert clean == "Je détaille avec les sources" and "<" not in clean
+    assert [c["function"]["name"] for c in calls] == ["web_search", "calculator", "web_search"]
+    assert json.loads(calls[0]["function"]["arguments"]) == {
+        "query": "Einstein letter to Born 1926"}
+    assert extract_text_tool_calls("Bonjour", {"web_search"}) == ("Bonjour", [])

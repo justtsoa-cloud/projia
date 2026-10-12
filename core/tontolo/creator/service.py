@@ -136,6 +136,24 @@ class CreatorService:
         return {"ok": bool(data["ok"]) or not issues, "issues": issues, "model": key,
                 "name": name}
 
+    async def _version_name(self, out: Output, conversation_id: str | None) -> None:
+        """Deux fichiers de la même discussion ne portent jamais le même nom : la 2e version
+        devient « nom-v2.ext », la 3e « nom-v3.ext » (partage et enregistrement sans écrasement)."""
+        if not conversation_id or not out.filename:
+            return
+        same = 0
+        for job in await self.db.list_jobs(500, kind="file_gen"):
+            if job.get("conversation_id") != conversation_id or job.get("status") != "done":
+                continue
+            name = str((job.get("params") or {}).get("filename") or "")
+            if re.sub(r"-v\d+(\.[^.]+)$", r"\1", name) == out.filename:
+                same += 1
+        if same:
+            stem, dot, ext = out.filename.rpartition(".")
+            out.filename = f"{stem or out.filename}-v{same + 1}{dot}{ext}" if dot else \
+                f"{out.filename}-v{same + 1}"
+            out.title = f"{out.title} (v{same + 1})"
+
     async def create(self, kind: str, request: str, *, conversation_id: str | None,
                      context: str = "", base: str | None = None,
                      images: list[str] | None = None) -> AsyncIterator[dict[str, Any]]:
@@ -168,6 +186,7 @@ class CreatorService:
             async for ev in creator.run(kind, request, context=context, language=self.language,
                                         out=out, base=base, store=keep):
                 yield ev
+            await self._version_name(out, conversation_id)
             self.dir.mkdir(parents=True, exist_ok=True)
             path = self.dir / f"{job['id']}-{out.filename}"
             path.write_bytes(out.data)

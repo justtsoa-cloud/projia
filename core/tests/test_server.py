@@ -889,3 +889,27 @@ def test_home_name_and_recent(client: TestClient) -> None:
     assert home["recent"][0]["title"] == "Révision des probabilités"
     client.put("/tontolo/settings", json={"user_name": "Antsa Malala"})
     assert client.get("/tontolo/home").json()["name_from"] == "settings"
+
+
+def test_versions_never_share_a_filename(client: TestClient,
+                                         monkeypatch: pytest.MonkeyPatch) -> None:
+    from tontolo.creator.service import CreatorService
+
+    async def ask(self: Any, messages: Any, *, category: Any = None, model: Any = None,
+                  limit: float = 0) -> tuple[str, str, str]:
+        return "# Cours sur l'eau\n## Cycle\nTexte.", "fake:writer", "Rédacteur"
+
+    async def pick(self: Any, *, exclude: str, vision: bool = False) -> None:
+        return None
+
+    monkeypatch.setattr(CreatorService, "ask", ask)
+    monkeypatch.setattr(CreatorService, "pick_reviewer", pick)
+    first = _events(client, "/tontolo/chat", {"content": "Génère un fichier Word sur l'eau"})
+    cid = next(e["id"] for e in first if e["type"] == "conversation")
+    names = [next(e for e in first if e["type"] == "done")["job"]["params"]["filename"]]
+    for text in ("rajoute des exemples", "excellent mais des vraies citations"):
+        ev = _events(client, "/tontolo/chat", {"conversation_id": cid, "content": text})
+        job = next(e for e in ev if e["type"] == "done")["job"]
+        names.append(job["params"]["filename"])
+        assert job["params"]["revision"] is True  # corrigé, pas recréé de zéro
+    assert names == ["cours-sur-l-eau.docx", "cours-sur-l-eau-v2.docx", "cours-sur-l-eau-v3.docx"]

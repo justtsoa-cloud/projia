@@ -81,7 +81,26 @@ _REVISION = re.compile(
     r"ampio|ampiana|ovay|ahitsio|hatsarao|esory)\b", re.I)
 
 
+# Retour sur le fichier qui vient d'être livré, sans verbe de modification :
+# « excellent mais des vraies citations », « plus court », « trop long », « en couleur ».
+_PRAISE = (r"(excellent|parfait|super|bien|bravo|g[ée]nial|top|ok|oui|great|good|nice|"
+           r"perfect|thanks)")
+_BUT = r"(mais|sauf|par contre|cependant|but)"
+_STARTS = (r"(mais|plut[ôo]t|sauf|il manque|il faudrait|trop|pas assez|encore|aussi|en plus|"
+           r"avec|sans|plus |moins |en couleur|en fran[çc]ais|en anglais|but |more |less |"
+           r"too |also |instead|with |without )")
+_QUALITY = r"(vrai(e)?s?|r[ée]el(le)?s?|exact(e)?s?|pr[ée]cis(e)?s?|real|actual|authentic|accurate)"
+_FEEDBACK = re.compile(rf"\b{_PRAISE}\b.{{0,12}}\b{_BUT}\b|^\s*{_STARTS}|\b{_QUALITY}\b", re.I)
+# Pas une demande de modification : simple politesse ou question de compréhension.
+_NOT_A_REVISION = re.compile(
+    r"^\s*(merci|ok|d'accord|super|parfait|bien|top|bravo|thanks|thank you|great|"
+    r"misaotra)\s*[.!]*\s*$|\b(comprends|compris|explique|pourquoi|comment|c'est quoi|"
+    r"qu'est-ce|que signifie|why|how|what is|what does|explain)\b", re.I)
+
+
 def is_revision(text: str) -> bool:
     """Demande de modification du fichier qui vient d'être créé (et non une question)."""
     t = (text or "").strip()
-    return bool(t) and len(t) < 600 and bool(_REVISION.search(t)) and not t.endswith("?")
+    if not t or len(t) >= 600 or t.endswith("?") or _NOT_A_REVISION.search(t):
+        return False
+    return bool(_REVISION.search(t)) or (len(t) <= 240 and bool(_FEEDBACK.search(t)))

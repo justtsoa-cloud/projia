@@ -27,7 +27,14 @@ from tontolo.agent import browser, planner
 from tontolo.agent.mcp_client import McpManager
 from tontolo.agent.taskstore import TOOL_INLINE, TaskStore
 from tontolo.agent.terminal import TerminalManager
-from tontolo.agent.tools import Tool, ToolBox, native_tools, search_raw, untrusted
+from tontolo.agent.tools import (
+    Tool,
+    ToolBox,
+    extract_text_tool_calls,
+    native_tools,
+    search_raw,
+    untrusted,
+)
 from tontolo.agent.workspace import (
     DANGEROUS,
     SENSITIVE_DIRS,
@@ -765,6 +772,10 @@ class ChatService:
                 async for ev in self._continue(cid, messages, final):
                     yield ev
                 msg = final["message"]
+            if not msg.get("tool_calls") and "<tool_call>" in str(msg.get("content") or ""):
+                clean, extra = extract_text_tool_calls(str(msg.get("content")), set(box.tools))
+                msg = {**msg, "content": clean, **({"tool_calls": extra} if extra else {})}
+                final["message"] = msg
             saved = await self.db.add_message(cid, msg, model=final["model"])
             yield {**final, "uid": saved["uid"], "conversation_id": cid}
             calls = msg.get("tool_calls") or []
