@@ -1022,3 +1022,14 @@ def test_clarify_questions_by_language() -> None:
         "10 pages")
     assert questions_for("docx", "convertis ce html en pdf") == []
     assert questions_for("text:py", "écris un script python") == []
+
+
+def test_clarify_follows_the_request_language_not_the_interface() -> None:
+    from tontolo.creator.clarify import language_of, questions_for
+
+    assert language_of("Ecris un rapport Word sur la pollution", "mg") == "fr"
+    assert language_of("Write a report about pollution", "fr") == "en"
+    assert language_of("Manorata tatitra momba ny fandotoana", "fr") == "mg"
+    assert language_of("Word pollution", "mg") == "mg"  # rien de net : langue de l'interface
+    assert questions_for("docx", "Ecris un rapport Word sur la pollution", "mg")[0][
+        "question"] == "Pour quel public ?"

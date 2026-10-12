@@ -27,6 +27,8 @@ _LENGTH = re.compile(r"\b\d{1,4}\s*(pages?|p\.|pejy|diapos?|slides?|mots|words|t
 _TRANSFORM = re.compile(r"\b(convert\w*|transform\w*|mets?|exporte\w*|tradui\w*|translate|"
                         r"résume\w*|summari[sz]e|reformule\w*|corrige\w*|ce|cet|cette|ces|"
                         r"this|these|ity|ireo)\b", re.I)
+_FR = re.compile(r"\b(le|la|les|un|une|des|du|sur|pour|avec|écris|ecris|fais|rédige|redige|"
+                 r"crée|cree|génère|genere|rapport|livre|exposé|expose)\b", re.I)
 _EN = re.compile(r"\b(the|write|make|create|about|for|report|book|please|an?)\b", re.I)
 _MG = re.compile(r"\b(ny|sy|amin'?ny|momba|azafady|manorata|mamorona|boky|tatitra|ho an'?ny)\b",
                  re.I)
@@ -51,12 +53,15 @@ _TEXT = {
 
 
 def language_of(text: str, default: str = "fr") -> str:
-    mg, en = len(_MG.findall(text)), len(_EN.findall(text))
-    if mg >= 2 or (mg and not en):
-        return "mg"
-    if en >= 2:
-        return "en"
-    return default if default in _TEXT else "fr"
+    """Langue de la demande (les questions et les réponses doivent la suivre, sinon le document
+    risque d'être écrit dans la langue de l'interface)."""
+    scores = {"fr": len(_FR.findall(text)), "en": len(_EN.findall(text)),
+              "mg": len(_MG.findall(text))}
+    best = max(scores.values())
+    if best == 0:
+        return default if default in _TEXT else "fr"
+    leaders = [k for k, v in scores.items() if v == best]
+    return default if default in leaders else leaders[0]
 
 
 def questions_for(kind: str, text: str, default_lang: str = "fr") -> list[dict[str, Any]]:

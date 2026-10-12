@@ -260,9 +260,9 @@ l'emploi ; bureau Linux = fichiers + commandes confirmées dans un dossier chois
 ## Tests d'endurance, de longs projets et de complexité (2026-10-12, demandés par le propriétaire)
 Règle : tout test, bug trouvé et optimisation est noté ici au fur et à mesure.
 - [x] E1. (fait : core/bench/b1–b4 ; résultats dans docs/ENDURANCE.md) Bancs d'essai du cœur (fournisseurs simulés) : très longue discussion (milliers de messages, images, vidéos, fichiers), nombreuses discussions, tours en parallèle, arrêt/reprise, mémoire, synchro ; mesurer temps et mémoire
-- [ ] E2. Essais réels avec modèles gratuits : livre long, projet multi-fichiers, plan complexe en parallèle, chaîne de corrections, agent avec outils
+- [x] E2. Essais réels avec modèles gratuits : livre long, projet multi-fichiers, plan complexe en parallèle, chaîne de corrections, agent avec outils
 - [ ] E3. Robustesse : entrées extrêmes (énormes, Unicode, injections), pannes de fournisseurs, coupures réseau, base verrouillée, disque plein
-- [ ] E4. Fuites et croissance : terminaux, onglets, résultats de tâches, caches, tâches de fond, connexions
+- [x] E4. Fuites et croissance : terminaux, onglets, résultats de tâches, caches, tâches de fond, connexions
 - [ ] E5. Application : longue discussion à l'écran (défilement, mémoire), arrière-plan Android, synchro de gros volumes
 - [ ] E6. Correctifs et optimisations issus de E1–E5 (liste ci-dessous, au fil de l'eau)
 
@@ -281,6 +281,7 @@ Règle : tout test, bug trouvé et optimisation est noté ici au fur et à mesur
 - [x] B12. (essai réel R4) En discussion normale, le modèle recevait les outils terminal/navigateur/écriture et tentait de créer un fichier Word par le terminal → ces outils sont réservés au mode Agent (économie d'environ 1,5 k jetons par demande)
 - [x] B13. (E5) Une discussion de milliers de messages était chargée en une seule requête par l’app → chargement par fenêtre (120 derniers, `?tail=&before=`), bouton « Messages précédents (n) » en tête, test Flutter
 - [x] B14. (essai réel R7, livre de 21 pages) Erreur LaTeX « clé inconnue /tcb/… » : la ligne fautive était perdue du journal, le chapitre n’était pas retrouvé et le livre échouait → ligne `l.N` conservée, recherche du texte fautif dans les chapitres, et dernier recours `plain_chapter` (chapitre simplifié) au lieu d’abandonner le livre
+- [x] R7 livre de 21 pages : PDF de 18 pages en 932 s après B14
 - [x] O1. (essai réel R3 : 47 s par tour, réponses de 2 à 6 k caractères d’un modèle 550B lent) Vitesse réellement observée par modèle (car./s, attente comprise, moyenne glissante) mêlée à celle du catalogue (souvent absente pour les gratuits) : le routeur favorise les modèles rapides, surtout en « réponse rapide d’bord »
 - [x] R3 longue discussion (14 tours, prénom et ville retrouvés) et R4 chaîne de 4 corrections (aucun nom de fichier dupliqué) OK
 - [x] E2 (partiel) : R2 plan complexe, R6 projet de code, R8 outils agent OK ; R4 chaîne de corrections, R3 longue discussion, R7 livre à relancer sur le code corrigé
@@ -291,6 +292,8 @@ Règle : tout test, bug trouvé et optimisation est noté ici au fur et à mesur
 - [x] App : carte de puces (fr/en/mg), un toucher envoie si une seule question à choix unique, sinon « Envoyer mes choix » ; la carte revient à la réouverture si la question est la dernière ; pastille « attend une réponse »
 - [x] Demandes de création de fichier (circuit créateur) : public et longueur demandés d'abord quand ils manquent (questions fixes fr/en/mg, sans appel de modèle ; jamais pour une conversion « convertis ce HTML en PDF » ni une demande déjà détaillée) ; la réponse relance la création avec la demande complétée
 - [x] Optimisation : `_last_file` et le contexte de création lisent une fenêtre de 12 messages au lieu du fil entier
+- [x] Essai émulateur : carte affichée, choix envoyés, création relancée avec la demande complétée
+- [x] Bug trouvé à l'essai : questions dans la langue de l'interface (malgache) pour une demande en français → langue détectée sur la demande
 - [ ] Texte « Autre… » libre dans la carte (aujourd'hui : l'utilisateur écrit dans le champ normal)
 - [ ] Essai réel : vérifier quels modèles gratuits appellent bien `ask_user`
 
