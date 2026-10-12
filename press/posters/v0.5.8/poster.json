@@ -1,0 +1,56 @@
+{
+  "shot": "rate",
+  "lang": {
+    "fr": {
+      "tagline": "Nouveautés", "date": "12 octobre 2026",
+      "hero": ["Notez chaque", "réponse"],
+      "sub": "Tontolo récompense les bons modèles.",
+      "steps": [
+        ["Touchez le pouce levé", "ou baissé sous une réponse"],
+        ["Dites ce qui n'allait pas,", "ou réessayez avec un", "autre modèle"],
+        ["Les bons modèles passent", "devant. Seule la note est", "partagée, jamais le texte"]
+      ],
+      "also": "Aussi dans cette version",
+      "items": [
+        ["Tous vos fichiers", ["Zip, Word, PowerPoint, Excel, epub,", "code, son et vidéo transcrits."]],
+        ["QR code de téléchargement", ["Dans À propos et sur ce poster :", "installez Tontolo d'un geste."]],
+        ["Relecture plus juste", ["Le second modèle voit aussi", "les fichiers joints."]]
+      ],
+      "footer": "Gratuit · Android · Linux"
+    },
+    "en": {
+      "tagline": "What's new", "date": "October 12, 2026",
+      "hero": ["Rate every", "answer"],
+      "sub": "Tontolo rewards the good models.",
+      "steps": [
+        ["Tap thumbs up or down", "under an answer"],
+        ["Say what was wrong, or", "retry with another", "model"],
+        ["Good models move ahead.", "Only the rating is shared,", "never the text"]
+      ],
+      "also": "Also in this version",
+      "items": [
+        ["All your files", ["Zip, Word, PowerPoint, Excel, epub,", "code, audio and video transcribed."]],
+        ["Download QR code", ["In About and on this poster:", "install Tontolo in one scan."]],
+        ["Fairer double-check", ["The second model also sees", "the attached files."]]
+      ],
+      "footer": "Free · Android · Linux"
+    },
+    "mg": {
+      "tagline": "Vaovao", "date": "12 Oktobra 2026",
+      "hero": ["Omeo naoty ny", "valiny tsirairay"],
+      "sub": "Valisoin'i Tontolo ny modely tsara.",
+      "steps": [
+        ["Tsindrio ny ankihibe miakatra", "na midina eo amin'ny valiny"],
+        ["Lazao izay tsy nety, na", "andramo amin'ny modely", "hafa"],
+        ["Mialoha ny modely tsara.", "Ny naoty ihany no zaraina,", "tsy ny lahatsoratra"]
+      ],
+      "also": "Ao amin'ity dikan-teny ity koa",
+      "items": [
+        ["Ny rakitrao rehetra", ["Zip, Word, PowerPoint, Excel, epub,", "kaody, feo sy horonan-tsary."]],
+        ["QR code fampidinana", ["Ao amin'ny Momba sy ity sary ity:", "apetraho i Tontolo indray mandeha."]],
+        ["Fanamarinana marina kokoa", ["Hitan'ny modely faharoa koa", "ny rakitra nampiarahina."]]
+      ],
+      "footer": "Maimaim-poana · Android · Linux"
+    }
+  }
+}

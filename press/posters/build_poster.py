@@ -66,7 +66,13 @@ def width(s: str, size: int, bold: bool = False) -> float:
 
 
 def check_layout(t: dict, lang: str) -> None:
-    """Les autres changements s'arrêtent avant le QR code (x = 820)."""
+    """Les autres changements s'arrêtent avant le QR code (x = 820) ; pas d'émoji (la police du
+    poster ne les dessine pas : ils sortaient en traits illisibles)."""
+    import json as _json
+
+    if any(ord(c) >= 0x1F000 or 0x2600 <= ord(c) < 0x2800 for c in _json.dumps(
+            t, ensure_ascii=False)):
+        raise SystemExit(f"[{lang}] émoji dans le texte du poster : remplacez-le par des mots")
     for title, rows in t["items"]:
         if 116 + width(title, 34, True) > 820:
             raise SystemExit(f"[{lang}] titre trop long (chevauche le QR) : {title}")

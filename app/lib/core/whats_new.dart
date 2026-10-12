@@ -14,6 +14,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.5.8': [
+    NewsItem(Icons.thumbs_up_down_outlined, 'Notez chaque réponse',
+        'Touchez 👍 ou 👎 sous une réponse : Tontolo favorise les modèles qui réussissent ce type de demande. Après un 👎, dites ce qui n\'allait pas ou réessayez avec un autre modèle. Seule la note est partagée (statistiques anonymes), jamais le texte.',
+        'Rate every answer', 'Tap 👍 or 👎 under an answer: Tontolo favors the models that succeed at this kind of request. After a 👎, say what was wrong or retry with another model. Only the rating is shared (anonymous statistics), never the text.',
+        mg: 'Omeo naoty ny valiny tsirairay', mgText: 'Tsindrio 👍 na 👎 eo ambanin\'ny valiny: ankasitrahan\'i Tontolo ny modely mahomby amin\'io karazana fangatahana io. Aorian\'ny 👎, lazao izay tsy nety na andramo amin\'ny modely hafa. Ny naoty ihany no zaraina (antontan\'isa tsy mitonona anarana), tsy ny lahatsoratra mihitsy.'),
+    NewsItem(Icons.attach_file, 'Tous vos fichiers, et un QR code',
+        'Joignez un zip, un Word, un PowerPoint, un Excel, un epub, du code, un son ou une vidéo : Tontolo les lit ou les transcrit. Le QR code d\'À propos permet d\'installer Tontolo sur un autre téléphone.',
+        'All your files, and a QR code', 'Attach a zip, Word, PowerPoint, Excel, epub, code, audio or video: Tontolo reads or transcribes them. The QR code in About lets you install Tontolo on another phone.',
+        mg: 'Ny rakitrao rehetra, sy QR code', mgText: 'Ampiarahony zip, Word, PowerPoint, Excel, epub, kaody, feo na horonan-tsary: vakian\'i Tontolo na soratany. Ny QR code ao amin\'ny Momba dia ahafahana mametraka an\'i Tontolo amin\'ny finday hafa.'),
+  ],
   '0.5.7': [
     NewsItem(Icons.history, 'Déjà répondu ? Réponse immédiate',
         'Reposez une question, même autrement : Tontolo reprend sa réponse aussitôt, sans quota, et l\'indique (« Déjà répondu le … »). Jamais pour l\'actualité ni une question personnelle. Régénérer en donne une nouvelle. Tout reste sur l\'appareil.',

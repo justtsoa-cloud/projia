@@ -5,6 +5,28 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.5.8] - 2026-10-12
+
+### Ajouté
+- Notes 👍 / 👎 sous chaque réponse. Une note récompense ou pénalise le modèle pour ce type
+  de demande (effet borné, visible dans « Pourquoi ce modèle »). Après un 👎 : raisons
+  rapides (inexact, hors sujet, trop long…) et « Réessayer avec un autre modèle ». Une
+  réponse 👎 n'est plus jamais réutilisée. Avec l'accord « Statistiques anonymes », seuls le
+  modèle, le type de demande, la note et la raison sont partagés, jamais le texte. Chaque
+  jour, les notes collectives (solde des appareils, à partir de 5) ajustent aussi le
+  classement, plus faiblement. Script Supabase : `docs/stats/supabase_ratings.sql`.
+- Pièces jointes de tous types : Word, PowerPoint, Excel, OpenDocument, epub, rtf, texte et
+  code (md, csv, json, py…), archives zip et tar (contenu listé et lu), son et vidéo
+  transcrits (piste son extraite par ffmpeg s'il est installé). Garde-fous : bombes zip,
+  chemins sortants, liens symboliques et XML piégé refusés ; rien n'est exécuté.
+- QR code vers le téléchargement : dans « À propos » (dernière version) et sur le poster de
+  chaque version (page de cette version).
+
+### Corrigé
+- Le second modèle qui relit les réponses ne voyait pas les fichiers joints : il prenait
+  leur contenu pour une invention. Il voit maintenant les documents et la fin du fil.
+- Plus de questions à choix pour une demande de résumé (« résume ce fichier »).
+
 ## [0.5.7] - 2026-10-12
 
 ### Ajouté

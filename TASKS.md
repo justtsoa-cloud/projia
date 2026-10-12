@@ -325,7 +325,7 @@ Principe : rien de ce qui est écrit ne quitte l'appareil ; seule la note (modè
 - [ ] N7. Le propriétaire exécute docs/stats/supabase_ratings.sql dans Supabase (syntaxe validée avec l'analyseur PostgreSQL ; pas encore exécuté sur une vraie base)
 - [x] Essai émulateur : 👍/👎 visibles, panneau des raisons (malgache), « autre modèle » (ling-3.1-flash → Qwen3.6), note enregistrée ; QR « À propos » lu depuis l'écran (zbarimg)
 - [x] Q1. QR code vers le téléchargement : généré par script (`qrencode`), vérifié par lecture (`zbarimg`) ; dans « À propos » (dernière version) et sur le poster de chaque version (page de cette version)
-- [ ] R. Version 0.5.8 : CHANGELOG, nouveautés fr/en/mg, poster (avec QR), tests, essais émulateur
+- [x] R. Version 0.5.8 : CHANGELOG, nouveautés fr/en/mg, poster (avec QR), tests, essais émulateur
 
 ## Pièces jointes de tous types (demande du 2026-10-12)
 Outils gratuits, locaux d'abord ; rien n'est exécuté depuis une pièce jointe.
