@@ -362,3 +362,20 @@ Contraintes : rien ne change par défaut (`orchestrate=false`), léger (asyncio,
 - [x] B23. Mode Apprendre : « crée un quizz de 10 questions » donnait un quiz en texte (non interactif) et lançait la vérification par un second modèle → consigne ferme « bloc ```quiz » ; un quiz (ou des fiches) écrit en texte est converti en bloc JSON validé avant l'enregistrement ; pas de relecture sur un quiz
 - [x] Création longue (Beamer, document tiré d'un long fichier) : délai des chapitres de livre ; source raté gardé dans les résultats intermédiaires
 - [ ] Essai réel : livre LaTeX de 328 pages → présentation Beamer
+
+## Analyse externe (v0.5.8) — tri (2026-10-12)
+Déjà fait (rien à refaire) : secrets.json chiffré, WebSockets limités (file bornée à 200 depuis longtemps + connexions et débit en 0.5.9), MCP validé (commandes dangereuses, code en ligne, tailles, SSRF à distance), fuzz des entrées (tests/test_fuzz_api.py), essais réels de bout en bout (bench/real_e2e.py), bancs de charge (bench/ + docs/ENDURANCE.md), CONTRIBUTING.md et docs/ARCHITECTURE.md présents, export d'une discussion (HTML), catalogue en cache hors ligne. Chiffres réels : 385 tests cœur + 58 Flutter (et non 92), roue 265 Ko.
+Inexact : pièces jointes envoyées en multipart (pas en base64), historique du terminal jamais écrit sur disque, import cloud en SQL paramétré.
+- [ ] R1 (P0). SSRF : vérifier l'adresse RÉELLEMENT connectée (anti « DNS rebinding » entre la vérification et la connexion) pour fetch_url, le navigateur et MCP HTTP
+- [ ] R2 (P0). Masquage des clés élargi (sk-ant, sk-or, ghp_/github_pat_, xox*, JWT, AKIA, clés privées, AIza complète) + tests
+- [ ] R3 (P0). Import cloud : validation stricte (schéma) et rapport des éléments refusés au lieu d'un silence
+- [ ] R4 (P1). Mises à jour Linux signées (ed25519) : la CI signe SHA256SUMS, l'application vérifie avec la clé publique intégrée (Android : déjà protégé par la signature APK vérifiée par le système)
+- [ ] R5 (P1). OpenAPI local (/openapi.json avec jeton) + docs/API.md généré
+- [ ] R6 (P1). Métriques locales /tontolo/metrics (format Prometheus : tours, erreurs, latences par modèle), rien n'est envoyé
+- [ ] R7 (P1). Banc rapide en CI (régression de performance du cœur)
+- [ ] R8 (P1). server/app.py découpé en routeurs (chat, fichiers, réglages, sync, MCP…) sans changer l'API
+- [ ] R9 (P1). Tests Flutter des écrans (réglages, carte de questions, notes, quiz)
+- [ ] R10 (P1). Catalogue de secours embarqué (premier lancement hors ligne)
+- [ ] R11 (P2). MCP stdio sous bubblewrap s'il est installé (Linux, facultatif)
+- [ ] R12 (P2). Export PDF d'une discussion
+Écarté (contraire à la philosophie ou hors cible) : iOS (compte Apple payant), microservices / RBAC / multi-utilisateurs (application personnelle locale), nsjail ou Firecracker obligatoires (trop lourds : R11 à la place), terminal « sandboxé » (c'est le terminal de l'utilisateur, local et volontaire), OWASP ZAP / sqlmap (API locale ; fuzz + bandit + pip-audit suffisent), place de marché de plugins (fournisseurs personnalisés + MCP), pile Prometheus/Grafana (R6 seulement), renommer le service du trousseau (casserait les clés existantes), TTL du catalogue (déjà rafraîchi en arrière-plan à chaque usage).
