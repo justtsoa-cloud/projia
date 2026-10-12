@@ -41,3 +41,4 @@ release-keys/
 # Contenus de démonstration (captures, vidéos) : générés, non versionnés
 press/*
 !press/posters/
+core/bench/results/
