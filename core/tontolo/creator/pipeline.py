@@ -23,6 +23,7 @@ from typing import Any
 
 from tontolo.catalog.models import Category
 from tontolo.creator import book, bundle, charts, diagram, docx, latex, office, textfile
+from tontolo.creator.errors import CreationError
 
 MAX_FIXES = 3
 CALL_TIMEOUT = 240     # rédaction ou correction d'un document long par un modèle gratuit
@@ -122,10 +123,6 @@ REVIEW_PROMPT = """Tu es relecteur exigeant. Voici un {what} demandé par un uti
 importants seulement ; ok = true s'il n'y a rien d'important à corriger."""
 
 
-class CreationError(Exception):
-    pass
-
-
 @dataclass
 class Output:
     data: bytes
@@ -204,10 +201,11 @@ class Creator:
         self.ask_long = ask_long or ask  # chapitres de livre : délai plus long
 
     async def run(self, kind: str, request: str, *, context: str = "", language: str = "fr",
-                  out: Output | None = None, base: str | None = None
+                  out: Output | None = None, base: str | None = None,
+                  store: Callable[[str, str, str], Any] | None = None
                   ) -> AsyncIterator[dict[str, Any]]:
         if base is None and (kind == "book" or (kind == "bundle" and book.wants_book(request))):
-            async for ev in self._book(kind, request, context, language, out):
+            async for ev in self._book(kind, request, context, language, out, store):
                 yield ev
             return
         what, category = kind_info(kind)
@@ -291,11 +289,12 @@ class Creator:
         yield {"type": "step", "step": "doc_done"}
 
     async def _book(self, kind: str, request: str, context: str, language: str,
-                    out: Output | None) -> AsyncIterator[dict[str, Any]]:
+                    out: Output | None, store: Callable[[str, str, str], Any] | None = None
+                    ) -> AsyncIterator[dict[str, Any]]:
         """Livre long : plan, chapitres en parallèle, compilation, correction ciblée."""
         res: dict[str, Any] = {}
         try:
-            async for ev in book.BookWriter(self.ask_long, language).run(
+            async for ev in book.BookWriter(self.ask_long, language, store).run(
                     request, context=context, out=res):
                 yield ev
         except latex.LatexError as exc:

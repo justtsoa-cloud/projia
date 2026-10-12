@@ -23,7 +23,8 @@ BOOK_CALL_TIMEOUT = 600  # un chapitre long, suite comprise
 
 class CreatorService:
     def __init__(self, db: Database, router: Router, media_dir: Any, language: str = "fr",
-                 review: bool = True) -> None:
+                 review: bool = True, tasks: Any = None) -> None:
+        self.tasks = tasks  # résultats intermédiaires de la discussion (TaskStore)
         self.review = review  # équipe de modèles : relecture par un second modèle
         self.db = db
         self.router = router
@@ -160,8 +161,12 @@ class CreatorService:
                 transcript = await self.transcribe(images)
                 request = (f"{request}\n\nContenu de la photo jointe (transcription fidèle) :\n"
                            f"{transcript}")
+            def keep(item_kind: str, title: str, content: str) -> None:
+                if self.tasks is not None and conversation_id:
+                    self.tasks.put(conversation_id, item_kind, title, content)
+
             async for ev in creator.run(kind, request, context=context, language=self.language,
-                                        out=out, base=base):
+                                        out=out, base=base, store=keep):
                 yield ev
             self.dir.mkdir(parents=True, exist_ok=True)
             path = self.dir / f"{job['id']}-{out.filename}"

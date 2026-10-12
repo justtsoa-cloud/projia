@@ -97,3 +97,63 @@ async def test_book_as_zip(monkeypatch: pytest.MonkeyPatch) -> None:
                      "chapitres/ch03.tex", "chapitres/ch04.tex", "main.pdf", "main.tex"]
     main = z.read("main.tex").decode()
     assert "\\input{chapitres/ch03}" in main and "Partie 3" not in main
+
+
+def test_book_requests_without_creation_verb() -> None:
+    for yes in ("Je veux un livre de 200 pages sur Madagascar", "peux-tu me faire un roman",
+                "J'ai besoin d'un livre de 100 pages", "I need a book of 150 pages",
+                "tiako ny boky 100 pejy momba an'i Madagasikara"):
+        assert intent.detect(yes) == "book", yes
+    for no in ("je voudrais lire un livre", "conseille-moi un livre",
+               "quel est le meilleur livre ?", "explique ce livre",
+               "j'ai besoin d'un livre de poche pour le voyage à lire"):
+        assert intent.detect(no) is None, no
+
+
+async def test_chapters_are_kept_as_they_arrive(monkeypatch: pytest.MonkeyPatch) -> None:
+    kept: list[tuple[str, str, str]] = []
+
+    async def compile_pdf(source: str) -> tuple[bytes, str, str]:
+        return b"%PDF", "", "local"
+
+    monkeypatch.setattr(latex, "compile_pdf", compile_pdf)
+    w = Writer(4)
+    out = Output(b"", "", "", "", "", "")
+    creator = Creator(w.ask)
+    # le chapitre 2 de Writer contient \oops : le test de compilation simulé l'accepte ici
+    async for _ in creator.run("book", "livre de 30 pages", out=out,
+                               store=lambda k, t, c: kept.append((k, t, c))):
+        pass
+    titles = [t for _, t, _ in kept]
+    assert titles[0].startswith("Plan du livre")
+    assert sum(t.startswith("Chapitre") for t in titles) == 4
+    assert all(k == "part" for k, _, _ in kept)
+
+
+async def test_slow_chapter_is_retried_then_replaced(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(book, "CHAPTER_DEADLINE", 0.05)
+    monkeypatch.setattr(book, "CHAPTER_TRIES", 2)
+
+    async def compile_pdf(source: str) -> tuple[bytes, str, str]:
+        return b"%PDF", "", "local"
+
+    monkeypatch.setattr(latex, "compile_pdf", compile_pdf)
+    w = Writer(4)
+    plain = w.ask
+    attempts: dict[str, int] = {}
+
+    async def hanging(messages: list[dict[str, Any]], **kw: Any) -> tuple[str, str, str]:
+        system = str(messages[0]["content"])
+        if "chapitre 3 sur" in system:
+            attempts["3"] = attempts.get("3", 0) + 1
+            try:
+                await asyncio.sleep(3600)  # fournisseur muet
+            except asyncio.CancelledError:
+                await asyncio.sleep(3600)  # … qui ignore même l'annulation
+        return await plain(messages, **kw)
+
+    out = Output(b"", "", "", "", "", "")
+    async for _ in Creator(hanging).run("book", "livre de 30 pages", out=out):
+        pass
+    assert attempts["3"] == 2 and out.data == b"%PDF"  # deux essais, puis le livre est livré
+    assert "n'a pas pu être rédigé" in out.source and "Partie 3" in out.source

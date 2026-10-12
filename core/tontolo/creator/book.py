@@ -21,12 +21,15 @@ from typing import Any
 
 from tontolo.catalog.models import Category
 from tontolo.creator import bundle, latex
+from tontolo.creator.errors import CreationError
 
 MAX_PAGES = 300
 PAGES_PER_CHAPTER = 7
 WORDS_PER_PAGE = 400
 PARALLEL = 3
 MAX_FIXES = 3
+CHAPTER_DEADLINE = 480.0   # secondes par tentative ; au-delà, on abandonne et on réessaie
+CHAPTER_TRIES = 2          # puis un chapitre « à refaire » plutôt qu'un livre perdu
 
 _PAGES = re.compile(r"(\d{1,4})\s*(?:pages?|p\.|pejy)\b", re.I)
 _BOOKISH = re.compile(r"\b(livre|book|roman|novel|manuel|e-?book|ouvrage|bouquin|boky|"
@@ -52,10 +55,32 @@ FIX_PROMPT = """La compilation LaTeX échoue dans ce chapitre :
 Corrige le chapitre et renvoie-le EN ENTIER (corps LaTeX seulement, sans explication)."""
 
 
+_ASKING = re.compile(
+    r"\b(je (veux|voudrais|souhaite|aimerais|cherche|besoin)|j'ai besoin|il me faut|peux-tu|"
+    r"pouvez-vous|pourrais-tu|pourriez-vous|s'il (te|vous) pla[iî]t|i (want|need|would like)|"
+    r"can you|could you|please|mila|tiako|azafady)\b", re.I)
+
+
 def wants_book(text: str) -> bool:
     t = text or ""
     m = _PAGES.search(t)
     return bool(_BOOKISH.search(t)) or bool(m and int(m.group(1)) >= 20)
+
+
+_READING = re.compile(r"\b(lire|lecture|lis|read|reading|recommande|recommander|conseille|"
+                      r"recommend|suggest|trouver|find|acheter|buy|emprunter|biblioth[èe]que)\b",
+                      re.I)
+
+
+def asks_for_book(text: str) -> bool:
+    """Demande de livre formulée sans verbe de création (« je veux un livre de 200 pages ») ;
+    « je voudrais lire un livre » ou « conseille-moi un livre » restent de simples questions."""
+    t = text or ""
+    m = _PAGES.search(t)
+    sized = bool(m and int(m.group(1)) >= 20)
+    if not (wants_book(t) and _ASKING.search(t)):
+        return False
+    return sized or not _READING.search(t)
 
 
 def target_pages(text: str) -> int:
@@ -119,8 +144,10 @@ def failing_chapter(log: str, starts: list[int]) -> int | None:
 
 
 class BookWriter:
-    def __init__(self, ask: Callable[..., Any], language: str = "fr") -> None:
+    def __init__(self, ask: Callable[..., Any], language: str = "fr",
+                 store: Callable[[str, str, str], Any] | None = None) -> None:
         self.ask = ask
+        self.store = store  # store(type, titre, contenu) : résultats intermédiaires visibles
         self.language = {"en": "anglais", "mg": "malgache"}.get(language, "français")
         self.lang_code = language
 
@@ -133,28 +160,56 @@ class BookWriter:
         title = plan["title"]
         outline = "\n".join(f"{i + 1}. {c['title']} — {c['summary']}"
                             for i, c in enumerate(plan["chapters"]))
+        self._keep("part", f"Plan du livre — {title}", f"# {title}\n\n{outline}")
         words = max(800, pages * WORDS_PER_PAGE // len(plan["chapters"]))
         chapters: list[str] = [""] * len(plan["chapters"])
         models: list[str] = []
         sem = asyncio.Semaphore(PARALLEL)
 
+        failed: list[int] = []
+
+        async def attempt(i: int, ch: dict[str, str]) -> tuple[str, str]:
+            call = asyncio.ensure_future(self.ask([
+                {"role": "system", "content": CHAPTER_PROMPT.format(
+                    i=i + 1, n=len(plan["chapters"]), title=title, language=self.language,
+                    chapter=latex_escape(ch["title"]), words=words, outline=outline)},
+                {"role": "user", "content": f"Demande d'origine : {request[:2000]}\n\n"
+                                            f"Écris le chapitre {i + 1} : {ch['title']}."}],
+                category=Category.WRITING))
+            # Délai dur : un fournisseur qui ignore l'annulation ne doit pas bloquer le livre
+            # (la tâche est abandonnée, pas attendue).
+            done, _ = await asyncio.wait({call}, timeout=CHAPTER_DEADLINE)
+            if not done:
+                call.cancel()
+                raise TimeoutError("chapitre trop lent")
+            text, key, _name = call.result()
+            return text, key
+
         async def write(i: int, ch: dict[str, str]) -> None:
             async with sem:
-                text, key, _ = await self.ask([
-                    {"role": "system", "content": CHAPTER_PROMPT.format(
-                        i=i + 1, n=len(plan["chapters"]), title=title, language=self.language,
-                        chapter=latex_escape(ch["title"]), words=words, outline=outline)},
-                    {"role": "user", "content": f"Demande d'origine : {request[:2000]}\n\n"
-                                                f"Écris le chapitre {i + 1} : {ch['title']}."}],
-                    category=Category.WRITING)
-                chapters[i] = clean_chapter(text, ch["title"])
-                models.append(key)
+                for _try in range(CHAPTER_TRIES):
+                    try:
+                        text, key = await attempt(i, ch)
+                    except (TimeoutError, CreationError):
+                        continue  # le routeur choisit un autre modèle à la nouvelle tentative
+                    chapters[i] = clean_chapter(text, ch["title"])
+                    models.append(key)
+                    self._keep("part", f"Chapitre {i + 1} — {ch['title']}", chapters[i])
+                    return
+                failed.append(i + 1)
+                chapters[i] = (f"\\chapter{{{latex_escape(ch['title'])}}}\n"
+                               "Ce chapitre n'a pas pu être rédigé (les modèles gratuits n'ont "
+                               "pas répondu à temps). Demandez-le séparément : « écris le "
+                               f"chapitre {i + 1} : {latex_escape(ch['title'])} ».\n")
 
         tasks = [asyncio.create_task(write(i, c)) for i, c in enumerate(plan["chapters"])]
         try:
             for done, fut in enumerate(asyncio.as_completed(tasks), 1):
-                await fut  # un chapitre en échec fait échouer le livre (raison affichée)
+                await fut
                 yield {"type": "step", "step": "book_chapter", "n": done, "total": len(tasks)}
+            if len(failed) > len(tasks) // 2:  # la plupart des chapitres manquent : pas de livre
+                        raise CreationError(
+                    "les modèles gratuits ont trop tardé : réessayez plus tard")
         finally:
             for t in tasks:
                 t.cancel()
@@ -180,12 +235,20 @@ class BookWriter:
                         error=(exc.log or str(exc))[:3000])}], category=Category.CODE)
                 chapters[idx] = clean_chapter(text, plan["chapters"][idx]["title"])
         out.update(title=title, pdf=pdf, source=source, models=models, fixes=fixes,
+                   failed=sorted(failed),
                    files={"main.tex": source.replace("".join(chapters), "".join(
                        f"\\input{{chapitres/ch{i + 1:02d}}}\n" for i in range(len(chapters)))),
                        **{f"chapitres/ch{i + 1:02d}.tex": c for i, c in enumerate(chapters)},
                        "README.md": f"# {title}\n\nLivre généré par Tontolo : main.tex (à "
                                     f"compiler avec pdflatex) et un fichier par chapitre ; "
                                     f"main.pdf déjà compilé.\n"})
+
+    def _keep(self, kind: str, title: str, content: str) -> None:
+        if self.store is not None:
+            try:
+                self.store(kind, title, content)
+            except Exception:  # le rangement ne doit jamais faire échouer le livre
+                return
 
     async def _outline(self, request: str, context: str, n: int) -> dict[str, Any]:
         msgs: list[dict[str, Any]] = [
@@ -206,8 +269,6 @@ class BookWriter:
             if len(chapters) >= 3:
                 return {"title": str(data.get("title") or "Livre").strip()[:150] or "Livre",
                         "chapters": chapters}
-        from tontolo.creator.pipeline import CreationError
-
         raise CreationError("le plan du livre n'a pas pu être établi")
 
 

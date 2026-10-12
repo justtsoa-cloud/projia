@@ -36,7 +36,7 @@ class Core:
     def creator(self) -> CreatorService:
         """Créations de fichiers (langue suivie en direct depuis les réglages)."""
         return CreatorService(self.db, self.router, self.media.dir, self.settings.language,
-                              self.settings.team_review)
+                              self.settings.team_review, self.chat.tasks)
 
     @classmethod
     async def start(
