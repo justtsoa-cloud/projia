@@ -337,12 +337,16 @@ class Database:
         return float(row["updated_at"]) if row else None
 
     async def set_summary(self, cid: str, summary: str, upto_seq: int,
-                          expected_revision: float | None = None) -> None:
+                          expected_revision: float | None = None, *,
+                          forward_only: bool = False) -> None:
         sql = "UPDATE conversations SET summary = ?, summary_upto = ? WHERE id = ? AND deleted = 0"
         args: list[Any] = [summary, upto_seq, cid]
         if expected_revision is not None:
             sql += " AND updated_at = ?"
             args.append(expected_revision)
+        if forward_only:  # un résumé plus ancien n'écrase jamais un plus récent
+            sql += " AND summary_upto < ?"
+            args.append(upto_seq)
         await self.conn.execute(sql, args)
         await self.conn.commit()
 

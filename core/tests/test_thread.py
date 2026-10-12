@@ -236,3 +236,74 @@ def test_generators_and_model_details(client: TestClient) -> None:
     by = {m["key"]: m for m in models}
     assert by["fake:coder-pro"]["agentic"] is True and by["fake:small"]["agentic"] is False
     assert by["fake:img-1"]["agentic"] is False and "inputs" in by["fake:vision-x"]
+
+
+def _fill(client: TestClient, cid: str, n: int) -> None:
+    core = client.app.state.core  # type: ignore[attr-defined]
+
+    async def build() -> None:
+        for i in range(n):
+            await core.db.add_message(cid, {"role": "user", "content": f"question {i}"})
+            await core.db.add_message(cid, {"role": "assistant", "content": f"réponse {i}"})
+
+    client.portal.call(build)  # type: ignore[attr-defined]
+
+
+def test_long_unsummarized_thread_is_windowed(client: TestClient, fake: FakeProvider) -> None:
+    first = _chat(client, {"content": "début"})
+    cid = next(e["id"] for e in first if e["type"] == "conversation")
+    _fill(client, cid, 400)  # 800 messages jamais résumés (discussion importée)
+    _chat(client, {"conversation_id": cid, "content": "où en est-on ?"})
+    sent = fake.calls[0][1] if fake.calls else 0
+    assert 0 < sent <= 45  # fenêtre bornée + note, pas 800 messages
+    assert "plus anciens" in json.dumps(fake.last_messages, ensure_ascii=False) or sent <= 45
+
+
+def test_summary_survives_a_message_arriving_meanwhile(client: TestClient) -> None:
+    core = client.app.state.core  # type: ignore[attr-defined]
+    first = _chat(client, {"content": "début"})
+    cid = next(e["id"] for e in first if e["type"] == "conversation")
+    _fill(client, cid, 40)
+
+    async def run() -> tuple[bool, str | None, int]:
+        original = core.chat.router.quick
+
+        async def slow_quick(messages: list[dict[str, Any]], **kw: Any) -> str:
+            # pendant le résumé, l'utilisateur envoie un nouveau message
+            await core.db.add_message(cid, {"role": "user", "content": "message arrivé pendant"})
+            return await original(messages, **kw) or ("Résumé de test " * 6)
+
+        core.chat.router.quick = slow_quick
+        ok = await core.chat._summarize_thread(cid)
+        summary, covered = await core.db.get_summary(cid)
+        return ok, summary, covered
+
+    ok, summary, covered = client.portal.call(run)  # type: ignore[attr-defined]
+    assert ok and summary and covered > 0  # avant : jeté dès qu'un message arrivait
+
+
+def test_rolling_summary_reads_a_huge_start_in_chunks(client: TestClient) -> None:
+    core = client.app.state.core  # type: ignore[attr-defined]
+    first = _chat(client, {"content": "début"})
+    cid = next(e["id"] for e in first if e["type"] == "conversation")
+    seen: list[str] = []
+
+    async def run() -> tuple[bool, int]:
+        for i in range(120):
+            await core.db.add_message(cid, {"role": "user", "content": f"Q{i} " + "x" * 1400})
+            await core.db.add_message(cid, {"role": "assistant", "content": f"R{i} " + "y" * 1400})
+
+        async def quick(messages: list[dict[str, Any]], **kw: Any) -> str:
+            seen.append(str(messages[-1]["content"]))
+            return "Résumé cumulé : " + str(len(seen)) * 60
+
+        core.chat.router.quick = quick
+        ok = await core.chat._summarize_thread(cid)
+        _, covered = await core.db.get_summary(cid)
+        return ok, covered
+
+    ok, covered = client.portal.call(run)  # type: ignore[attr-defined]
+    assert ok and len(seen) >= 2  # plusieurs blocs, pas un seul morceau tronqué
+    assert all(len(s) <= 40_000 for s in seen)
+    assert "Q0 " in seen[0] and "Résumé précédent" in seen[1]  # le tout début est bien lu
+    assert covered > 0

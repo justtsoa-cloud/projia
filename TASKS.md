@@ -270,5 +270,6 @@ Règle : tout test, bug trouvé et optimisation est noté ici au fur et à mesur
 - [x] B1. Un fournisseur qui plante avec une exception inattendue (JSON, KeyError…) faisait échouer tout le tour au lieu de basculer sur un autre modèle → bascule sur toute exception
 - [x] B2. Un fournisseur qui n'envoie que des signaux de maintien (ex. OpenRouter en file d'attente) bloquait le tour indéfiniment → premier mot sous 90 s, silence max 60 s, 200 s cumulées perdues au plus
 - [x] B3. Créations longues (chapitres) : appel unique soumis au délai global de 120 s du fournisseur → diffusion
-- [ ] B4. Résumé de fil jeté si un message arrive pendant le résumé (starvation en usage rapide) → comparer le préfixe résumé au lieu de la révision entière
-- [ ] B5. Fil long jamais résumé (importé) : tout l'historique est envoyé au premier tour → fenêtre bornée sans résumé
+- [x] B4. Résumé de fil jeté si un message arrive pendant le résumé (starvation en usage rapide) → comparer le préfixe résumé au lieu de la révision entière
+- [x] B5. Fil long jamais résumé (importé) : tout l'historique est envoyé au premier tour → fenêtre bornée sans résumé
+- [x] B6. Résumé de fil : seuls les 24 000 derniers caractères étaient lus (début d'un gros fil importé perdu) → résumé « roulant » par blocs de 18 000 caractères (4 par passage)

@@ -128,6 +128,10 @@ THREAD_SUMMARY_PROMPT = (
 KEEP_RECENT = 12       # messages toujours envoyés mot pour mot
 SUMMARIZE_AFTER = 30   # messages non résumés au-delà desquels le début du fil est résumé
 KEEP_IMAGES = 2        # messages avec photo envoyés en image (les plus récents)
+SUMMARY_CHUNK_CHARS = 18_000  # taille d'un bloc de résumé roulant
+SUMMARY_CHUNKS = 4            # blocs résumés par passage (le reste au tour suivant)
+NO_SUMMARY_WINDOW = 40        # sans résumé, un fil long n'envoie que ses derniers messages
+NO_SUMMARY_AFTER = 60
 MAX_CONTINUES = 3      # relances « continue » quand une réponse est coupée (longueur max)
 CONTINUE_PROMPT = ("Ta réponse a été coupée par la limite de longueur. Continue exactement là "
                    "où tu t'es arrêté, sans rien répéter ni réintroduire.")
@@ -542,6 +546,16 @@ class ChatService:
         bascule ne fait rien perdre."""
         summary, covered = await self.db.get_summary(cid)
         if not summary or covered <= 0 or covered >= len(history):
+            if not summary and len(history) > NO_SUMMARY_AFTER:
+                # Fil long jamais résumé (importé, ou résumé en cours) : jamais tout l'historique.
+                start = len(history) - NO_SUMMARY_WINDOW
+                while start < len(history) and history[start].get("role") != "user":
+                    start += 1
+                if start < len(history):
+                    note = {"role": "system", "content": (
+                        f"Cette discussion compte {start} messages plus anciens, non repris "
+                        "ici (résumé en préparation). Réponds à la dernière demande.")}
+                    return [note, *history[start:]]
             return history
         start = max(0, min(covered, len(history) - KEEP_RECENT))
         while start < len(history) and history[start].get("role") != "user":
@@ -574,16 +588,39 @@ class ChatService:
             if cut <= covered:
                 return False
             part = await self._explain_media(history[covered:cut])
-            lines = [f"{m.get('role')}: {_plain(m.get('content'))[:1500]}" for m in part
-                     if m.get("role") in ("user", "assistant")]
-            text = (f"Résumé précédent :\n{summary}\n\nSuite :\n" if summary else "") + \
-                "\n".join(lines)
-            out = await self.router.quick([
-                {"role": "system", "content": THREAD_SUMMARY_PROMPT},
-                {"role": "user", "content": text[-24000:]}])
-            # Une modification/régénération peut avoir eu lieu pendant le résumé.
-            if out and len(out.strip()) > 40 and await self.db.get_messages(cid) == history:
-                await self.db.set_summary(cid, out.strip()[:6000], cut, revision)
+            # Résumé « roulant » par blocs (un début de fil énorme, ex. une discussion importée,
+            # est lu en entier, bloc après bloc, et non tronqué à ses 24 000 derniers
+            # caractères) ; au plus SUMMARY_CHUNKS blocs par passage, la suite au tour suivant.
+            rolled, reached, i, chunks = summary, covered, 0, 0
+            while i < len(part) and chunks < SUMMARY_CHUNKS:
+                j, size = i, 0
+                lines: list[str] = []
+                while j < len(part) and (size < SUMMARY_CHUNK_CHARS or not lines):
+                    m = part[j]
+                    if m.get("role") in ("user", "assistant"):
+                        line = f"{m.get('role')}: {_plain(m.get('content'))[:1500]}"
+                        lines.append(line)
+                        size += len(line)
+                    j += 1
+                # le fil visible recommence sur une demande de l'utilisateur
+                while covered + j < len(history) and j > i + 1 and \
+                        history[covered + j].get("role") != "user":
+                    j -= 1
+                text = (f"Résumé précédent :\n{rolled}\n\nSuite :\n" if rolled else "") + \
+                    "\n".join(lines)
+                out = await self.router.quick([
+                    {"role": "system", "content": THREAD_SUMMARY_PROMPT},
+                    {"role": "user", "content": text[-SUMMARY_CHUNK_CHARS * 2:]}])
+                if not (out and len(out.strip()) > 40):
+                    break
+                rolled, reached, i, chunks = out.strip()[:6000], covered + j, j, chunks + 1
+            if reached == covered or rolled is None:
+                return False
+            # Un message arrivé pendant le résumé ne l'invalide pas : seule une modification
+            # ou une suppression de la partie résumée l'écarte.
+            current = await self.db.get_messages(cid)
+            if current[:reached] == history[:reached]:
+                await self.db.set_summary(cid, rolled, reached, forward_only=True)
                 return True
             return False
         except Exception:  # le résumé ne doit jamais casser une discussion
