@@ -313,3 +313,14 @@ Philosophie gardée : gratuit d'abord, clés de l'utilisateur, rien ne passe par
 - [x] A1. Mode avancé : fournisseurs personnalisés compatibles OpenAI (HTTPS obligatoire, hôte épinglé, test de connexion, clé dans le stockage sécurisé)
 - [x] A2. Mode avancé : enchaînements de modèles définis par l'utilisateur (par catégorie), fournisseurs exclus/préférés
 - [x] A3. Mode avancé : délais du routeur réglables dans des bornes sûres ; export/import des réglages avancés sans les clés
+
+## Notations et QR code (demande du 2026-10-12, pour 0.5.8)
+Principe : rien de ce qui est écrit ne quitte l'appareil ; seule la note (modèle, type de demande, 👍/👎, raison) est partagée, avec l'accord « Statistiques anonymes ».
+- [ ] N1. Cœur : `POST /tontolo/feedback` (note d'une réponse, modifiable) ; table locale ; le modèle et le type de demande sont retrouvés à partir du message
+- [ ] N2. Récompense / pénalité locale : bonus borné dans le classement du modèle pour ce type de demande (👍 +, 👎 −), visible dans « Pourquoi ce modèle »
+- [ ] N3. 👎 : la réponse sort du cache des réponses ; proposition « Réessayer avec un autre modèle » (ce modèle évité pour ce tour) ; raisons rapides (inexact, hors sujet, trop long, langue, autre)
+- [ ] N4. Supabase : table `ratings` (insertion seule, une note par appareil et par réponse) + fonction `model_scores()` agrégée (appareils distincts, seuil minimal) lisible par l'app ; script SQL et docs/STATS.md
+- [ ] N5. App : 👍/👎 sous chaque réponse ; envoi groupé avec les statistiques quotidiennes (file d'attente locale, rien sans accord) ; « Voir ce qui est envoyé » montre les notes
+- [ ] N6. Retour global : l'app récupère `model_scores()` une fois par jour et le transmet au cœur → bonus/malus collectif borné (plus faible que le local)
+- [ ] Q1. QR code vers le téléchargement : généré par script (`qrencode`), vérifié par lecture (`zbarimg`) ; dans « À propos » (dernière version) et sur le poster de chaque version (page de cette version)
+- [ ] R. Version 0.5.8 : CHANGELOG, nouveautés fr/en/mg, poster (avec QR), tests, essais émulateur
