@@ -112,6 +112,20 @@ class MessageView extends StatelessWidget {
               child: Wrap(
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
+                  if (message.cachedFrom != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Chip(
+                        avatar: const Icon(Icons.history, size: 16),
+                        label: Text(
+                          context.t('cached_answer', {
+                            'date': MaterialLocalizations.of(context).formatShortDate(message.cachedFrom!),
+                          }),
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
                   ActionChip(
                     avatar: const Icon(Icons.info_outline, size: 16),
                     label: Text(

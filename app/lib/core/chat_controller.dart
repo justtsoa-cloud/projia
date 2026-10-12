@@ -29,6 +29,7 @@ class ChatMessage {
   String reasoning = ''; // réflexion du modèle (affichée à part, repliable)
   String? uid;
   int? seq; // position en base (modifier et renvoyer)
+  DateTime? cachedFrom; // réponse déjà donnée ce jour-là, réutilisée sans appel de modèle
 }
 
 /// Question à choix posée par Tontolo (outil `ask_user`) pour préciser la demande.
@@ -659,6 +660,9 @@ class ChatController extends ChangeNotifier {
               ChatMessage(role: 'notice', text: 'switched|${ev['to_name'] ?? ev['to']}|${_reasonText(ev)}|$count'));
         case 'offline':
           status = 'offline|${ev['seconds']}';
+        case 'cached':
+          final at = (ev['created_at'] as num?)?.toDouble();
+          if (at != null) ensureCurrent().cachedFrom = DateTime.fromMillisecondsSinceEpoch((at * 1000).round());
         case 'tool_call':
           status = 'tool|${ev['name']}';
         case 'tool_result':

@@ -24,6 +24,8 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
   bool teamReview = true;
   bool autoCompact = true;
   bool taskPlanning = true;
+  bool answerCache = true;
+  int answers = 0; // réponses déjà données gardées sur l'appareil
   Map<String, dynamic>? workspace; // bureau Linux : dossier de travail de l'agent
   bool loaded = false;
 
@@ -46,6 +48,10 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
     if (b.state != BackendState.ready) return;
     final s = await b.getJson('/tontolo/settings') as Map<String, dynamic>;
     final m = await b.getJson('/tontolo/memory') as Map<String, dynamic>;
+    Map<String, dynamic>? ans;
+    try {
+      ans = await b.getJson('/tontolo/answers') as Map<String, dynamic>;
+    } catch (_) {} // ancien cœur : pas de cache de réponses
     Map<String, dynamic>? ws;
     if (Platform.isLinux && local) {
       try {
@@ -62,6 +68,8 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
       teamReview = s['team_review'] != false; // absent (ancien cœur) : affiché actif
       autoCompact = s['auto_compact'] != false;
       taskPlanning = s['task_planning'] != false;
+      answerCache = ans != null && ans['enabled'] == true;
+      answers = (ans?['count'] as int?) ?? -1;
       memories = (m['items'] as List).cast<Map<String, dynamic>>();
       workspace = ws;
     });
@@ -219,6 +227,22 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
             ),
           ]),
       ],
+      if (answers >= 0)
+        SwitchListTile(
+          secondary: const Icon(Icons.history),
+          title: Text(context.t('answer_cache')),
+          subtitle: Text(context.t('answer_cache_help', {'n': '$answers'}), style: small),
+          value: answerCache,
+          onChanged: (v) => _call('PUT', '/tontolo/settings', {'answer_cache': v}),
+        ),
+      if (answers > 0)
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () => _call('DELETE', '/tontolo/answers'),
+            child: Text(context.t('answer_cache_clear'), style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          ),
+        ),
       ListenableBuilder(
         listenable: prefs,
         builder: (context, _) => ListTile(
