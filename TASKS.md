@@ -296,5 +296,7 @@ Règle : tout test, bug trouvé et optimisation est noté ici au fur et à mesur
 - [x] Bug trouvé à l'essai : questions dans la langue de l'interface (malgache) pour une demande en français → langue détectée sur la demande
 - [x] Bug trouvé à l'essai (malgache) : « Manorata tatitra Word… » non reconnu comme création (verbes malgaches manorata, amboary, vokary, avoahy ; « amin'ny pdf ») ; consigne : ne jamais écrire les questions en texte quand ask_user est disponible
 - [x] Champ libre « Autre précision (facultatif)… » dans la carte (ajouté à la réponse) — après 0.5.6
-- [ ] Essai réel : vérifier quels modèles gratuits appellent bien `ask_user`
+- [x] Essai réel R9 : 4 demandes ouvertes sur 4 donnent une carte (ling-3.1-flash, DeepSeek-V4-Flash, Qwen3.8-27B, nemotron-3-ultra), dans la langue de la demande ; aucune carte pour une question simple
+- [x] B15. (essai réel R3) Questions posées au 3e tour alors que le contexte suffisait → en pleine discussion, `ask_user` seulement pour une nouvelle demande d'au moins 15 mots
+- [x] B16. (essai réel R3) Tour sans réponse plus de 10 min : un modèle qui « réfléchit » sans fin n'était jamais vu comme silencieux → limite de réflexion sans texte de réponse (150 s, 300 s pour les créations), puis bascule ; réglages du routeur jamais envoyés au fournisseur
 

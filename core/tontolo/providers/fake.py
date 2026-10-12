@@ -25,6 +25,7 @@ class FakeProvider:
     hang: set[str] = field(default_factory=set)         # modèles qui ne répondent jamais
     stall_mid: set[str] = field(default_factory=set)    # un mot, puis silence
     crash: dict[str, Exception] = field(default_factory=dict)  # exception inattendue
+    overthink: set[str] = field(default_factory=set)    # réflexion sans fin, aucune réponse
 
     def fail(self, model_id: str, *errors: ProviderError) -> None:
         self.errors.setdefault(model_id, []).extend(errors)
@@ -68,6 +69,12 @@ class FakeProvider:
             from tontolo.providers.base import ErrorKind
 
             raise ProviderError("coupure", ErrorKind.RATE_LIMIT, status=429, retry_after=30)
+        if model.model_id in self.overthink:
+            import asyncio
+
+            while True:  # jamais silencieux, jamais de réponse
+                yield {"delta": {"reasoning": "hmm "}}
+                await asyncio.sleep(0.02)
         if model.model_id in self.hang:
             import asyncio
 

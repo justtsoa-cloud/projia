@@ -46,7 +46,9 @@ class CreatorService:
                 async for ev in self.router.run(convo, stream=True, forced=category,
                                                 model=model or key or None,
                                                 params={"max_tokens": MAX_TOKENS,
-                                                        "temperature": 0.3}):
+                                                        "temperature": 0.3,
+                                                        # long chapitre : réflexion plus longue
+                                                        "think_timeout": 300.0}):
                     if ev["type"] == "done":
                         piece = str(ev["message"].get("content") or "")
                         key = key or str(ev.get("model") or model or "")

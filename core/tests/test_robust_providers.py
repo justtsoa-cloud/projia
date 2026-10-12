@@ -67,3 +67,34 @@ async def test_time_wasted_on_silent_models_is_capped(
     assert events[-1]["type"] == "error"
     switched = [e for e in events if e["type"] == "model_switched"]
     assert len(switched) <= 3  # 0,15 s par essai : arrêt après ~0,3 s perdue, pas 8 essais
+
+
+async def test_endless_reasoning_is_cut_and_replaced(router: Router, fake: FakeProvider,
+                                                     monkeypatch: pytest.MonkeyPatch) -> None:
+    """Un modèle qui « réfléchit » sans fin n'est jamais silencieux : la limite de réflexion
+    sans réponse le fait quand même remplacer (essai réel R3 : tour bloqué plus de 10 min)."""
+    import asyncio
+
+    monkeypatch.setattr(engine, "THINK_TIMEOUT", 0.3)
+    for mid in ("coder-pro", "chatty", "vision-x"):
+        fake.overthink.add(mid)
+    events = await asyncio.wait_for(
+        _run(router), 20)
+    assert events[-1]["type"] == "done" and events[-1]["message"]["content"]
+    assert any(e["type"] == "model_switched" for e in events)
+
+
+async def test_router_settings_never_reach_the_provider(router: Router, fake: FakeProvider
+                                                        ) -> None:
+    seen: list[dict] = []
+    original = fake.stream
+
+    def spy(model, messages, *, tools=None, **params):  # type: ignore[no-untyped-def]
+        seen.append(params)
+        return original(model, messages, tools=tools, **params)
+
+    fake.stream = spy  # type: ignore[method-assign]
+    events = [ev async for ev in router.run([{"role": "user", "content": "x"}], stream=True,
+                                            params={"think_timeout": 5.0, "max_tokens": 9})]
+    assert events[-1]["type"] == "done"
+    assert seen and all("think_timeout" not in p and p.get("max_tokens") == 9 for p in seen)

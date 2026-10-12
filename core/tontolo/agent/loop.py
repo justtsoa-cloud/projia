@@ -142,6 +142,7 @@ SUMMARY_CHUNK_CHARS = 18_000  # taille d'un bloc de résumé roulant
 SUMMARY_CHUNKS = 4            # blocs résumés par passage (le reste au tour suivant)
 NO_SUMMARY_WINDOW = 40        # sans résumé, un fil long n'envoie que ses derniers messages
 NO_SUMMARY_AFTER = 60
+ASK_NEW_TASK_WORDS = 15  # en pleine discussion, questions à choix seulement pour une demande longue
 MAX_CONTINUES = 3      # relances « continue » quand une réponse est coupée (longueur max)
 CONTINUE_PROMPT = ("Ta réponse a été coupée par la limite de longueur. Continue exactement là "
                    "où tu t'es arrêté, sans rien répéter ni réintroduire.")
@@ -744,9 +745,14 @@ class ChatService:
             box = ToolBox({n: t for n, t in box.tools.items() if n not in POWER_TOOLS
                            and not n.startswith(("browser_", "terminal_"))})
         recent = await self.db.get_window(cid, 12)
-        if mode.startswith("learn") or any(m.get("name") == "ask_user" for m in recent):
-            # Mode Apprendre : le tuteur interroge déjà ; et jamais deux séries de questions
-            # d'affilée (les réponses viennent d'être données).
+        users = [m for m in recent if m.get("role") == "user"]
+        last_words = len(_last_user_text(recent).split()) if users else 0
+        if (mode.startswith("learn") or any(m.get("name") == "ask_user" for m in recent)
+                or (len(users) > 2 and last_words < ASK_NEW_TASK_WORDS)):
+            # Mode Apprendre : le tuteur interroge déjà ; jamais deux séries de questions
+            # d'affilée (les réponses viennent d'être données) ; et en pleine discussion, le
+            # contexte suffit — seule une nouvelle demande développée justifie des questions
+            # (essai réel R3 : questions posées au 3e tour alors que tout était connu).
             box = ToolBox({n: t for n, t in box.tools.items() if n != "ask_user"})
         tools = box.schemas() or None
         searched = False

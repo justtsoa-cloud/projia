@@ -241,3 +241,33 @@ def test_ask_user_choices(client: TestClient, fake: FakeProvider) -> None:
     # Mode Apprendre : l'outil n'est pas proposé.
     learn = _chat(client, "/tontolo/chat", {"content": "explique les fractions", "mode": "learn"})
     assert not any(e["type"] == "question" for e in learn)
+
+
+def test_ask_user_only_at_the_start_of_a_task(client: TestClient, fake: FakeProvider) -> None:
+    """En pleine discussion, une courte demande ne déclenche pas de questions (contexte connu) ;
+    une nouvelle demande développée le peut."""
+    offered: list[bool] = []
+
+    def act(model: Any, messages: list[dict[str, Any]]) -> dict[str, Any]:
+        return {"role": "assistant", "content": "D'accord."}
+
+    for mid in ("coder-pro", "chatty", "small", "vision-x", "paid-genius"):
+        fake.behaviors[mid] = act
+    original = fake.stream
+
+    def spy(model, messages, *, tools=None, **params):  # type: ignore[no-untyped-def]
+        offered.append(any(t["function"]["name"] == "ask_user" for t in tools or []))
+        return original(model, messages, tools=tools, **params)
+
+    fake.stream = spy  # type: ignore[method-assign]
+    first = _chat(client, "/tontolo/chat", {"content": "Aide-moi pour ma coopérative"})
+    cid = next(e["conversation_id"] for e in first if e.get("conversation_id"))
+    for text in ("Quels risques ?", "Propose un calendrier sur 6 mois."):
+        _chat(client, "/tontolo/chat", {"conversation_id": cid, "content": text})
+    _chat(client, "/tontolo/chat", {"conversation_id": cid, "content": (
+        "Maintenant je voudrais aussi monter un site web complet pour vendre notre vanille "
+        "en ligne à l'étranger avec paiement et livraison")})
+    tool_rounds = [o for o in offered]
+    assert tool_rounds[0] is True            # 1re demande : questions possibles
+    assert tool_rounds[2] is False           # 3e demande courte : contexte connu
+    assert tool_rounds[3] is True            # nouvelle demande développée

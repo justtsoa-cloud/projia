@@ -54,25 +54,43 @@ MAX_ATTEMPTS = 8
 FIRST_TOKEN_TIMEOUT = 90.0   # secondes avant le premier mot (réflexion comprise)
 STALL_TIMEOUT = 60.0         # silence maximal en cours de réponse
 CALL_TIMEOUT = 240.0         # appel sans diffusion (résumés, classifieur, anciens cœurs)
+THINK_TIMEOUT = 150.0        # réflexion maximale sans aucun texte de réponse (diffusion)
+CONTROL_PARAMS = frozenset({"first_token_timeout", "stall_timeout", "think_timeout",
+                            "call_timeout"})  # réglages du routeur, jamais envoyés au modèle
 MAX_WASTED = 200.0           # temps cumulé perdu sur des modèles en échec avant d'abandonner
 
 
-async def _watched(source: AsyncIterator[dict[str, Any]], first: float, stall: float
-                   ) -> AsyncIterator[dict[str, Any]]:
-    """Relaie le flux d'un fournisseur en imposant un premier mot et un silence maximaux."""
+async def _watched(source: AsyncIterator[dict[str, Any]], first: float, stall: float,
+                   think: float = 0.0) -> AsyncIterator[dict[str, Any]]:
+    """Relaie le flux d'un fournisseur en imposant un premier mot et un silence maximaux, et
+    (`think` > 0) une durée maximale de réflexion sans aucun texte de réponse : un modèle qui
+    raisonne sans fin n'est jamais « silencieux », il faut pourtant passer au suivant."""
     it = source.__aiter__()
     waiting = first
+    start = time.monotonic()
+    answered = False
     try:
         while True:
+            left = think - (time.monotonic() - start) if think and not answered else None
+            if left is not None and left <= 0:
+                raise ProviderError("réflexion trop longue, sans réponse", ErrorKind.SERVER)
             try:
-                item = await asyncio.wait_for(it.__anext__(), waiting)
+                item = await asyncio.wait_for(
+                    it.__anext__(), waiting if left is None else min(waiting, left))
             except StopAsyncIteration:
                 return
             except TimeoutError as exc:
+                if left is not None and time.monotonic() - start >= think:
+                    raise ProviderError("réflexion trop longue, sans réponse",
+                                        ErrorKind.SERVER) from exc
                 raise ProviderError("pas de réponse du modèle (délai dépassé)",
                                     ErrorKind.NETWORK) from exc
             if "delta" in item:
                 waiting = stall
+                delta = item["delta"]
+                answered = answered or bool(delta.get("content") or delta.get("tool_calls"))
+            elif "_result" in item:
+                answered = True
             yield item
     finally:
         aclose = getattr(it, "aclose", None)
@@ -290,6 +308,7 @@ class Router:
             # jour par la conversation elle-même (voir agent/loop.py).
             adapted, _, _ = await fit(messages, m, summary=summary, summarizer=self._summarize)
             use_tools = tools if (tools and m.supports_tools) else None
+            api_params = {k: v for k, v in params.items() if k not in CONTROL_PARAMS}
             self.quota.record_request(m)
             started = False
             try:
@@ -297,9 +316,10 @@ class Router:
                 client = self.registry.get(self.catalog.catalog.providers[m.provider])
                 if stream:
                     async for item in _watched(
-                            client.stream(m, adapted, tools=use_tools, **params),
+                            client.stream(m, adapted, tools=use_tools, **api_params),
                             float(params.get("first_token_timeout", FIRST_TOKEN_TIMEOUT)),
-                            float(params.get("stall_timeout", STALL_TIMEOUT))):
+                            float(params.get("stall_timeout", STALL_TIMEOUT)),
+                            float(params.get("think_timeout", THINK_TIMEOUT))):
                         if "_result" in item:
                             result = item["_result"]
                         else:
@@ -308,7 +328,7 @@ class Router:
                 else:
                     try:
                         result = await asyncio.wait_for(
-                            client.chat(m, adapted, tools=use_tools, **params),
+                            client.chat(m, adapted, tools=use_tools, **api_params),
                             float(params.get("call_timeout", CALL_TIMEOUT)))
                     except TimeoutError as exc:
                         raise ProviderError("pas de réponse du modèle (délai dépassé)",
