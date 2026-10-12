@@ -21,6 +21,11 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
   fautif est maintenant retrouvé. S’il ne compile toujours pas après trois corrections, il
   est simplifié (texte et titres gardés) et le livre est livré.
 - Demandes de création en malgache (« Manorata tatitra Word… », « amin’ny pdf ») reconnues.
+- Un modèle qui « réfléchissait » sans fin pouvait bloquer une réponse plus de 10 minutes :
+  après 150 s de réflexion sans texte (300 s pour une création), Tontolo passe au modèle
+  suivant.
+- En pleine discussion, plus de questions à choix pour une courte demande dont le contexte
+  est déjà connu.
 
 ### Amélioré
 - Le routeur mesure la vitesse réelle de chaque modèle (attente comprise) et favorise les
