@@ -4,7 +4,8 @@
 Simple mais complet : le changement majeur de la version est montré par un exemple d'usage
 (capture réelle de l'application + trois étapes), puis les autres changements.
 
-    python3 press/posters/build_poster.py 0.5.2
+    python3 press/posters/build_poster.py 0.5.2            (version courante : + affiche de l'app)
+    python3 press/posters/build_poster.py 0.5.2 --no-app   (ancienne version : posters seulement)
 
 Entrée  : press/posters/v<version>/poster.json et shots/<capture>-<langue>.png
 Sortie  : press/posters/v<version>/Tontolo-<version>-poster-<langue>.png (publication GitHub)
@@ -101,7 +102,7 @@ def poster(data: dict, lang: str, version: str, shot: Path) -> str:
     return "".join(out)
 
 
-def main(version: str) -> None:
+def main(version: str, for_app: bool = True) -> None:
     folder = ROOT / "press/posters" / f"v{version}"
     data = json.loads((folder / "poster.json").read_text(encoding="utf-8"))
     assets = ROOT / "app/assets/posters"
@@ -113,12 +114,15 @@ def main(version: str) -> None:
         svg.write_text(poster(data, lang, version, shot), encoding="utf-8")
         subprocess.run(["rsvg-convert", str(svg), "-o", str(png)], check=True)
         svg.unlink()
-        # Version légère pour l'application (une seule affiche gardée : la dernière).
-        subprocess.run(["magick", str(png), "-resize", "810x", "-quality", "82",
-                        str(assets / f"latest-{lang}.webp")], check=True)
+        if for_app:  # version légère pour l'application (une seule affiche : la dernière)
+            subprocess.run(["magick", str(png), "-resize", "810x", "-quality", "82",
+                            str(assets / f"latest-{lang}.webp")], check=True)
         print(png.relative_to(ROOT), png.stat().st_size // 1024, "Ko")
-    (assets / "version.txt").write_text(version + "\n", encoding="utf-8")
+    if for_app:
+        (assets / "version.txt").write_text(version + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":
-    main(sys.argv[1] if len(sys.argv) > 1 else "0.5.2")
+    # --no-app : refaire les posters d'une ancienne version sans toucher à l'affiche embarquée.
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    main(args[0] if args else "0.5.2", "--no-app" not in sys.argv)
