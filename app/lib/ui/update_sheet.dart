@@ -4,6 +4,8 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../core/author.dart';
 import '../core/updater.dart';
@@ -147,6 +149,7 @@ class _WhatsNew extends StatelessWidget {
           const SizedBox(height: 12),
           Expanded(
             child: ListView(controller: controller, children: [
+              _PosterCard(version: version, locale: locale),
               for (final (v, group) in groups) ...[
                 if (groups.length > 1)
                   Padding(
@@ -178,6 +181,83 @@ class _WhatsNew extends StatelessWidget {
   }
 }
 
+
+/// Poster de la version (image illustrée : changement majeur en exemple d'usage). Une seule
+/// affiche est embarquée : celle de la version installée ; absente, rien n'est affiché.
+class _PosterCard extends StatefulWidget {
+  const _PosterCard({required this.version, required this.locale});
+  final String version;
+  final String locale;
+
+  @override
+  State<_PosterCard> createState() => _PosterCardState();
+}
+
+class _PosterCardState extends State<_PosterCard> {
+  bool? available;
+
+  @override
+  void initState() {
+    super.initState();
+    rootBundle.loadString('assets/posters/version.txt').then((v) {
+      if (mounted) setState(() => available = v.trim() == widget.version);
+    }).catchError((_) {
+      if (mounted) setState(() => available = false);
+    });
+  }
+
+  String get _asset => 'assets/posters/latest-${const ['fr', 'en', 'mg'].contains(widget.locale) ? widget.locale : 'fr'}.webp';
+
+  @override
+  Widget build(BuildContext context) {
+    if (available != true) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Semantics(
+        button: true,
+        label: context.t('poster_open'),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            onTap: () => Navigator.push(context, MaterialPageRoute<void>(
+              builder: (_) => _PosterView(asset: _asset, version: widget.version),
+            )),
+            child: Image.asset(_asset, fit: BoxFit.fitWidth, gaplessPlayback: true),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PosterView extends StatelessWidget {
+  const _PosterView({required this.asset, required this.version});
+  final String asset;
+  final String version;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: Colors.black,
+        appBar: AppBar(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          title: Text('Tontolo $version'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.ios_share),
+              tooltip: context.t('export'),
+              onPressed: () async {
+                final data = await rootBundle.load(asset);
+                await SharePlus.instance.share(ShareParams(files: [
+                  XFile.fromData(data.buffer.asUint8List(), mimeType: 'image/webp', name: 'Tontolo-$version-poster.webp'),
+                ]));
+              },
+            ),
+          ],
+        ),
+        body: InteractiveViewer(maxScale: 4, child: Center(child: Image.asset(asset))),
+      );
+}
 
 /// Signature de l'auteur, présente dans chaque annonce de mise à jour et « Quoi de neuf ».
 class _AuthorLine extends StatelessWidget {

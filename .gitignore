@@ -39,4 +39,5 @@ app/app/
 release-keys/
 
 # Contenus de démonstration (captures, vidéos) : générés, non versionnés
-press/
+press/*
+!press/posters/

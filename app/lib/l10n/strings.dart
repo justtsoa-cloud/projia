@@ -638,7 +638,7 @@ const Map<String, Map<String, String>> _t = {
     'greet_sub1': 'Sur quoi travaille-t-on ?',
     'greet_sub2': 'Une idée, une question, un fichier ?',
     'greet_sub3': 'Je vous écoute.',
-    'hs_resume': 'Reprendre « {t} »',
+    'hs_resume': 'Reprendre «\u00A0{t}\u00A0»',
     'hs_image': 'Dessine un baobab au coucher du soleil, style aquarelle',
     'hs_video': 'Crée une courte vidéo de vagues sur une plage de Nosy Be',
     'hs_translate': 'Traduis en anglais : ',
@@ -670,6 +670,7 @@ const Map<String, Map<String, String>> _t = {
     'greet_sub_evening': 'Déjà le soir, n\'est-ce pas ?',
     'book_outline': 'Plan du livre en préparation…',
     'book_chapter': 'Chapitres rédigés : {n} sur {t}…',
+    'poster_open': 'Voir le poster de la version',
   },
   'en': {
     'app': 'Tontolo', 'chat': 'Chat', 'creations': 'Creations', 'settings': 'Settings',
@@ -1213,6 +1214,7 @@ const Map<String, Map<String, String>> _t = {
     'greet_sub_evening': 'Evening already, isn\'t it?',
     'book_outline': 'Planning the book…',
     'book_chapter': 'Chapters written: {n} of {t}…',
+    'poster_open': 'View the version poster',
   },
   'mg': {
     'app': 'Tontolo', 'chat': 'Resaka', 'creations': 'Famoronana', 'settings': 'Kirakira',
@@ -1764,7 +1766,7 @@ const Map<String, Map<String, String>> _t = {
     'greet_sub1': 'Inona no iasantsika?',
     'greet_sub2': 'Hevitra, fanontaniana, rakitra?',
     'greet_sub3': 'Mihaino anao aho.',
-    'hs_resume': 'Tohizo « {t} »',
+    'hs_resume': 'Tohizo «\u00A0{t}\u00A0»',
     'hs_image': 'Saryo baobab amin\'ny filentehan\'ny masoandro, endrika aquarelle',
     'hs_video': 'Mamorona horonan-tsary fohy misy onja eny amoron-dranomasina any Nosy Be',
     'hs_translate': 'Adikao amin\'ny teny frantsay: ',
@@ -1796,6 +1798,7 @@ const Map<String, Map<String, String>> _t = {
     'greet_sub_evening': 'Hariva indray izy izany an!',
     'book_outline': 'Omanina ny drafitry ny boky…',
     'book_chapter': 'Toko voasoratra: {n} amin\'ny {t}…',
+    'poster_open': 'Jereo ny sary fanehoana ny dikan-teny',
   },
 };
 

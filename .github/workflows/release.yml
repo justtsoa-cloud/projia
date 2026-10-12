@@ -153,6 +153,17 @@ jobs:
         with: {fetch-depth: 0}
       - uses: actions/download-artifact@v4
         with: {path: dist, merge-multiple: true}
+      - name: Poster de la version (fr, en, mg)
+        # Consigne permanente : chaque version publiée a son poster illustré (docs/RELEASING.md),
+        # joint à la release et embarqué dans l'application (fenêtre « Nouveautés »).
+        run: |
+          v=${GITHUB_REF_NAME#v}
+          for l in fr en mg; do
+            f="press/posters/v$v/Tontolo-$v-poster-$l.png"
+            test -f "$f" || { echo "::error::Poster absent : $f (python3 press/posters/build_poster.py $v)"; exit 1; }
+            cp "$f" dist/
+          done
+          test "$(cat app/assets/posters/version.txt)" = "$v" || { echo "::error::Poster embarqué d'une autre version"; exit 1; }
       - name: Empreintes et rapport de taille
         run: |
           cd dist
@@ -188,6 +199,10 @@ jobs:
           dl="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}"
           size() { du -h "dist/$1" | cut -f1; }
           {
+            echo "[![Tontolo $v : les nouveautés en un coup d'œil]($dl/Tontolo-$v-poster-fr.png)]($dl/Tontolo-$v-poster-fr.png)"
+            echo
+            echo "🖼️ Poster : [Français]($dl/Tontolo-$v-poster-fr.png) · [English]($dl/Tontolo-$v-poster-en.png) · [Malagasy]($dl/Tontolo-$v-poster-mg.png)"
+            echo
             echo "## ⬇️ Télécharger"
             echo
             echo "| Fichier | Pour qui | Taille |"

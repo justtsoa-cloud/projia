@@ -1,0 +1,56 @@
+{
+  "shot": "home",
+  "lang": {
+    "fr": {
+      "tagline": "Nouveautés", "date": "12 octobre 2026",
+      "hero": ["Un accueil qui", "vous salue"],
+      "sub": "Chaque discussion commence par une idée.",
+      "steps": [
+        ["Ouvrez une nouvelle", "discussion"],
+        ["Tontolo vous salue selon", "l'heure, avec votre prénom"],
+        ["Touchez une idée : elle part", "toute seule, ou reprend", "votre dernière discussion"]
+      ],
+      "also": "Aussi dans cette version",
+      "items": [
+        ["Un seul dossier de cache", ["Les anciennes mises à jour ne", "s'accumulent plus."]],
+        ["Stockage visible", ["Réglages › Avancé › Stockage :", "place par type, bouton Vider."]],
+        ["Votre prénom", ["Réglages › Personnalisation, ou Tontolo", "l'apprend quand vous le dites."]]
+      ],
+      "footer": "Gratuit · Android · Linux"
+    },
+    "en": {
+      "tagline": "What's new", "date": "October 12, 2026",
+      "hero": ["A welcome that", "greets you"],
+      "sub": "Every chat starts with an idea.",
+      "steps": [
+        ["Open a new chat"],
+        ["Tontolo greets you by the", "time of day, with your", "first name"],
+        ["Tap an idea: it starts on", "its own, or resumes", "your last chat"]
+      ],
+      "also": "Also in this version",
+      "items": [
+        ["One cache folder", ["Old updates no longer", "pile up."]],
+        ["Storage at a glance", ["Settings › Advanced › Storage:", "space by type, Clear button."]],
+        ["Your first name", ["Settings › Personalization, or Tontolo", "learns it when you say it."]]
+      ],
+      "footer": "Free · Android · Linux"
+    },
+    "mg": {
+      "tagline": "Vaovao", "date": "12 Oktobra 2026",
+      "hero": ["Fandraisana", "miarahaba anao"],
+      "sub": "Ny resaka rehetra dia manomboka amin'ny hevitra.",
+      "steps": [
+        ["Sokafy ny resaka vaovao"],
+        ["Miarahaba anao i Tontolo", "araka ny ora, miaraka", "amin'ny anaranao"],
+        ["Tsindrio ny hevitra: mandeha", "ho azy izy, na manohy", "ny resaka farany"]
+      ],
+      "also": "Ao amin'ity dikan-teny ity koa",
+      "items": [
+        ["Cache iray ihany", ["Tsy miangona intsony ny", "fanavaozana taloha."]],
+        ["Fitahirizana hita", ["Kirakira › Mandroso › Fitahirizana:", "toerana isaky ny karazana, Diovy."]],
+        ["Ny anaranao", ["Kirakira › Fanamboarana manokana, na", "ianaran'i Tontolo rehefa lazainao."]]
+      ],
+      "footer": "Maimaim-poana · Android · Linux"
+    }
+  }
+}

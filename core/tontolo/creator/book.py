@@ -23,7 +23,7 @@ from tontolo.catalog.models import Category
 from tontolo.creator import bundle, latex
 
 MAX_PAGES = 300
-PAGES_PER_CHAPTER = 10
+PAGES_PER_CHAPTER = 7
 WORDS_PER_PAGE = 400
 PARALLEL = 3
 MAX_FIXES = 3

@@ -17,9 +17,16 @@ la cohérence des fichiers, et la release refuse une étiquette qui ne suit pas 
    `app/pubspec.yaml` (numéro de build Android +1).
 2. Compléter `CHANGELOG.md` (section `## [X.Y.Z] - AAAA-MM-JJ`) et les nouveautés fr/en/mg
    de `app/lib/core/whats_new.dart`, puis lancer les tests du cœur et de Flutter.
-   Préparer aussi le **poster de la version** : simple mais complet, illustré, avec le
-   changement majeur montré par un exemple concret d'utilisation (demande consigne du
-   propriétaire, 2026-10-12).
+   Préparer aussi le **poster de la version** (obligatoire : la release échoue sans lui) :
+   simple mais complet, illustré, avec le changement majeur montré par un exemple concret
+   d'utilisation, en français, anglais et malgache.
+   1. Capturer l'écran qui montre le changement majeur sur l'émulateur, dans chaque langue :
+      `press/posters/v<X.Y.Z>/shots/<nom>-fr.png` (idem `-en`, `-mg`).
+   2. Écrire `press/posters/v<X.Y.Z>/poster.json` (voir `v0.5.2/poster.json` : titre, trois
+      étapes d'usage, autres changements, dans les trois langues ; malgache à faire valider).
+   3. `python3 press/posters/build_poster.py X.Y.Z` : produit les trois PNG (joints à la
+      release et cités en tête de ses notes) et l'affiche légère embarquée dans l'application
+      (`app/assets/posters/latest-*.webp`, montrée dans « Nouveautés » ; une seule gardée).
 3. `git commit -m "chore(release): vX.Y.Z"` puis `git tag vX.Y.Z && git push --tags`.
 4. La CI construit et publie : roue + sdist Python, AppImage (x86_64), APK par ABI
    (arm64-v8a, armeabi-v7a, x86_64) signés, `SHA256SUMS`, rapport de taille, notes tirées
