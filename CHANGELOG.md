@@ -12,7 +12,7 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
   quatre questions avec des puces à toucher, puis agit selon vos réponses. Pour un document
   ou un livre dont le public ou la longueur manquent, les questions sont immédiates, sans
   appel de modèle, et dans la langue de la demande. Aucune question pour une demande claire,
-  une conversion ou en mode Apprendre.
+  une conversion ou en mode Apprendre. Un champ libre permet d’ajouter une précision.
 - Longues discussions : seuls les 120 derniers messages s’ouvrent, les précédents se
   chargent avec « Messages précédents ».
 

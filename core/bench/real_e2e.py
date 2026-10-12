@@ -306,6 +306,28 @@ async def r8_agent_tools(api: Api, v: Verdict) -> None:
     v.check(not errors_of(ev), f"aucune erreur ({errors_of(ev)[:1]})")
 
 
+# --- R9 : questions à choix (outil ask_user) avec de vrais modèles ---------------------------
+@scenario
+async def r9_ask_user(api: Api, v: Verdict) -> None:
+    asked = 0
+    prompts = ["Aide-moi à préparer un exposé", "Je veux créer un site web pour mon association",
+               "Planifie mes révisions", "Help me plan a trip"]
+    for text in prompts:
+        ev = await api.chat(text, limit=300)
+        q = [e for e in ev if e["type"] == "question"]
+        route = next((e for e in ev if e["type"] == "done"), {})
+        if q:
+            asked += 1
+            v.note(f"« {text} » → {len(q[0]['questions'])} question(s) via "
+                   f"{route.get('model')} : {[x['question'] for x in q[0]['questions']]}")
+        else:
+            v.note(f"« {text} » → pas de carte ({route.get('model')}) : "
+                   f"{final_text(ev)[:120]!r}")
+    v.check(asked >= 2, f"au moins 2 demandes ouvertes sur 4 donnent une carte ({asked})")
+    ev = await api.chat("Quelle est la capitale de Madagascar ?", limit=300)
+    v.check(not any(e["type"] == "question" for e in ev), "question simple : aucune carte")
+
+
 async def main() -> None:
     wanted = sys.argv[1:] or list(SCENARIOS)
     server = Server()
