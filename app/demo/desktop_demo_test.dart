@@ -22,6 +22,7 @@ import 'package:tontolo/core/prefs.dart';
 import 'package:tontolo/core/updater.dart';
 import 'package:tontolo/main.dart';
 import 'package:tontolo/core/account.dart';
+import 'package:tontolo/core/activity.dart';
 import 'package:tontolo/core/cloud_sync.dart';
 
 final _url = Platform.environment['DEMO_URL'] ?? 'http://127.0.0.1:8777';
@@ -101,7 +102,7 @@ void main() {
     final account = Account();
     await tester.pumpWidget(RepaintBoundary(
       key: key,
-      child: AppScope(prefs: prefs, backend: backend, updater: Updater(prefs), chat: chat, account: account, cloud: CloudSync(backend, account), child: const TontoloApp()),
+      child: AppScope(prefs: prefs, backend: backend, updater: Updater(prefs), chat: chat, account: account, cloud: CloudSync(backend, account), activity: ActivityWatcher(backend, CloudSync(backend, account), chat), child: const TontoloApp()),
     ));
 
     // Le logo est une image d'application : on la précharge (décodage asynchrone).

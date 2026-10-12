@@ -81,6 +81,21 @@ class Notifier {
     }
   }
 
+  /// Notification immédiate : une discussion attend votre réponse (application en arrière-plan).
+  static Future<void> attention(String topic, String title, String body,
+      {String channel = 'Réponses attendues'}) async {
+    if (!await _ensure()) return;
+    try {
+      if (Platform.isAndroid) {
+        final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+        if (!(await android?.requestNotificationsPermission() ?? true)) return;
+      }
+      await _plugin.show(id: topic.hashCode & 0x7fffffff, title: title, body: body, notificationDetails: _details(channel, ''));
+    } catch (e) {
+      debugPrint('Notification non affichée : $e');
+    }
+  }
+
   static Future<void> cancel(String topic) async {
     final id = topic.hashCode & 0x7fffffff;
     _timers.remove(id)?.cancel();

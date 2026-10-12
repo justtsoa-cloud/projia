@@ -90,3 +90,44 @@ async def test_turn_progress_and_activity() -> None:
 def test_activity_endpoint(client: TestClient) -> None:
     out = client.get("/tontolo/activity").json()
     assert out["tasks"] == [] and out["at"] > 0
+
+
+async def test_waiting_for_the_user() -> None:
+    import asyncio
+
+    from tontolo.agent.turns import TurnManager
+
+    async def asks() -> Any:
+        yield {"type": "delta", "content": "Quelle matière ?"}
+        yield {"type": "done", "message": {"role": "assistant", "content": "Quelle matière ?"}}
+
+    async def confirm() -> Any:
+        yield {"type": "tool_confirmation", "calls": []}
+
+    async def plain() -> Any:
+        yield {"type": "done", "message": {"role": "assistant", "content": "Voilà."}}
+
+    turns = TurnManager()
+    for cid, gen in (("q", asks()), ("t", confirm()), ("p", plain())):
+        turns.start(cid, gen)
+    await asyncio.sleep(0.05)
+    assert turns.waiting == {"q": "question", "t": "tool"}
+    turns.start("q", plain())  # l'utilisateur répond : plus d'attente
+    await asyncio.sleep(0.05)
+    assert "q" not in turns.waiting
+
+
+def test_conversation_list_has_dots(client: TestClient) -> None:
+    core = client.app.state.core  # type: ignore[attr-defined]
+
+    async def setup() -> str:
+        cid = await core.db.create_conversation("Exercice")
+        core.turns.waiting[cid] = "question"
+        return cid
+
+    cid = client.portal.call(setup)  # type: ignore[attr-defined]
+    row = next(c for c in client.get("/tontolo/conversations").json() if c["id"] == cid)
+    assert row["running"] is False and row["waiting"] == "question"
+    act = client.get("/tontolo/activity").json()
+    assert act["waiting"] == [{"conversation_id": cid, "reason": "question",
+                               "title": "Exercice"}]

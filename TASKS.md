@@ -255,4 +255,4 @@ l'emploi ; bureau Linux = fichiers + commandes confirmées dans un dossier chois
 - [x] Bug « Tontolo demande toujours d'écrire un fichier » (livre de 200 pages) : cause = outil d'écriture de l'espace interne (fichier jamais livré, rien dans les résultats) → retiré sans dossier de travail ; les livres passent par un rédacteur dédié (plan, chapitres en parallèle, PDF/zip), résultats visibles en direct, demandes sans verbe reconnues, chapitre muet réessayé puis marqué « à refaire »
 - [x] Poster 0.5.2 (fr, en, mg) ; système de poster par version (build_poster.py, exigé par la release, affiche embarquée dans « Nouveautés »)
 - [x] Poster 0.5.3 (captures réelles de l'émulateur en fr/en/mg) ; publication 0.5.3 en cours ; posters à ajouter à la release 0.5.2
-- [ ] A20 (pastilles d'activité) reste à faire après 0.5.3
+- [x] A20 pastilles d'activité (ici / autre appareil / attend votre réponse), badge du menu, avertissement + notification — prêt pour la version suivante

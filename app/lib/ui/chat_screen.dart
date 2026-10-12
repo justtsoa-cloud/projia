@@ -25,6 +25,7 @@ import 'import_flow.dart';
 import 'home_view.dart';
 import 'learn.dart';
 import 'search_dialog.dart';
+import 'activity_dot.dart';
 import 'task_results.dart';
 import 'workbench.dart';
 
@@ -383,12 +384,27 @@ class _ChatScreenState extends State<ChatScreen> {
     final chat = scope.chat;
     final backend = scope.backend;
     return ListenableBuilder(
-      listenable: Listenable.merge([chat, backend, scope.updater, scope.cloud]),
+      listenable: Listenable.merge([chat, backend, scope.updater, scope.cloud, scope.activity]),
       builder: (context, _) {
         _scrollToEnd();
         return Scaffold(
           appBar: AppBar(
             titleSpacing: 8,
+            leading: Builder(
+              builder: (context) {
+                final dot = scope.activity.elsewhere;
+                return IconButton(
+                  icon: Badge(
+                    isLabelVisible: dot != null,
+                    smallSize: 11,
+                    backgroundColor: dotColor(context, dot),
+                    child: const Icon(Icons.menu),
+                  ),
+                  tooltip: dot == null ? MaterialLocalizations.of(context).openAppDrawerTooltip : context.t('dot_${dot.name}'),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                );
+              },
+            ),
             title: ModeToggle(chat: chat),
             actions: [
               if (terminalSupported || browserPanelSupported(context))
@@ -1107,7 +1123,16 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
                 : '${c['mode'] ?? ''}'.startsWith('learn')
                     ? Icon(Icons.school_outlined, size: 18, color: Theme.of(context).colorScheme.tertiary)
                     : null,
-            title: Text('${c['title']}'.isEmpty ? '…' : '${c['title']}', maxLines: 1, overflow: TextOverflow.ellipsis),
+            title: ListenableBuilder(
+              listenable: Listenable.merge([scope.activity, scope.cloud]),
+              builder: (context, _) {
+                final dot = scope.activity.dotFor('${c['id']}');
+                return Row(children: [
+                  Expanded(child: Text('${c['title']}'.isEmpty ? '…' : '${c['title']}', maxLines: 1, overflow: TextOverflow.ellipsis)),
+                  if (dot != null) ...[const SizedBox(width: 6), ActivityDot(dot)],
+                ]);
+              },
+            ),
             selected: c['id'] == scope.chat.conversationId,
             onTap: () {
               scope.chat.open('${c['id']}');

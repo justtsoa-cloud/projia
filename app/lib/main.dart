@@ -13,7 +13,9 @@ import 'core/whats_new.dart';
 import 'l10n/strings.dart';
 import 'ui/chat_screen.dart';
 import 'core/account.dart';
+import 'core/activity.dart';
 import 'core/cloud_sync.dart';
+import 'core/notifier.dart';
 import 'ui/creations_screen.dart';
 import 'ui/onboarding.dart';
 import 'ui/search_dialog.dart';
@@ -35,9 +37,11 @@ Future<void> main() async {
   final chat = ChatController(backend);
   final account = Account();
   final cloud = CloudSync(backend, account);
+  final activity = ActivityWatcher(backend, cloud, chat);
   await Future.wait([account.load(), cloud.load()]).catchError((_) => <void>[]);
-  runApp(AppScope(prefs: prefs, backend: backend, updater: updater, chat: chat, account: account, cloud: cloud, child: const TontoloApp()));
+  runApp(AppScope(prefs: prefs, backend: backend, updater: updater, chat: chat, account: account, cloud: cloud, activity: activity, child: const TontoloApp()));
   backend.start().then((_) {
+    activity.start();
     syncSoon(prefs, account, cloud);
     updater.startAuto();
     Stats.maybeSend(prefs);
@@ -57,6 +61,7 @@ class AppScope extends InheritedWidget {
     required this.chat,
     required this.account,
     required this.cloud,
+    required this.activity,
     required super.child,
   });
 
@@ -66,6 +71,7 @@ class AppScope extends InheritedWidget {
   final ChatController chat;
   final Account account;
   final CloudSync cloud;
+  final ActivityWatcher activity;
 
   static AppScope of(BuildContext context) => context.dependOnInheritedWidgetOrNull<AppScope>()!;
 
@@ -140,7 +146,9 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     // Retour au premier plan : un message en attente de réseau part tout de suite.
     final scope = AppScope.of(context);
+    scope.activity.foreground = state == AppLifecycleState.resumed;
     if (state == AppLifecycleState.resumed) {
+      scope.activity.poll();
       scope.chat.checkOfflineQueue();
       scope.chat.resumeIfStale(); // réponse générée pendant l'absence : on s'y rattache
       syncSoon(scope.prefs, scope.account, scope.cloud);
@@ -157,6 +165,31 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
   }
 
   CloudSync? _cloud;
+
+  /// Une discussion attend la réponse de l'utilisateur alors qu'il est ailleurs : bandeau
+  /// avec « Ouvrir » (application ouverte) ou notification (arrière-plan).
+  void _attention(String id, String title, String reason) {
+    if (!mounted) return;
+    final scope = AppScope.of(context);
+    final label = context.t('attention_$reason', {'t': title.isEmpty ? '…' : title});
+    if (!scope.activity.foreground) {
+      Notifier.attention('attention-$id', 'Tontolo', label);
+      return;
+    }
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(label),
+        duration: const Duration(seconds: 12),
+        action: SnackBarAction(
+          label: context.t('open'),
+          onPressed: () {
+            setState(() => index = 0);
+            scope.chat.open(id);
+          },
+        ),
+      ));
+  }
 
   void _onCloud() {
     final scope = AppScope.of(context);
@@ -178,6 +211,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _cloud = AppScope.of(context).cloud..addListener(_onCloud);
+      AppScope.of(context).activity.onAttention = _attention;
       _startLive(AppScope.of(context));
       _updater = AppScope.of(context).updater..addListener(_onUpdate);
       _maybeWhatsNew();

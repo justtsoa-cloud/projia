@@ -72,9 +72,28 @@ class Turn:
             await self.changed.wait()
 
 
+def _awaits_user(ev: dict[str, Any]) -> str:
+    """Pourquoi le tour attend l'utilisateur : « tool » (confirmation d'outil), « paid »
+    (accord pour un modèle payant), « question » (la réponse du modèle se termine par une
+    question) ; « » sinon."""
+    kind = ev.get("type")
+    if kind == "tool_confirmation":
+        return "tool"
+    if kind == "paid_confirmation":
+        return "paid"
+    if kind == "done" and not ev.get("job"):
+        msg = ev.get("message") or {}
+        text = str(msg.get("content") or "").rstrip()
+        if text.endswith(("?", "？")) and not msg.get("tool_calls"):
+            return "question"
+    return ""
+
+
 class TurnManager:
     def __init__(self) -> None:
         self.turns: dict[str, Turn] = {}
+        # Discussions qui attendent une réponse de l'utilisateur (jusqu'à son prochain message).
+        self.waiting: dict[str, str] = {}
 
     def active(self, conversation_id: str) -> Turn | None:
         turn = self.turns.get(conversation_id)
@@ -94,11 +113,15 @@ class TurnManager:
             return current
         turn = Turn(conversation_id)
         self.turns[conversation_id] = turn
+        self.waiting.pop(conversation_id, None)  # un nouveau tour : l'utilisateur a répondu
 
         async def run() -> None:
             try:
                 async for ev in events:
                     turn.push(ev)
+                    reason = _awaits_user(ev)
+                    if reason:
+                        self.waiting[conversation_id] = reason
             except Exception as exc:  # une erreur inattendue ne doit pas rester muette
                 log.exception("Tour en échec")
                 turn.push({"type": "error", "message": f"Erreur interne : {type(exc).__name__}"})

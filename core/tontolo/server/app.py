@@ -875,7 +875,12 @@ def create_app(
     @app.get("/tontolo/conversations")
     async def conversations(request: Request, q: str | None = None, limit: int = 50,
                             offset: int = 0, folder: str | None = None) -> list[dict[str, Any]]:
-        return await core_of(request).db.list_conversations(min(limit, 500), offset, q, folder)
+        core = core_of(request)
+        rows = await core.db.list_conversations(min(limit, 500), offset, q, folder)
+        for c in rows:  # pastilles : en cours sur cet appareil / attend une réponse
+            c["running"] = core.turns.active(c["id"]) is not None
+            c["waiting"] = core.turns.waiting.get(c["id"], "")
+        return rows
 
     @app.get("/tontolo/conversations/{cid}")
     async def conversation(request: Request, cid: str, after: int = 0,
@@ -1400,7 +1405,10 @@ def create_app(
             p = turn.progress()
             p["title"] = await core.db.get_title(turn.conversation_id) or ""
             items.append(p)
-        return {"tasks": items, "at": time.time()}
+        waiting = [{"conversation_id": cid, "reason": reason,
+                    "title": await core.db.get_title(cid) or ""}
+                   for cid, reason in core.turns.waiting.items()]
+        return {"tasks": items, "waiting": waiting, "at": time.time()}
 
     @app.get("/tontolo/sync")
     async def sync_export(request: Request, since: float = 0) -> dict[str, Any]:
