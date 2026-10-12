@@ -26,7 +26,8 @@ from tontolo.creator.errors import CreationError
 PARALLEL = 3
 SECTION_DEADLINE = 300
 SECTION_TRIES = 2
-MAX_FIXES = 3
+MAX_FIXES = 8          # corrections par un modèle, en tout
+FIXES_PER_SECTION = 2  # puis la section est simplifiée
 
 OUTLINE_PROMPT = """Tu prépares le plan d'une présentation Beamer en {language}. Réponds \
 UNIQUEMENT en JSON : {{"title": "titre", "sections": [{{"title": "titre de section", \
@@ -54,6 +55,17 @@ _DENY = re.compile(r"\\(input|include|includegraphics|openin|read|readline|Input
                    r"openout|write|catcode|@@input)(?![A-Za-z])[^\n]*")
 
 
+# Accents dans le code (listings ne lit pas l'UTF-8 seul : « Invalid UTF-8 byte sequence »).
+_LITERATE = "".join(
+    f"{{{c}}}{{{{{t}}}}}1 " for c, t in [
+        ("é", "\\'e"), ("è", "\\`e"), ("ê", "\\^e"), ("ë", '\\"e'), ("à", "\\`a"),
+        ("â", "\\^a"), ("î", "\\^i"), ("ï", '\\"i'), ("ô", "\\^o"), ("ù", "\\`u"),
+        ("û", "\\^u"), ("ü", '\\"u'), ("ç", "\\c c"), ("É", "\\'E"), ("È", "\\`E"),
+        ("À", "\\`A"), ("Ç", "\\c C"), ("œ", "\\oe{}"), ("«", "\\guillemotleft{}"),
+        ("»", "\\guillemotright{}"), ("’", "'"), ("…", "..."), ("°", "\\textdegree{}"),
+    ]).strip()
+
+
 def preamble(title: str, language: str) -> str:
     babel = {"en": "english"}.get(language, "french")
     return ("\\documentclass[aspectratio=169]{beamer}\n\\usetheme{Madrid}\n"
@@ -62,7 +74,8 @@ def preamble(title: str, language: str) -> str:
             "\\usepackage{booktabs}\n\\usepackage{tikz}\n"
             "\\usetikzlibrary{arrows.meta,positioning,shapes}\n\\usepackage{listings}\n"
             "\\lstset{basicstyle=\\ttfamily\\scriptsize,breaklines=true,frame=single,"
-            "columns=fullflexible,keepspaces=true}\n"
+            "columns=fullflexible,keepspaces=true,extendedchars=true,literate=" + _LITERATE
+            + "}\n"
             f"\\title{{{latex_escape(title)}}}\n\\author{{}}\n\\date{{}}\n")
 
 
@@ -76,13 +89,29 @@ def clean_section(text: str, title: str) -> str:
                   body)
     body = _DENY.sub("", body)
 
+    # Blocs de code mis de côté : leur contenu (souvent du LaTeX : « \end{frame} »…) ne doit
+    # ni couper une diapositive ni tromper l'analyse. Beamer cherche « \end{frame} » même dans
+    # un listing : on y glisse une espace invisible à l'œil.
+    blocks: list[str] = []
+
+    def protect(m: re.Match[str]) -> str:
+        inner = re.sub(r"\\(begin|end)\{frame\}", r"\\\1 {frame}", m.group(0)[1:-1])
+        blocks.append(m.group(0)[0] + inner + m.group(0)[-1])
+        return f"@@CODE{len(blocks) - 1}@@"
+
+    body = re.sub(r"\\begin\{(lstlisting|verbatim|Verbatim)\}.*?\\end\{\1\}",
+                  lambda m: protect(m), body, flags=re.S)
+
     def fragile(m: re.Match[str]) -> str:
         opts, inner = m.group(1) or "", m.group(2)
-        if re.search(r"\\begin\{(lstlisting|verbatim)\}", inner) and "fragile" not in opts:
+        # \verb, lstlisting, verbatim : interdits dans une frame ordinaire (« Missing } »).
+        if (re.search(r"@@CODE\d+@@|\\verb\W|\\lstinline\W", inner)
+                and "fragile" not in opts):
             opts = f"[{opts[1:-1]},fragile]" if opts else "[fragile]"
         return f"\\begin{{frame}}{opts}{inner}\\end{{frame}}"
 
     body = re.sub(r"\\begin\{frame\}(\[[^\]]*\])?(.*?)\\end\{frame\}", fragile, body, flags=re.S)
+    body = re.sub(r"@@CODE(\d+)@@", lambda m: blocks[int(m.group(1))], body)
     if "\\section" not in body:
         body = f"\\section{{{latex_escape(title)}}}\n{body}"
     return body.strip() + "\n"
@@ -94,7 +123,7 @@ def plain_section(body: str, title: str) -> str:
     text = re.sub(r"\\begin\{tikzpicture\}.*?\\end\{tikzpicture\}", " ", text, flags=re.S)
     for _ in range(3):
         text = re.sub(r"\\[A-Za-z]+\*?(?:\[[^\]]*\])?\{([^{}]*)\}", r"\1", text)
-    text = re.sub(r"\\[A-Za-z]+\*?|[{}$&%#_^~]", " ", text)
+    text = re.sub(r"\\[A-Za-z]+\*?|[{}$&%#_^~\\]", " ", text)  # aucune commande ne reste
     words = text.split()
     chunks = [" ".join(words[i:i + 70]) for i in range(0, min(len(words), 280), 70)]
     frames = "".join(f"\\begin{{frame}}{{{latex_escape(title)}}}\n{latex_escape(c)}\n"
@@ -127,6 +156,25 @@ class SlidesWriter:
         if self.store is not None:  # le rangement ne bloque jamais la présentation
             with contextlib.suppress(Exception):
                 self.store("part", title, content)
+
+    async def _compiles(self, title: str, section: str) -> bool:
+        try:
+            await latex.compile_pdf(assemble(title, [section], self.lang_code)[0])
+        except latex.LatexError:
+            return False
+        return True
+
+    async def _find_failing(self, title: str, sections: list[str]) -> int | None:
+        """Section qui empêche la compilation, trouvée en compilant chacune seule."""
+        for i, sec in enumerate(sections):
+            source, _ = assemble(title, [sec], self.lang_code)
+            try:
+                await latex.compile_pdf(source)
+            except latex.LatexError as exc:
+                if exc.retryable:
+                    return None
+                return i
+        return None
 
     async def _outline(self, request: str, context: str) -> dict[str, Any]:
         msgs = [{"role": "system", "content": OUTLINE_PROMPT.format(language=self.language)},
@@ -198,6 +246,7 @@ class SlidesWriter:
             raise CreationError("les modèles gratuits ont trop tardé : réessayez plus tard")
 
         fixes = 0
+        tried: dict[int, int] = {}
         simplified: set[int] = set()
         while True:
             yield {"type": "step", "step": "doc_building"}
@@ -209,9 +258,14 @@ class SlidesWriter:
                 if exc.retryable:
                     raise
                 idx = failing_chapter(exc.log or str(exc), starts, sections)
+                # Le numéro de ligne peut venir du fichier .vrb d'une frame fragile (et accuser
+                # la mauvaise section) : la section accusée est vérifiée seule.
+                if idx is None or await self._compiles(title, sections[idx]):
+                    idx = await self._find_failing(title, sections)
                 if idx is None:
                     raise
-                if fixes >= MAX_FIXES or idx in simplified:
+                if (fixes >= MAX_FIXES or tried.get(idx, 0) >= FIXES_PER_SECTION
+                        or idx in simplified):
                     if idx in simplified:
                         raise
                     simplified.add(idx)
@@ -219,6 +273,7 @@ class SlidesWriter:
                     failed.append(idx + 1)
                     continue
                 fixes += 1
+                tried[idx] = tried.get(idx, 0) + 1
                 yield {"type": "step", "step": "doc_fixing", "n": fixes}
                 text, _, _ = await self.ask([
                     {"role": "system", "content": "Tu corriges une section LaTeX Beamer."},

@@ -362,6 +362,7 @@ Contraintes : rien ne change par défaut (`orchestrate=false`), léger (asyncio,
 - [x] B23. Mode Apprendre : « crée un quizz de 10 questions » donnait un quiz en texte (non interactif) et lançait la vérification par un second modèle → consigne ferme « bloc ```quiz » ; un quiz (ou des fiches) écrit en texte est converti en bloc JSON validé avant l'enregistrement ; pas de relecture sur un quiz
 - [x] Création longue (Beamer, document tiré d'un long fichier) : délai des chapitres de livre ; source raté gardé dans les résultats intermédiaires
 - [x] B24. Beamer d'un seul trait trop long et fragile (essai réel : délai dépassé après plusieurs modèles) → rédacteur par sections comme les livres : plan, sections en parallèle, préambule fixe, [fragile] ajouté automatiquement, correction ciblée, section simplifiée en dernier recours
+- [x] Essai réel (sections gardées) : 3 fautes systématiques des modèles corrigées sans modèle (\verb hors frame fragile, accents dans lstlisting, \end{frame} dans un listing) ; section fautive retrouvée même quand l'erreur vient du fichier .vrb ; pire cas : PDF de 31 diapositives
 - [ ] Essai réel : livre LaTeX de 328 pages → présentation Beamer (nouveau rédacteur)
 
 ## Analyse externe (v0.5.8) — tri (2026-10-12)

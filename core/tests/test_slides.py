@@ -84,3 +84,26 @@ async def test_unfixable_section_is_simplified_not_fatal() -> None:
     out: dict[str, Any] = {}
     _ = [ev async for ev in slides.SlidesWriter(ask, "fr").run("x", out=out)]
     assert out["pdf"][:5] == b"%PDF-" and 2 in out["failed"]
+
+
+def test_systematic_model_mistakes_are_fixed_without_a_model() -> None:
+    raw = ("\\begin{frame}{Accents}\n\\begin{lstlisting}\n# résumé : \\begin{frame}{X} "
+           "\\end{frame}\n\\end{lstlisting}\n\\end{frame}\n"
+           "\\begin{frame}{Verb}\nUtiliser \\verb|$x$|.\n\\end{frame}\n")
+    out = slides.clean_section(raw, "S")
+    assert out.count("\\begin{frame}[fragile]") == 2
+    assert "\\begin {frame}{X} \\end {frame}" in out  # le code ne coupe plus la diapositive
+    assert "literate=" in slides.preamble("T", "fr") and "{é}" in slides.preamble("T", "fr")
+    assert "\\\\" not in slides.plain_section("a \\\\ b \\newline c", "T").split("\n", 1)[1]
+
+
+@needs_tex
+async def test_real_mistakes_compile() -> None:
+    from tontolo.creator import latex
+
+    raw = ("\\section{S}\\begin{frame}{Accents}\n\\begin{lstlisting}\n# é à ç « »\n"
+           "\\begin{frame}{X} \\end{frame}\n\\end{lstlisting}\n\\end{frame}\n"
+           "\\begin{frame}{Verb}\nUtiliser \\verb|$x$|.\n\\end{frame}\n")
+    pdf, _, _ = await latex.compile_pdf(slides.assemble("T", [slides.clean_section(raw, "S")],
+                                                        "fr")[0])
+    assert pdf[:5] == b"%PDF-"
