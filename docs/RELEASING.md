@@ -103,3 +103,11 @@ Ces invariants sont vérifiés par la CI (`release.yml`) et par les tests :
 L'application cherche la dernière release par l'API GitHub, puis, si l'API refuse (limite de
 60 requêtes/heure par adresse IP, fréquente sur réseau mobile), par la redirection de
 `/releases/latest` ; elle présente ensuite toutes les notes des versions sautées.
+
+## QR codes
+
+- Le poster de chaque version porte un QR code vers la page de CETTE version (téléchargements),
+  ajouté et relu (`zbarimg`) par `press/posters/build_poster.py` ; le générateur refuse une ligne
+  des « autres changements » qui passerait sous le QR code.
+- L'écran « À propos » affiche `app/assets/qr/download.png` (page de la DERNIÈRE version),
+  généré une fois par `scripts/make_qr.sh`.

@@ -43,8 +43,41 @@ def lines(x: float, y: float, rows: list[str], size: int, step: int, fill: str =
                    for i, r in enumerate(rows))
 
 
+QR_LABEL = {"fr": "Télécharger", "en": "Download", "mg": "Ampidino"}
+
+
+def release_url(version: str) -> str:
+    return f"https://github.com/raantss18/tontolo/releases/tag/v{version}"
+
+
+def qr_png(url: str) -> bytes:
+    """QR code (qrencode), relu aussitôt (zbarimg) : jamais un code illisible ou faux."""
+    png = subprocess.run(["qrencode", "-o", "-", "-s", "10", "-m", "2", "-l", "M", url],
+                         check=True, capture_output=True).stdout
+    read = subprocess.run(["zbarimg", "-q", "--raw", "-"], input=png, capture_output=True)
+    if read.stdout.decode().strip() != url:
+        raise SystemExit(f"QR code illisible ou faux pour {url}")
+    return png
+
+
+def width(s: str, size: int, bold: bool = False) -> float:
+    """Largeur approximative d'une ligne (Noto Sans), assez juste pour refuser un débordement."""
+    return len(s) * size * (0.58 if bold else 0.53)
+
+
+def check_layout(t: dict, lang: str) -> None:
+    """Les autres changements s'arrêtent avant le QR code (x = 820)."""
+    for title, rows in t["items"]:
+        if 116 + width(title, 34, True) > 820:
+            raise SystemExit(f"[{lang}] titre trop long (chevauche le QR) : {title}")
+        for r in rows:
+            if 116 + width(r, 28) > 820:
+                raise SystemExit(f"[{lang}] ligne trop longue (chevauche le QR) : {r}")
+
+
 def poster(data: dict, lang: str, version: str, shot: Path) -> str:
     t = data["lang"][lang]
+    check_layout(t, lang)
     logo = uri(ROOT / "docs/brand/tontolo-icon-512.png")
     out = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">',
@@ -95,6 +128,11 @@ def poster(data: dict, lang: str, version: str, shot: Path) -> str:
         out.append(text(116, y, title, 34, WHITE, 700))
         out.append(lines(116, y + 40, rows, 28, 34, MUTED))
         y += 40 + 34 * len(rows) + 34
+    # QR code vers la page de cette version (téléchargements)
+    qr = "data:image/png;base64," + base64.b64encode(qr_png(release_url(version))).decode()
+    out.append(f'<rect x="836" y="1316" width="188" height="188" rx="18" fill="{WHITE}"/>')
+    out.append(f'<image href="{qr}" x="846" y="1326" width="168" height="168"/>')
+    out.append(text(930, 1544, QR_LABEL.get(lang, QR_LABEL["en"]), 28, MINT, 700, "middle"))
     # pied
     out.append(text(60, 1872, "github.com/raantss18/tontolo", 30, WHITE, 600))
     out.append(text(1020, 1872, t["footer"], 26, MUTED, 400, "end"))

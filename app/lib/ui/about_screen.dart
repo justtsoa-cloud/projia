@@ -8,6 +8,9 @@ import '../core/updater.dart';
 import '../core/author.dart';
 import '../main.dart';
 
+/// Page de la dernière version (APK, AppImage) : même adresse que le QR code embarqué.
+const downloadUrl = 'https://github.com/raantss18/tontolo/releases/latest';
+
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
@@ -32,6 +35,29 @@ class AboutScreen extends StatelessWidget {
           TextButton(
             onPressed: () => launchUrl(Uri.parse('https://github.com/$repo')),
             child: const Text('github.com/raantss18/tontolo'),
+          ),
+          const Divider(),
+          // QR code vers la dernière version : pour installer Tontolo sur un autre téléphone.
+          Center(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () => launchUrl(Uri.parse(downloadUrl), mode: LaunchMode.externalApplication),
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Column(children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                    child: Image.asset('assets/qr/download.png', width: 168, height: 168,
+                        filterQuality: FilterQuality.none, semanticLabel: context.t('qr_download')),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(context.t('qr_download'), style: Theme.of(context).textTheme.titleSmall),
+                  Text(context.t('qr_download_help'), textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall),
+                ]),
+              ),
+            ),
           ),
           const Divider(),
           Text(context.t('author'), style: Theme.of(context).textTheme.titleMedium),
