@@ -271,3 +271,17 @@ def test_ask_user_only_at_the_start_of_a_task(client: TestClient, fake: FakeProv
     assert tool_rounds[0] is True            # 1re demande : questions possibles
     assert tool_rounds[2] is False           # 3e demande courte : contexte connu
     assert tool_rounds[3] is True            # nouvelle demande développée
+
+
+def test_no_choice_card_for_a_summary_request(client: TestClient, fake: FakeProvider) -> None:
+    offered: list[bool] = []
+    original = fake.stream
+
+    def spy(model, messages, *, tools=None, **params):  # type: ignore[no-untyped-def]
+        offered.append(any(t["function"]["name"] == "ask_user" for t in tools or []))
+        return original(model, messages, tools=tools, **params)
+
+    fake.stream = spy  # type: ignore[method-assign]
+    _chat(client, "/tontolo/chat", {"content": "Fintino ity rakitra ity"})
+    _chat(client, "/tontolo/chat", {"content": "Aide-moi pour ma coopérative"})
+    assert offered[0] is False and offered[-1] is True

@@ -31,6 +31,11 @@ _STOP = frozenset([
 ])
 
 
+def wants_summary(text: str) -> bool:
+    """« Résume ce document », « fintino ity rakitra ity », « summarize this »…"""
+    return bool(_SUMMARY.search(text or ""))
+
+
 class DocumentError(ValueError):
     """Fichier illisible ou non pris en charge (message destiné à l'utilisateur)."""
 

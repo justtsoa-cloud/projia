@@ -790,11 +790,13 @@ class ChatService:
         users = [m for m in recent if m.get("role") == "user"]
         last_words = len(_last_user_text(recent).split()) if users else 0
         if (mode.startswith("learn") or any(m.get("name") == "ask_user" for m in recent)
-                or (len(users) > 2 and last_words < ASK_NEW_TASK_WORDS)):
+                or (len(users) > 2 and last_words < ASK_NEW_TASK_WORDS)
+                or documents.wants_summary(_last_user_text(recent))):
             # Mode Apprendre : le tuteur interroge déjà ; jamais deux séries de questions
             # d'affilée (les réponses viennent d'être données) ; et en pleine discussion, le
             # contexte suffit — seule une nouvelle demande développée justifie des questions
-            # (essai réel R3 : questions posées au 3e tour alors que tout était connu).
+            # (essai réel R3 : questions posées au 3e tour alors que tout était connu) ;
+            # « résume ce fichier » est toujours clair (essai : carte posée pour un zip joint).
             box = ToolBox({n: t for n, t in box.tools.items() if n != "ask_user"})
         tools = box.schemas() or None
         searched = False
