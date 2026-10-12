@@ -386,6 +386,9 @@ class ChatBody(SafeModel):
     level: str | None = Field(default=None, pattern="^[a-z]{1,20}$")
     # Mode agent : « auto », « researcher », « developer », « writer », « analyst ».
     agent: str | None = Field(default=None, pattern="^[a-z]{1,20}$")
+    # Orchestration multi-modèles (sous-tâches en parallèle puis fusion) : désactivée par
+    # défaut ; une demande simple (complexité faible) suit toujours le flux normal.
+    orchestrate: bool = False
 
     @field_validator("content")
     @classmethod
@@ -855,6 +858,13 @@ def create_app(
         if file_kind is not None:
             return _turn(core, cid, _file_turn(core, body, file_kind, base_source, completed),
                          first)
+        if (body.orchestrate and core.orchestrator is not None and category is None
+                and not _first_image(body.content) and body.mode != "learn"):
+            plan = await core.orchestrator.decomposer.decompose(_text_of(body.content))
+            # NOTE: Choix autonome - complexité faible : aucune orchestration (zéro latence
+            # ajoutée, le découpage par expressions régulières prend moins d'une milliseconde).
+            if plan.complexity != "low":
+                return _turn(core, cid, _orchestrated_turn(core, cid, body, plan), first)
         if category is not None and category.value in MEDIA_TURN_KINDS:
             return _turn(core, cid, _media_turn(core, body, category), first)
         return _turn(core, cid, _text_turn(core, body, cid, category), first)
@@ -904,6 +914,28 @@ def create_app(
             kind = Category.IMAGE_EDIT if _first_image(body.content) else Category.IMAGE_GEN
             async for ev in _media_turn(core, body, kind, add_user=False):
                 yield ev
+
+    async def _orchestrated_turn(core: Core, cid: str, body: ChatBody, plan: Any
+                                 ) -> AsyncIterator[dict[str, Any]]:
+        """Demande composée : sous-tâches en parallèle (puis dépendantes), fusion, mesures."""
+        recent = await core.db.get_window(cid, 6)
+        context = "\n".join(f"[{m['role']}] {_text_of(m.get('content') or '')[:1000]}"
+                            for m in recent if m.get("role") in ("user", "assistant"))
+        user = await core.db.add_message(cid, {"role": "user", "content": body.content})
+        yield {"type": "user_saved", "uid": user["uid"], "seq": user["seq"]}
+        yield {"type": "orchestration", "complexity": plan.complexity,
+               "subtasks": [{"index": s.index, "text": s.text[:200],
+                             "category": s.category.value, "depends": s.depends}
+                            for s in plan.subtasks]}
+        if core.orchestrator is None:
+            return
+        out = await core.orchestrator.run(plan, context)
+        msg = {"role": "assistant", "content": out["text"]}
+        saved = await core.db.add_message(cid, msg, model=out["model"] or None)
+        model = core.router.catalog.catalog.get(out["model"]) if out["model"] else None
+        yield {"type": "done", "message": msg, "model": out["model"],
+               "name": model.name if model else out["model"], "metrics": out["metrics"],
+               "uid": saved["uid"], "conversation_id": cid}
 
     async def _ask_turn(core: Core, cid: str, body: ChatBody, kind: str,
                         questions: list[dict[str, Any]]) -> AsyncIterator[dict[str, Any]]:

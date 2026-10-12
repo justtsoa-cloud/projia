@@ -346,6 +346,9 @@ Contraintes : rien ne change par défaut (`orchestrate=false`), léger (asyncio,
 - [x] S2. secrets.json chiffré en repli (Fernet si `cryptography` présent, sinon chiffrement léger stdlib), migration transparente des fichiers existants
 - [x] S3. Limitation de débit des WebSockets (connexions et messages)
 - [x] S4. MCP durci : commandes dangereuses refusées, taille des requêtes bornée, configuration stdio réservée à l'appareil
-- [ ] O1. Paquet `orchestrator/` : TaskDecomposer (regex, repli Ollama local), ResponseSynthesizer (low/medium/high), HierarchicalPipeline (cache, gather, délais, replis, routeur existant)
-- [ ] O2. `/tontolo/chat` : `orchestrate: bool = false` ; complexité faible → flux normal ; métriques (durée, modèles) dans les événements
-- [ ] O3. tests/test_orchestrator.py + essai « code Python + explication »
+- [x] O1. Paquet `orchestrator/` : TaskDecomposer (regex, repli Ollama local), ResponseSynthesizer (low/medium/high), HierarchicalPipeline (cache, gather, délais, replis, routeur existant)
+- [x] O2. `/tontolo/chat` : `orchestrate: bool = false` ; complexité faible → flux normal ; métriques (durée, modèles) dans les événements
+- [x] O3. tests/test_orchestrator.py + essai « code Python + explication »
+- [x] Essai réel R10 : « code + explication » (dépendance respectée, 64 s, 2 modèles) ; 3 parties en parallèle 19 s au lieu de 23 s en série, réponses justes ; « Bonjour » non orchestré
+- [ ] O4. Fusion « medium » : le petit modèle des résumés renvoie souvent une fusion trop courte → repli sur la concaténation (sûr) ; essayer un modèle d'écriture rapide
+- [ ] O5. App : interrupteur « Orchestration » en mode avancé (l'API est prête, rien n'est activé par défaut)

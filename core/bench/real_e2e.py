@@ -328,6 +328,34 @@ async def r9_ask_user(api: Api, v: Verdict) -> None:
     v.check(not any(e["type"] == "question" for e in ev), "question simple : aucune carte")
 
 
+# --- R10 : orchestration (code Python + explication, puis demande en 3 parties) -------------
+@scenario
+async def r10_orchestrate(api: Api, v: Verdict) -> None:
+    ev = await api.chat("Écris une fonction Python qui renvoie les nombres premiers jusqu'à n "
+                        "et explique-la", limit=600, orchestrate=True)
+    done = next((e for e in ev if e["type"] == "done"), {})
+    m = done.get("metrics") or {}
+    text = final_text(ev)
+    v.check(any(e["type"] == "orchestration" for e in ev), "orchestration utilisée")
+    v.check("def " in text and len(text) > 300, "code et explication présents")
+    v.check(m.get("sequential") == 1, "l'explication passe après le code (dépendance)")
+    v.note(f"mesures : {m.get('seconds')} s, modèles {m.get('models')}, fusion "
+           f"{m.get('synthesis')}")
+    t0 = time.time()
+    ev = await api.chat("Calcule 17 * 23 ; écris un haïku sur l'océan Indien ; donne la "
+                        "capitale de l'Australie", limit=600, orchestrate=True)
+    m = (next((e for e in ev if e["type"] == "done"), {}) or {}).get("metrics") or {}
+    text = final_text(ev)
+    v.check("391" in text and "Canberra" in text, "les trois parties sont traitées")
+    v.check(m.get("parallel") == 3, "trois sous-tâches en parallèle")
+    slowest = max((s.get("seconds") or 0 for s in m.get("subtasks", [])), default=0)
+    v.note(f"durée totale {round(time.time() - t0)} s ; sous-tâche la plus lente {slowest} s "
+           f"(en série : {sum(s.get('seconds') or 0 for s in m.get('subtasks', []))} s)")
+    plain = await api.chat("Bonjour !", orchestrate=True)
+    v.check(not any(e["type"] == "orchestration" for e in plain),
+            "demande simple : flux normal")
+
+
 async def main() -> None:
     wanted = sys.argv[1:] or list(SCENARIOS)
     server = Server()

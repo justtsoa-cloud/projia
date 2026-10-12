@@ -14,6 +14,7 @@ from tontolo.catalog.service import CatalogService
 from tontolo.config import Settings, load_settings
 from tontolo.creator.service import CreatorService
 from tontolo.media.service import MediaService
+from tontolo.orchestrator import HierarchicalPipeline
 from tontolo.providers.registry import ProviderRegistry
 from tontolo.router.engine import Router
 from tontolo.storage import space
@@ -31,6 +32,11 @@ class Core:
     mcp: McpManager
     events: list[Any] = field(default_factory=list)
     turns: TurnManager = field(default_factory=TurnManager)
+    orchestrator: HierarchicalPipeline | None = None  # initialisé au démarrage (optionnel)
+
+    def __post_init__(self) -> None:
+        if self.orchestrator is None:
+            self.orchestrator = HierarchicalPipeline(self.router)
 
     @property
     def creator(self) -> CreatorService:
