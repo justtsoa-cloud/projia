@@ -27,7 +27,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, Web
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from tontolo import __version__, documents, importer, secrets, security
+from tontolo import __version__, attachments, documents, importer, secrets, security
 from tontolo.agent import planner
 from tontolo.agent.loop import dumps
 from tontolo.agent.mcp_client import load_config, save_config
@@ -66,11 +66,41 @@ REVIEWED_TOPICS = {"math", "code", "reasoning"}  # réponses vérifiées par un 
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 
 
-async def _read_limited(file: UploadFile) -> bytes:
-    data = await file.read(MAX_UPLOAD_BYTES + 1)
-    if len(data) > MAX_UPLOAD_BYTES:
-        raise HTTPException(413, "Fichier trop volumineux (25 Mo maximum)")
+async def _read_limited(file: UploadFile, limit: int = 0) -> bytes:
+    limit = limit or MAX_UPLOAD_BYTES
+    data = await file.read(limit + 1)
+    if len(data) > limit:
+        raise HTTPException(413, f"Fichier trop volumineux ({limit // 1024 // 1024} Mo maximum)")
     return data
+
+
+MAX_VIDEO_BYTES = 100 * 1024 * 1024  # avec ffmpeg (piste son extraite) ; sinon 25 Mo
+
+
+async def _audio_track(name: str, data: bytes) -> tuple[str, bytes]:
+    """Piste son d'une vidéo (ffmpeg, s'il est installé) : bien plus légère à transcrire.
+    Sans ffmpeg, la vidéo est envoyée telle quelle (les services vocaux acceptent mp4/webm)."""
+    import shutil
+    import tempfile
+
+    exe = shutil.which("ffmpeg")
+    if exe is None:
+        return name, data
+    with tempfile.TemporaryDirectory() as tmp:
+        src, out = Path(tmp) / "in", Path(tmp) / "out.mp3"
+        src.write_bytes(data)
+        proc = await asyncio.create_subprocess_exec(
+            exe, "-nostdin", "-loglevel", "error", "-i", str(src), "-vn", "-ac", "1", "-ar",
+            "16000", "-b:a", "48k", "-t", "3600", str(out),
+            stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
+        try:
+            await asyncio.wait_for(proc.wait(), 300)
+        except TimeoutError:
+            proc.kill()
+            return name, data
+        if proc.returncode == 0 and out.exists() and out.stat().st_size > 0:
+            return Path(name).stem + ".mp3", out.read_bytes()
+    return name, data
 
 
 def _text_of(content: Any) -> str:
@@ -623,14 +653,34 @@ def create_app(
     @app.post("/tontolo/documents")
     async def upload_document(request: Request, file: UploadFile = File(...),
                               conversation_id: str | None = Form(None)) -> dict[str, Any]:
-        """Joint un document (PDF, texte, Markdown, HTML) à une conversation (créée si besoin)."""
+        """Joint une pièce (PDF, bureautique, texte, code, archive, son, vidéo…) à une
+        conversation (créée si besoin) : son texte sert à répondre en citant les pages."""
+        import shutil
+
         core = core_of(request)
-        data = await _read_limited(file)
         name = Path(file.filename or "document").name[:120] or "document"
-        try:
-            pages = await asyncio.to_thread(documents.extract_pages, name, data)
-        except documents.DocumentError as exc:
-            raise HTTPException(422, str(exc)) from exc
+        kind = attachments.media_kind(name)
+        big = kind == "video" and shutil.which("ffmpeg") is not None
+        data = await _read_limited(file, MAX_VIDEO_BYTES if big else 0)
+        if kind is not None:
+            # Son ou vidéo : transcription par le service vocal (modèle gratuit routé).
+            audio_name, audio = await _audio_track(name, data) if kind == "video" else (name, data)
+            if len(audio) > MAX_UPLOAD_BYTES:
+                raise HTTPException(413, "Vidéo trop longue à transcrire sur cet appareil "
+                                         "(25 Mo maximum sans ffmpeg).")
+            job = await core.media.submit("stt", input_bytes=audio, input_name=audio_name)
+            done = await core.media.wait(job["id"])
+            text = str(((done or {}).get("params") or {}).get("text") or "").strip()
+            if not done or done["status"] != "done" or not text:
+                raise HTTPException(422, "Transcription impossible pour l'instant : "
+                                         + str((done or {}).get("error") or "aucun texte"))
+            what = "de la vidéo" if kind == "video" else "de l'enregistrement"
+            pages = [f"Transcription {what} « {name} » :\n{text}"]
+        else:
+            try:
+                pages = await asyncio.to_thread(documents.extract_pages, name, data)
+            except documents.DocumentError as exc:
+                raise HTTPException(422, str(exc)) from exc
         cid = conversation_id
         if not cid or not await core.db.conversation_exists(cid):
             cid = await core.db.create_conversation(name[:60])

@@ -47,20 +47,14 @@ def _norm(text: str) -> str:
 
 
 def extract_pages(name: str, data: bytes) -> list[str]:
-    """Texte par page (une seule « page » pour les formats sans pagination)."""
-    low = name.lower()
-    if data[:5] == b"%PDF-" or low.endswith(".pdf"):
-        return _pdf_pages(data)
-    try:
-        text = data.decode("utf-8")
-    except UnicodeDecodeError:
-        text = data.decode("latin-1")
-    head = text.lstrip()[:15].lower()
-    if low.endswith((".html", ".htm")) or head.startswith(("<!doctype", "<html")):
-        text = html_to_text(text)
-    if not text.strip():
+    """Texte par page (une seule « page » pour les formats sans pagination). Tous les formats
+    pris en charge : voir `tontolo.attachments`."""
+    from tontolo.attachments import extract_any
+
+    pages = [p[:MAX_CHARS] for p in extract_any(name, data)]
+    if not any(p.strip() for p in pages):
         raise DocumentError("Le document ne contient pas de texte.")
-    return [text[:MAX_CHARS]]
+    return pages
 
 
 def _pdf_pages(data: bytes) -> list[str]:

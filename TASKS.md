@@ -329,9 +329,10 @@ Principe : rien de ce qui est écrit ne quitte l'appareil ; seule la note (modè
 
 ## Pièces jointes de tous types (demande du 2026-10-12)
 Outils gratuits, locaux d'abord ; rien n'est exécuté depuis une pièce jointe.
-- [ ] P1. Inventaire : ce que l'app accepte aujourd'hui (images, PDF…) et comment le cœur l'extrait (documents.py)
-- [ ] P2. Texte et code : md, txt, csv, json, html, xml, yaml, sources (py, js, dart…) → lus tels quels (taille bornée)
-- [ ] P3. Documents : docx, pptx, xlsx, odt/ods/odp, epub, rtf → texte extrait (bibliothèques pures Python déjà utilisées ou stdlib zip/xml)
-- [ ] P4. Archives zip (et tar.gz) : liste + extraction en mémoire des fichiers lisibles, avec garde-fous (bombe zip, chemins « ../ », taille et nombre de fichiers bornés)
-- [ ] P5. Son : transcription (modèle STT gratuit déjà routé : catégorie stt) ; vidéo : piste son transcrite + quelques images clés (ffmpeg s'il est présent sur le bureau ; Android : son seulement si possible)
+- [x] P1. Inventaire : ce que l'app accepte aujourd'hui (images, PDF…) et comment le cœur l'extrait (documents.py)
+- [x] P2. Texte et code : md, txt, csv, json, html, xml, yaml, sources (py, js, dart…) → lus tels quels (taille bornée)
+- [x] P3. Documents : docx, pptx, xlsx, odt/ods/odp, epub, rtf → texte extrait (bibliothèques pures Python déjà utilisées ou stdlib zip/xml)
+- [x] P4. Archives zip (et tar.gz) : liste + extraction en mémoire des fichiers lisibles, avec garde-fous (bombe zip, chemins « ../ », taille et nombre de fichiers bornés)
+- [x] P5. Son : transcription (modèle STT gratuit déjà routé : catégorie stt) ; vidéo : piste son transcrite + quelques images clés (ffmpeg s'il est présent sur le bureau ; Android : son seulement si possible)
+- [ ] P7. Vidéo : quelques images clés (ffmpeg) analysées par un modèle de vision, en plus de la transcription
 - [ ] P6. App : sélecteur de fichiers élargi, aperçu par type (icône, nom, taille), limites claires ; tests de chaque type et des fichiers piégés

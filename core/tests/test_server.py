@@ -1058,3 +1058,44 @@ def test_feedback_endpoints(client: TestClient) -> None:
     kept = client.put("/tontolo/feedback/global", json={"scores": [
         {"model": done["model"], "category": "chat", "score": 0.5, "devices": 9}]}).json()
     assert kept == {"kept": 1}
+
+
+def test_any_attachment_type(client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    import io
+    import shutil
+    import zipfile
+
+    from tontolo.media.service import MediaService
+
+    sent: list[str] = []
+
+    async def submit(self: Any, kind: str, prompt: str = "", **kw: Any) -> dict[str, Any]:
+        sent.append(f"{kind}:{kw.get('input_name')}")
+        return {"id": "j1"}
+
+    async def wait(self: Any, job_id: str, *a: Any, **k: Any) -> dict[str, Any]:
+        return {"status": "done", "params": {"text": "Bonjour à tous, voici la leçon."}}
+
+    monkeypatch.setattr(MediaService, "submit", submit)
+    monkeypatch.setattr(MediaService, "wait", wait)
+    monkeypatch.setattr(shutil, "which", lambda exe: None)  # sans ffmpeg : envoyée telle quelle
+    for name in ("cours.m4a", "clip.mp4"):
+        r = client.post("/tontolo/documents", files={"file": (name, b"\x00\x01media")})
+        assert r.status_code == 200, r.text
+        doc = client.get(f"/tontolo/conversations/{r.json()['conversation_id']}/documents").json()
+        assert doc[0]["name"] == name
+    assert sent == ["stt:cours.m4a", "stt:clip.mp4"]
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as z:
+        z.writestr("notes.md", "# Notes\nPhotosynthèse")
+    r = client.post("/tontolo/documents", files={"file": ("cours.zip", buf.getvalue())})
+    assert r.status_code == 200 and r.json()["pages"] == 2
+    bad = client.post("/tontolo/documents", files={"file": ("x.docx", b"pas un zip")})
+    assert bad.status_code == 422
+
+    async def fail(self: Any, job_id: str, *a: Any, **k: Any) -> dict[str, Any]:
+        return {"status": "failed", "error": "quota", "params": {}}
+
+    monkeypatch.setattr(MediaService, "wait", fail)
+    r = client.post("/tontolo/documents", files={"file": ("x.mp3", b"\x00audio")})
+    assert r.status_code == 422 and "Transcription impossible" in r.text
