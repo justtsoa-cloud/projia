@@ -24,6 +24,7 @@ import 'model_picker.dart';
 import 'import_flow.dart';
 import 'home_view.dart';
 import 'learn.dart';
+import 'question_card.dart';
 import 'search_dialog.dart';
 import 'activity_dot.dart';
 import 'task_results.dart';
@@ -470,7 +471,8 @@ class _ChatScreenState extends State<ChatScreen> {
                         child: ListView.builder(
                         controller: scroll,
                         padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemCount: chat.messages.length + (chat.earlierLeft > 0 ? 1 : 0),
+                        itemCount: chat.messages.length + (chat.earlierLeft > 0 ? 1 : 0) +
+                            (chat.asked.isNotEmpty && !chat.busy ? 1 : 0),
                         itemBuilder: (context, i) {
                           if (chat.earlierLeft > 0) {
                             if (i == 0) {
@@ -486,6 +488,15 @@ class _ChatScreenState extends State<ChatScreen> {
                               );
                             }
                             i -= 1;
+                          }
+                          if (i == chat.messages.length) {
+                            return QuestionCard(
+                              questions: chat.asked,
+                              onSend: (t) {
+                                stickToBottom = true;
+                                chat.send(t);
+                              },
+                            );
                           }
                           final m = chat.messages[i];
                           if (m.role == 'notice') return _Notice(m.text, onRetry: chat.retry);

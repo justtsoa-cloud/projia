@@ -281,3 +281,12 @@ Règle : tout test, bug trouvé et optimisation est noté ici au fur et à mesur
 - [x] B12. (essai réel R4) En discussion normale, le modèle recevait les outils terminal/navigateur/écriture et tentait de créer un fichier Word par le terminal → ces outils sont réservés au mode Agent (économie d'environ 1,5 k jetons par demande)
 - [x] B13. (E5) Une discussion de milliers de messages était chargée en une seule requête par l’app → chargement par fenêtre (120 derniers, `?tail=&before=`), bouton « Messages précédents (n) » en tête, test Flutter
 - [x] E2 (partiel) : R2 plan complexe, R6 projet de code, R8 outils agent OK ; R4 chaîne de corrections, R3 longue discussion, R7 livre à relancer sur le code corrigé
+
+## Questions interactives à choix (demande de l'utilisateur, 2026-10-12)
+- [x] Outil `ask_user` (1 à 4 questions, 2 à 6 options, choix multiple possible) : le tour s'arrête sur un événement `question` ; la réponse revient comme un message normal
+- [x] Consigne système : poser les questions d'abord pour les demandes ouvertes ou complexes (projet, document, plan, code, recherche), jamais pour une demande claire ; jamais deux séries d'affilée ; pas en mode Apprendre (le tuteur interroge déjà)
+- [x] App : carte de puces (fr/en/mg), un toucher envoie si une seule question à choix unique, sinon « Envoyer mes choix » ; la carte revient à la réouverture si la question est la dernière ; pastille « attend une réponse »
+- [ ] Demandes de création de fichier (circuit créateur) : poser aussi les questions avant de lancer un livre/document long
+- [ ] Texte « Autre… » libre dans la carte (aujourd'hui : l'utilisateur écrit dans le champ normal)
+- [ ] Essai réel : vérifier quels modèles gratuits appellent bien `ask_user`
+

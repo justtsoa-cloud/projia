@@ -81,6 +81,8 @@ def _awaits_user(ev: dict[str, Any]) -> str:
         return "tool"
     if kind == "paid_confirmation":
         return "paid"
+    if kind == "question":
+        return "question"
     if kind == "done" and not ev.get("job"):
         msg = ev.get("message") or {}
         text = str(msg.get("content") or "").rstrip()

@@ -404,6 +404,36 @@ def file_tools(workdir: Path) -> list[Tool]:
     ]
 
 
+MAX_QUESTIONS = 4
+MAX_OPTIONS = 6
+
+
+def normalize_questions(args: dict[str, Any]) -> list[dict[str, Any]]:
+    """Questions à choix de `ask_user`, nettoyées (le modèle peut se tromper de forme)."""
+    raw = args.get("questions")
+    if raw is None and args.get("question"):
+        raw = [args]
+    out: list[dict[str, Any]] = []
+    for q in raw if isinstance(raw, list) else []:
+        if not isinstance(q, dict):
+            continue
+        text = str(q.get("question") or q.get("q") or "").strip()
+        options = [str(o.get("label") if isinstance(o, dict) else o).strip()
+                   for o in (q.get("options") or q.get("choices") or [])]
+        options = [o[:120] for o in dict.fromkeys(options) if o and o != "None"][:MAX_OPTIONS]
+        if text and len(options) >= 2:
+            out.append({"question": text[:300], "options": options,
+                        "multiple": bool(q.get("multiple"))})
+    return out[:MAX_QUESTIONS]
+
+
+async def ask_user(args: dict[str, Any]) -> str:
+    if not normalize_questions(args):
+        return ("Erreur : donne 1 à 4 questions, chacune avec « question » et au moins 2 "
+                "« options » courtes.")
+    return "Questions affichées à l'utilisateur. Attends sa réponse (prochain message)."
+
+
 def native_tools(workdir: Path | None = None, workspace: Any = None,
                  commands: bool = False) -> ToolBox:
     box = ToolBox()
@@ -419,6 +449,17 @@ def native_tools(workdir: Path | None = None, workspace: Any = None,
     box.add(Tool("calculator", "Calcule une expression mathématique exacte ou numérique.",
                  {"type": "object", "properties": {"expression": {"type": "string"}},
                   "required": ["expression"]}, calculator))
+    box.add(Tool(
+        "ask_user",
+        "Pose à l'utilisateur 1 à 4 questions à CHOIX pour préciser sa demande avant d'agir "
+        "(objectif, public, format, longueur, langue, niveau…). Il répond en touchant une "
+        "option (ou en écrivant la sienne). Le tour s'arrête jusqu'à sa réponse.",
+        {"type": "object", "properties": {"questions": {"type": "array", "items": {
+            "type": "object", "properties": {
+                "question": {"type": "string"},
+                "options": {"type": "array", "items": {"type": "string"}},
+                "multiple": {"type": "boolean"}},
+            "required": ["question", "options"]}}}, "required": ["questions"]}, ask_user))
     if workspace is not None:  # dossier choisi par l'utilisateur (bureau) : outils complets
         for t in workspace.tools(commands):
             box.add(t)

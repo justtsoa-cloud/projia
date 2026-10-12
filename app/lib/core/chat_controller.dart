@@ -31,6 +31,21 @@ class ChatMessage {
   int? seq; // position en base (modifier et renvoyer)
 }
 
+/// Question à choix posée par Tontolo (outil `ask_user`) pour préciser la demande.
+class AskedQuestion {
+  AskedQuestion(this.question, this.options, this.multiple);
+  final String question;
+  final List<String> options;
+  final bool multiple;
+
+  static List<AskedQuestion> parse(dynamic raw) => [
+        for (final q in (raw as List? ?? const []).whereType<Map>())
+          if ('${q['question'] ?? ''}'.isNotEmpty && (q['options'] as List? ?? const []).length >= 2)
+            AskedQuestion('${q['question']}', [for (final o in q['options'] as List) '$o'],
+                q['multiple'] == true),
+      ];
+}
+
 class PendingAction {
   PendingAction.paid(this.model, this.cost) : kind = 'paid', tools = const [];
   PendingAction.tools(this.tools) : kind = 'tools', model = null, cost = null;
@@ -51,6 +66,7 @@ class ChatController extends ChangeNotifier {
   String? lastModelName;
   String? status; // « Recherche sur le web… », etc.
   PendingAction? pending;
+  List<AskedQuestion> asked = []; // questions à choix en attente de réponse
   StreamSubscription<Map<String, dynamic>>? _sub;
   String? _lastText;
   int _epoch = 0; // invalide les lectures de la discussion quittée
@@ -265,6 +281,7 @@ class ChatController extends ChangeNotifier {
     planSteps.clear();
     _modeChanged = false;
     messages.clear();
+    asked = [];
     earlierLeft = 0;
     loadingEarlier = false;
     busy = false;
@@ -353,9 +370,19 @@ class ChatController extends ChangeNotifier {
   Future<void> _loadMessages(List<Map<String, dynamic>> items) async {
     final epoch = _epoch;
     final loaded = <ChatMessage>[];
+    List<AskedQuestion> lastAsk = [];
     for (final m in items) {
       final role = m['role'] as String? ?? '';
       if (role == 'tool' || role == 'system') continue;
+      if (role == 'user') lastAsk = [];
+      for (final c in (m['tool_calls'] as List? ?? const []).whereType<Map>()) {
+        final fn = c['function'] as Map?;
+        if (fn?['name'] == 'ask_user') {
+          try {
+            lastAsk = AskedQuestion.parse((jsonDecode('${fn!['arguments']}') as Map)['questions']);
+          } catch (_) {}
+        }
+      }
       final meta = (m['_meta'] as Map?)?.cast<String, dynamic>() ?? {};
       final msg = ChatMessage(role: role, model: meta['model'] as String?)
         ..uid = meta['uid'] as String?
@@ -380,12 +407,16 @@ class ChatController extends ChangeNotifier {
       if (epoch != _epoch) return;
       loaded.add(msg);
     }
-    if (epoch == _epoch) messages.addAll(loaded);
+    if (epoch == _epoch) {
+      messages.addAll(loaded);
+      asked = lastAsk;
+    }
   }
 
   Future<void> send(String text, {List<String> images = const [], String? category}) async {
     if (busy || (text.trim().isEmpty && images.isEmpty)) return;
     cancelOfflineQueue(notify: false);
+    asked = [];
     Stats.countMessage(backend.prefs);
     _lastText = text;
     final user = ChatMessage(role: 'user', text: text)..images = List.of(images);
@@ -668,6 +699,9 @@ class ChatController extends ChangeNotifier {
           c.streaming = false;
           current = null;
           terminal = true;
+        case 'question':
+          terminal = true;
+          asked = AskedQuestion.parse(ev['questions']);
         case 'tool_confirmation':
           terminal = true;
           pending = PendingAction.tools((ev['calls'] as List).cast<Map<String, dynamic>>());

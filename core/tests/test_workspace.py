@@ -208,3 +208,36 @@ def test_power_tools_only_in_agent_mode(client: TestClient, fake: FakeProvider,
     assert {"web_search", "calculator", "read_file", "list_dir"} <= general
     assert not general & {"run_command", "write_file", "edit_file", "terminal_send"}
     assert {"run_command", "write_file", "edit_file"} <= agent
+
+
+def test_ask_user_choices(client: TestClient, fake: FakeProvider) -> None:
+    """Le modèle pose des questions à choix : le tour s'arrête sur un événement `question`,
+    jamais deux séries d'affilée, jamais en mode Apprendre."""
+    args = {"questions": [
+        {"question": "Pour qui ?", "options": ["Élèves", "Pro", "Élèves", ""]},
+        {"question": "Longueur ?", "options": ["Courte", "Longue"], "multiple": True},
+        {"question": "Mal formée", "options": ["seule"]},
+    ]}
+
+    def act(model: Any, messages: list[dict[str, Any]]) -> dict[str, Any]:
+        if len(messages) and messages[-1].get("role") == "user":
+            return {"role": "assistant", "content": "", "tool_calls": [{
+                "id": "q1", "type": "function",
+                "function": {"name": "ask_user", "arguments": json.dumps(args)}}]}
+        return {"role": "assistant", "content": "Voici le plan."}
+
+    for mid in ("coder-pro", "chatty", "small", "vision-x", "paid-genius"):
+        fake.behaviors[mid] = act
+    events = _chat(client, "/tontolo/chat", {"content": "fais-moi un cours"})
+    q = next(e for e in events if e["type"] == "question")
+    assert [x["question"] for x in q["questions"]] == ["Pour qui ?", "Longueur ?"]
+    assert q["questions"][0]["options"] == ["Élèves", "Pro"]  # doublons et vides retirés
+    assert q["questions"][1]["multiple"] is True
+    cid = q["conversation_id"]
+    # La réponse arrive comme un message normal : plus de nouvelle série de questions.
+    again = _chat(client, "/tontolo/chat", {"conversation_id": cid, "content": "Élèves ; courte"})
+    assert not any(e["type"] == "question" for e in again)
+    assert any(e["type"] == "done" for e in again)
+    # Mode Apprendre : l'outil n'est pas proposé.
+    learn = _chat(client, "/tontolo/chat", {"content": "explique les fractions", "mode": "learn"})
+    assert not any(e["type"] == "question" for e in learn)
