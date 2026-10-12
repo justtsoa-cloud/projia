@@ -30,6 +30,8 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from tontolo import __version__, attachments, documents, importer, secrets, security
 from tontolo.agent import planner
 from tontolo.agent.loop import dumps
+from tontolo.agent.mcp_client import MAX_SERVERS as MCP_MAX_SERVERS
+from tontolo.agent.mcp_client import check_server as check_mcp_server
 from tontolo.agent.mcp_client import load_config, save_config
 from tontolo.agent.workspace import is_desktop
 from tontolo.app_state import Core
@@ -43,7 +45,13 @@ from tontolo.providers.registry import ProviderRegistry
 from tontolo.router.classifier import _is_followup, classify
 from tontolo.router.quota import QuotaManager
 from tontolo.router.refusal import looks_like_image_refusal, mentions_image
-from tontolo.security import LOOPBACK_NAMES, host_of, key_allowed, origin_allowed
+from tontolo.security import (
+    LOOPBACK_NAMES,
+    assert_public_url,
+    host_of,
+    key_allowed,
+    origin_allowed,
+)
 from tontolo.storage import space
 from tontolo.update import check_update, download_update
 
@@ -485,6 +493,33 @@ class MediaBody(SafeModel):
     params: dict[str, Any] = {}
 
 
+class RateLimiter:
+    """Fenêtre glissante par clé (adresse du client) : au plus `limit` événements par
+    `window` secondes. Mémoire bornée (les clés inactives sont oubliées)."""
+
+    def __init__(self, limit: int, window: float) -> None:
+        self.limit, self.window = limit, window
+        self.hits: dict[str, list[float]] = {}
+
+    def allow(self, key: str) -> bool:
+        now = time.monotonic()
+        if len(self.hits) > 1000:
+            self.hits = {k: v for k, v in self.hits.items() if v and now - v[-1] < self.window}
+        recent = [t for t in self.hits.get(key, []) if now - t < self.window]
+        if len(recent) >= self.limit:
+            self.hits[key] = recent
+            return False
+        recent.append(now)
+        self.hits[key] = recent
+        return True
+
+
+WS_MAX_CLIENTS = 16             # clients d'événements simultanés
+WS_CONNECTS_PER_MINUTE = 30     # tentatives de connexion par adresse
+TERM_MAX_MESSAGE = 64 * 1024    # octets par message vers le terminal
+TERM_MESSAGES_PER_SECOND = 200  # saisie (collage compris) et redimensionnements
+
+
 class Hub:
     """Diffusion des événements aux clients WebSocket."""
 
@@ -502,6 +537,7 @@ def create_app(
     refresh: bool = True,
 ) -> FastAPI:
     hub = Hub()
+    ws_connects = RateLimiter(WS_CONNECTS_PER_MINUTE, 60.0)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -1659,10 +1695,36 @@ def create_app(
     @app.put("/tontolo/mcp")
     async def mcp_put(request: Request) -> dict[str, bool]:
         core = core_of(request)
-        body = await request.json()
+        raw = await request.body()
+        if len(raw) > 64 * 1024:
+            raise HTTPException(413, "Configuration MCP trop volumineuse")
+        body = json.loads(raw or b"{}")
+        if not isinstance(body, dict) or not isinstance(body.get("servers", []), list):
+            raise HTTPException(400, "Liste de serveurs attendue")
         servers = [s for s in body.get("servers", []) if isinstance(s, dict)]
+        if len(servers) > MCP_MAX_SERVERS:
+            raise HTTPException(400, f"{MCP_MAX_SERVERS} serveurs MCP au plus")
         client_local = (request.client is not None
                         and request.client.host in ("127.0.0.1", "::1"))
+        if any(s.get("transport") == "stdio" for s in servers) and not (
+                client_local and core.settings.server.host in LOOPBACK):
+            # Un serveur stdio lance un programme : jamais configurable à distance.
+            raise HTTPException(403, "Serveurs MCP stdio : configuration locale uniquement")
+        for srv in servers:
+            if problem := check_mcp_server(srv):
+                raise HTTPException(400, f"Serveur MCP « {srv.get('name')} » : {problem}")
+        if not (client_local and core.settings.server.host in LOOPBACK):
+            # Depuis un autre appareil : seulement des serveurs HTTPS publics (pas d'accès au
+            # réseau interne de la machine par ce biais).
+            for srv in servers:
+                if srv.get("transport", "http") != "stdio":
+                    try:
+                        if not str(srv.get("url", "")).startswith("https://"):
+                            raise PermissionError("HTTPS requis")
+                        await assert_public_url(str(srv["url"]))
+                    except PermissionError as exc:
+                        raise HTTPException(403, f"Serveur MCP « {srv.get('name')} » : "
+                                                 f"{exc}") from exc
         if any(s.get("transport") == "stdio" for s in servers) and not (
                 client_local and core.settings.server.host in LOOPBACK):
             # Un serveur stdio lance un programme : jamais configurable à distance.
@@ -1896,6 +1958,10 @@ def create_app(
         if not origin_allowed(websocket.headers.get("origin")):
             await websocket.close(code=4403)
             return
+        peer = websocket.client.host if websocket.client else "?"
+        if len(hub.queues) >= WS_MAX_CLIENTS or not ws_connects.allow(f"ws:{peer}"):
+            await websocket.close(code=4429)  # trop de connexions : débit limité
+            return
         await websocket.accept()
         q: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
         hub.queues.add(q)
@@ -1926,8 +1992,12 @@ def create_app(
                 or not hmac.compare_digest(websocket.query_params.get("token", ""), token)):
             await websocket.close(code=4403)
             return
+        if not ws_connects.allow(f"term:{cid}"):
+            await websocket.close(code=4429)
+            return
         await websocket.accept()
         session = core.chat.terminals.get(cid, core.chat.terminal_cwd())
+        typed = RateLimiter(TERM_MESSAGES_PER_SECOND, 1.0)
         q: asyncio.Queue[bytes] = asyncio.Queue()
         session.listeners.add(q)
 
@@ -1939,7 +2009,13 @@ def create_app(
         sender = asyncio.create_task(pump())
         try:
             while True:
-                msg = json.loads(await websocket.receive_text())
+                raw = await websocket.receive_text()
+                if len(raw) > TERM_MAX_MESSAGE or not typed.allow("in"):
+                    await websocket.close(code=1009 if len(raw) > TERM_MAX_MESSAGE else 4429)
+                    break
+                msg = json.loads(raw)
+                if not isinstance(msg, dict):
+                    continue
                 if isinstance(msg.get("input"), str):
                     session.write(msg["input"].encode())
                 if isinstance(msg.get("resize"), list) and len(msg["resize"]) == 2:

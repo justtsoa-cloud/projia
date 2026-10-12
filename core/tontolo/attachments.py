@@ -122,7 +122,7 @@ def _xml(data: bytes) -> ET.Element:
     if b"<!DOCTYPE" in head or b"<!ENTITY" in data.upper():
         raise DocumentError("Document refusé (XML avec DTD ou entités).")
     try:
-        return ET.fromstring(data)
+        return ET.fromstring(data)  # nosec B314
     except ET.ParseError as exc:
         raise DocumentError("Document illisible (XML abîmé).") from exc
 

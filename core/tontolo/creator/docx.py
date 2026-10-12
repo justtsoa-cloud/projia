@@ -279,7 +279,10 @@ def check(data: bytes) -> list[str]:
         with zipfile.ZipFile(io.BytesIO(data)) as z:
             for name in ("word/document.xml", "word/styles.xml", "word/numbering.xml"):
                 try:
-                    xml.dom.minidom.parseString(z.read(name))
+                    part = z.read(name)
+                    if b"<!DOCTYPE" in part[:4096] or b"<!ENTITY" in part:
+                        raise ValueError("DTD ou entité interdite")
+                    xml.dom.minidom.parseString(part)  # nosec B318
                 except Exception as exc:  # XML mal formé
                     problems.append(f"{name} : {exc}")
     except zipfile.BadZipFile:

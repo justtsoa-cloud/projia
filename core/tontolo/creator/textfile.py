@@ -44,7 +44,7 @@ def problems(ext: str, source: str) -> list[str]:
             if re.search(r"<!DOCTYPE|<!ENTITY", source, re.I):
                 out.append("pas de DOCTYPE ni d'ENTITY")
             else:
-                xml.dom.minidom.parseString(source.encode())
+                xml.dom.minidom.parseString(source.encode())  # nosec B318
             if ext == "svg" and "<script" in source.lower():
                 out.append("pas de <script> dans un SVG")
         elif ext == "csv":

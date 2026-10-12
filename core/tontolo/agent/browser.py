@@ -148,8 +148,8 @@ def _safe_url(url: str, blocked_ports: frozenset[int] | set[int] = frozenset()) 
         port = parts.port or (443 if parts.scheme == "https" else 80)
     except ValueError as exc:
         raise BrowserError("adresse invalide") from exc
-    if (host in ("localhost", "127.0.0.1", "::1", "0.0.0.0") or host.endswith(".localhost")) \
-            and port in blocked_ports:
+    local = ("localhost", "127.0.0.1", "::1", "0.0.0.0")  # nosec B104
+    if (host in local or host.endswith(".localhost")) and port in blocked_ports:
         raise BrowserError("l'API de Tontolo n'est pas accessible depuis le navigateur")
     if host.startswith("169.254.") or host in ("metadata.google.internal", "metadata"):
         raise BrowserError("adresse de métadonnées refusée")

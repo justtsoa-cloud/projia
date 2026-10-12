@@ -267,6 +267,7 @@ class Database:
             where += " AND c.folder = ?"
             args.append(folder)
         if query:
+            # `where` : fragments constants (paramètres liés) ; jamais de texte utilisateur.
             like = "%" + query.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
             rows = await self._fetchall(
                 f"""SELECT c.id, c.title, c.created_at, c.updated_at, c.pinned, c.folder, c.mode,

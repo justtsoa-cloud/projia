@@ -157,3 +157,22 @@ def test_agent_reads_terminal_and_sees_its_commands(client: TestClient, fake: Fa
     assert "notes.txt" in core.chat.terminals.existing(cid).text()
     run = next(e for e in ev if e["type"] == "tool_result" and e["name"] == "run_command")
     assert "notes.txt" in run["output"]
+
+
+def test_oversized_terminal_message_closes_the_socket(client: TestClient) -> None:
+    from tontolo.server.app import TERM_MAX_MESSAGE
+
+    with client.websocket_connect(_ws("gros")) as ws:
+        ws.receive_bytes()
+        ws.send_text(json.dumps({"input": "x" * (TERM_MAX_MESSAGE + 10)}))
+        with pytest.raises(WebSocketDisconnect):
+            for _ in range(50):
+                ws.receive_bytes()
+
+
+def test_rate_limiter() -> None:
+    from tontolo.server.app import RateLimiter
+
+    rl = RateLimiter(3, 60)
+    assert [rl.allow("a") for _ in range(4)] == [True, True, True, False]
+    assert rl.allow("b")  # une autre adresse n'est pas pénalisée

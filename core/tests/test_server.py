@@ -1109,3 +1109,18 @@ def test_any_attachment_type(client: TestClient, monkeypatch: pytest.MonkeyPatch
     monkeypatch.setattr(MediaService, "wait", fail)
     r = client.post("/tontolo/documents", files={"file": ("x.mp3", b"\x00audio")})
     assert r.status_code == 422 and "Transcription impossible" in r.text
+
+
+def test_event_websocket_connection_cap(client: TestClient) -> None:
+    from starlette.websockets import WebSocketDisconnect
+
+    from tontolo.server import app as server
+
+    opened = []
+    for _ in range(server.WS_MAX_CLIENTS):
+        ws = client.websocket_connect("/tontolo/ws")
+        opened.append(ws.__enter__())
+    with pytest.raises(WebSocketDisconnect), client.websocket_connect("/tontolo/ws") as extra:
+        extra.receive_text()
+    for ws in opened:
+        ws.__exit__(None, None, None)

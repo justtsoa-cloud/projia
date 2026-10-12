@@ -110,7 +110,7 @@ def parse_rss(xml_text: str) -> list[dict[str, str]]:
     if "<!DOCTYPE" in head or "<!ENTITY" in xml_text.upper() or len(xml_text) > 2_000_000:
         return items
     try:
-        root = ET.fromstring(xml_text)
+        root = ET.fromstring(xml_text)  # nosec B314
     except ET.ParseError:
         return items
     for item in root.iter("item"):
