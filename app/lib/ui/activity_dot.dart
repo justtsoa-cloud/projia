@@ -23,9 +23,9 @@ class ActivityDot extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = dotColor(context, dot);
     final Widget icon = switch (dot) {
-      Dot.waiting => Icon(Icons.help, size: 18, color: color),
-      Dot.local => SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2.2, color: color)),
-      Dot.remote => Icon(Icons.devices_other, size: 18, color: color),
+      Dot.waiting => Icon(Icons.help, size: 24, color: color),
+      Dot.local => SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 3, color: color)),
+      Dot.remote => Icon(Icons.devices_other, size: 24, color: color),
     };
     return Tooltip(
       message: context.t('dot_${dot.name}'),

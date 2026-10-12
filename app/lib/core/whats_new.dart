@@ -14,6 +14,12 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.5.4': [
+    NewsItem(Icons.notifications_active_outlined, 'Qui travaille, qui vous attend',
+        'Une pastille verte indique une discussion en cours sur cet appareil, une pastille bleue sur un autre appareil, une pastille orange « ? » qu\'elle attend votre réponse. Le menu porte un badge, et Tontolo vous prévient si une question vous attend ailleurs.',
+        'Who is working, who is waiting', 'A green dot marks a chat running on this device, a blue one on another device, an orange “?” one waiting for your answer. The menu shows a badge, and Tontolo tells you if a question is waiting for you elsewhere.',
+        mg: 'Iza no miasa, iza no miandry', mgText: 'Ny teboka maitso dia manondro resaka mandeha amin\'ity fitaovana ity, ny manga amin\'ny fitaovana hafa, ny volomboasary « ? » kosa miandry ny valinao. Misy marika ny menio, ary mampahafantatra anao i Tontolo raha misy fanontaniana miandry anao any amin\'ny hafa.'),
+  ],
   '0.5.3': [
     NewsItem(Icons.menu_book_outlined, 'Des livres de 200 pages',
         'Demandez « Génère un livre de 200 pages sur… » : Tontolo établit le plan, rédige les chapitres en parallèle, compile le PDF et vous le livre. Chaque chapitre apparaît dans « Résultats intermédiaires » dès qu\'il est écrit.',

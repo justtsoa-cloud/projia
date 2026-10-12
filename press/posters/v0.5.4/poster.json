@@ -1,0 +1,56 @@
+{
+  "shot": "drawer",
+  "lang": {
+    "fr": {
+      "tagline": "Nouveautés", "date": "12 octobre 2026",
+      "hero": ["Qui travaille,", "qui vous attend"],
+      "sub": "Des pastilles pour suivre vos discussions.",
+      "steps": [
+        ["Lancez une longue tâche, puis", "changez de discussion"],
+        ["Pastille verte qui tourne : la", "tâche avance sur cet appareil"],
+        ["Bleue : sur un autre appareil.", "Orange « ? » : Tontolo attend", "votre réponse"]
+      ],
+      "also": "Aussi dans cette version",
+      "items": [
+        ["Badge sur le menu", ["Visible dès qu'une tâche tourne ou", "attend dans une autre discussion."]],
+        ["Avertissement au bon moment", ["Bandeau « Ouvrir » ou notification", "si une question vous attend ailleurs."]],
+        ["Suivi entre appareils", ["Synchro toutes les 20 secondes :", "reprenez sur le téléphone ou le PC."]]
+      ],
+      "footer": "Gratuit · Android · Linux"
+    },
+    "en": {
+      "tagline": "What's new", "date": "October 12, 2026",
+      "hero": ["Who is working,", "who is waiting"],
+      "sub": "Dots to keep track of your chats.",
+      "steps": [
+        ["Start a long task, then switch", "to another chat"],
+        ["A green spinning dot: the task", "is running on this device"],
+        ["Blue: on another device.", "Orange “?”: Tontolo is waiting", "for your answer"]
+      ],
+      "also": "Also in this version",
+      "items": [
+        ["Badge on the menu", ["Shown as soon as a task runs or", "waits in another chat."]],
+        ["A heads-up at the right time", ["“Open” banner or notification if", "a question is waiting elsewhere."]],
+        ["Follow across devices", ["Sync every 20 seconds: pick up on", "your phone or your PC."]]
+      ],
+      "footer": "Free · Android · Linux"
+    },
+    "mg": {
+      "tagline": "Vaovao", "date": "12 Oktobra 2026",
+      "hero": ["Iza no miasa,", "iza no miandry"],
+      "sub": "Teboka hanaraha ny resakao.",
+      "steps": [
+        ["Alefaso asa lavitra, avy eo", "mifanalia resaka"],
+        ["Teboka maitso mihodina:", "mandroso ny asa amin'ity", "fitaovana ity"],
+        ["Manga: fitaovana hafa.", "Volomboasary « ? »: miandry ny", "valinao i Tontolo"]
+      ],
+      "also": "Ao amin'ity dikan-teny ity koa",
+      "items": [
+        ["Marika eo amin'ny menio", ["Hita raha misy asa mandeha na", "miandry ao amin'ny resaka hafa."]],
+        ["Fampitandremana amin'ny fotoana", ["Sora-baventy « Sokafy » na fampandrenesana", "raha misy fanontaniana miandry any."]],
+        ["Fanaraha-maso eo amin'ny fitaovana", ["Fampifanarahana isaky ny 20 segondra:", "tohizo amin'ny findainao na PC."]]
+      ],
+      "footer": "Maimaim-poana · Android · Linux"
+    }
+  }
+}

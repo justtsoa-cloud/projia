@@ -5,6 +5,17 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.5.4] - 2026-10-12
+
+### Ajouté
+- Pastilles d’activité dans l’historique : orange « ? » = la discussion attend votre
+  réponse (question du modèle, confirmation d’une action, accord pour un modèle payant) ;
+  verte qui tourne = en cours sur cet appareil ; bleue « appareils » = en cours sur un autre
+  appareil. Le menu porte un badge quand quelque chose se passe ailleurs que dans la
+  discussion affichée.
+- Quand une discussion attend votre réponse pendant que vous êtes ailleurs : bandeau
+  « Ouvrir » (application ouverte) ou notification (arrière-plan).
+
 ## [0.5.3] - 2026-10-12
 
 ### Ajouté
