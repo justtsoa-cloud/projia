@@ -58,6 +58,14 @@ class Prefs extends ChangeNotifier {
   set installId(String v) => _sp.setString('installId', v);
   int get lastStatsDay => _sp.getInt('lastStatsDay') ?? 0;
   set lastStatsDay(int v) => _sp.setInt('lastStatsDay', v);
+  /// Notes 👍/👎 en attente d'envoi anonyme (JSON), au plus 500.
+  String get pendingRatings => _sp.getString('pendingRatings') ?? '[]';
+  set pendingRatings(String v) => _sp.setString('pendingRatings', v);
+
+  /// Réponses dont la note est déjà partagée (une note par réponse côté base).
+  List<String> get sentRatings => _sp.getStringList('sentRatings') ?? const [];
+  set sentRatings(List<String> v) => _sp.setStringList('sentRatings', v);
+
   int get usageCount => _sp.getInt('usageCount') ?? 0;
   set usageCount(int v) => _sp.setInt('usageCount', v);
   set autoUpdate(bool v) => _set(() => _sp.setBool('autoUpdate', v));

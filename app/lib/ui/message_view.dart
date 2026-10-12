@@ -27,12 +27,14 @@ class MessageView extends StatelessWidget {
     this.onWhy,
     this.onRegenerate,
     this.onEdit,
+    this.onRate,
   });
 
   final ChatMessage message;
   final VoidCallback? onWhy;
   final VoidCallback? onRegenerate; // dernière réponse uniquement
   final VoidCallback? onEdit; // messages de l'utilisateur
+  final ValueChanged<int>? onRate; // 👍 1 / 👎 -1 (la même note touchée deux fois l'annule)
 
   @override
   Widget build(BuildContext context) {
@@ -154,6 +156,20 @@ class MessageView extends StatelessWidget {
                       onPressed: () => SharePlus.instance.share(
                         ShareParams(text: message.text),
                       ),
+                    ),
+                  ],
+                  if (onRate != null) ...[
+                    IconButton(
+                      icon: Icon(message.rating == 1 ? Icons.thumb_up : Icons.thumb_up_outlined, size: 18),
+                      color: message.rating == 1 ? scheme.primary : null,
+                      tooltip: context.t('rate_up'),
+                      onPressed: () => onRate!(message.rating == 1 ? 0 : 1),
+                    ),
+                    IconButton(
+                      icon: Icon(message.rating == -1 ? Icons.thumb_down : Icons.thumb_down_outlined, size: 18),
+                      color: message.rating == -1 ? scheme.error : null,
+                      tooltip: context.t('rate_down'),
+                      onPressed: () => onRate!(message.rating == -1 ? 0 : -1),
                     ),
                   ],
                   if (onRegenerate != null)

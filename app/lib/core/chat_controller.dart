@@ -30,6 +30,7 @@ class ChatMessage {
   String? uid;
   int? seq; // position en base (modifier et renvoyer)
   DateTime? cachedFrom; // réponse déjà donnée ce jour-là, réutilisée sans appel de modèle
+  int rating = 0; // 👍 1, 👎 -1, 0 sans note
 }
 
 /// Question à choix posée par Tontolo (outil `ask_user`) pour préciser la demande.
@@ -311,6 +312,7 @@ class ChatController extends ChangeNotifier {
       }
       await _loadMessages((data['messages'] as List).cast<Map<String, dynamic>>());
       if (epoch != _epoch) return;
+      _applyRatings(data['feedback']);
       await _loadDocuments();
       if (epoch != _epoch) return;
       busy = false;
@@ -322,6 +324,14 @@ class ChatController extends ChangeNotifier {
       busy = false;
       messages.add(ChatMessage(role: 'notice', text: 'error|$e'));
       notifyListeners();
+    }
+  }
+
+  void _applyRatings(dynamic feedback) {
+    if (feedback is! Map) return;
+    for (final m in messages) {
+      final r = feedback[m.uid];
+      if (r is int) m.rating = r;
     }
   }
 
@@ -356,6 +366,7 @@ class ChatController extends ChangeNotifier {
       await _loadMessages((data['messages'] as List).cast<Map<String, dynamic>>());
       if (epoch != _epoch) return;
       messages.addAll(keep);
+      _applyRatings(data['feedback']);
       final got = (data['messages'] as List).length;
       earlierLeft = earlierLeft > got ? earlierLeft - got : 0;
     } catch (_) {
@@ -509,14 +520,41 @@ class ChatController extends ChangeNotifier {
   }
 
   /// Régénère la dernière réponse (même modèle ou celui choisi dans le sélecteur).
-  void regenerate({bool keepLast = false}) {
+  void regenerate({bool keepLast = false, String? avoidModel}) {
     if (busy || conversationId == null) return;
     if (!keepLast) {
       while (messages.isNotEmpty && messages.last.role != 'user') {
         messages.removeLast();
       }
     }
-    _run(backend.sse('/tontolo/chat/$conversationId/regenerate', {'approved': true, 'model': modelOverride}));
+    _run(backend.sse('/tontolo/chat/$conversationId/regenerate', {
+      'approved': true, 'model': modelOverride, 'avoid_model': ?avoidModel,
+    }));
+  }
+
+  /// Note 👍 (1) / 👎 (-1) d'une réponse, 0 pour l'annuler (même note touchée deux fois).
+  /// Récompense ou pénalise le modèle sur l'appareil ; partagée anonymement (modèle, type de
+  /// demande, note, raison — jamais le texte) si les statistiques anonymes sont activées.
+  Future<bool> rate(ChatMessage m, int rating, {String reason = ''}) async {
+    final uid = m.uid;
+    if (uid == null) return false;
+    final previous = m.rating;
+    m.rating = rating;
+    notifyListeners();
+    try {
+      final r = await backend.sendJson('POST', '/tontolo/feedback',
+          {'uid': uid, 'rating': rating, 'reason': reason}) as Map<String, dynamic>;
+      if (backend.prefs.shareStats) {
+        Stats.queueRating(backend.prefs, answerId: uid, model: '${r['model'] ?? ''}',
+            category: '${r['category'] ?? 'chat'}', rating: rating, reason: reason,
+            cached: m.cachedFrom != null);
+      }
+      return true;
+    } catch (_) {
+      m.rating = previous; // ancien cœur ou réponse introuvable : rien n'a changé
+      notifyListeners();
+      return false;
+    }
   }
 
   /// Modifie un message utilisateur et relance la conversation à partir de lui.

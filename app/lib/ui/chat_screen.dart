@@ -228,6 +228,50 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() => recording = true);
   }
 
+  /// 👍 / 👎 ; après un 👎, raisons rapides et « Réessayer avec un autre modèle ».
+  Future<void> _rate(ChatController chat, ChatMessage m, int rating, bool canRetry) async {
+    final ok = await chat.rate(m, rating);
+    if (!ok || rating != -1 || !mounted) return;
+    const reasons = ['inexact', 'off_topic', 'too_long', 'too_short', 'language', 'other'];
+    final retry = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(context.t('rate_why'), style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 4),
+            Text(context.t('rate_private'), style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 10),
+            Wrap(spacing: 8, runSpacing: 6, children: [
+              for (final r in reasons)
+                ActionChip(
+                  label: Text(context.t('rate_$r')),
+                  onPressed: () {
+                    chat.rate(m, -1, reason: r);
+                    Navigator.pop(context, false);
+                  },
+                ),
+            ]),
+            if (canRetry) ...[
+              const SizedBox(height: 12),
+              FilledButton.tonalIcon(
+                icon: const Icon(Icons.swap_horiz),
+                label: Text(context.t('rate_retry')),
+                onPressed: () => Navigator.pop(context, true),
+              ),
+            ],
+          ]),
+        ),
+      ),
+    );
+    if (retry == true && mounted) {
+      stickToBottom = true;
+      chat.regenerate(avoidModel: m.model);
+    }
+  }
+
   Future<void> _editMessage(ChatController chat, ChatMessage m) async {
     final ctrl = TextEditingController(text: m.text);
     final text = await showDialog<String>(
@@ -506,6 +550,9 @@ class _ChatScreenState extends State<ChatScreen> {
                             onWhy: () => _showWhy(m),
                             onRegenerate: isLast && m.role == 'assistant' && chat.canRegenerate ? chat.regenerate : null,
                             onEdit: m.role == 'user' && m.seq != null && !chat.busy ? () => _editMessage(chat, m) : null,
+                            onRate: m.role == 'assistant' && m.uid != null && !m.streaming
+                                ? (r) => _rate(chat, m, r, isLast && chat.canRegenerate)
+                                : null,
                           );
                           if (!(isLast && chat.learn && m.role == 'assistant' && !chat.busy && m.text.isNotEmpty)) return view;
                           return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

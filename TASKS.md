@@ -319,8 +319,9 @@ Principe : rien de ce qui est écrit ne quitte l'appareil ; seule la note (modè
 - [x] N1. Cœur : `POST /tontolo/feedback` (note d'une réponse, modifiable) ; table locale ; le modèle et le type de demande sont retrouvés à partir du message
 - [x] N2. Récompense / pénalité locale : bonus borné dans le classement du modèle pour ce type de demande (👍 +, 👎 −), visible dans « Pourquoi ce modèle »
 - [x] N3. 👎 : la réponse sort du cache des réponses ; proposition « Réessayer avec un autre modèle » (ce modèle évité pour ce tour) ; raisons rapides (inexact, hors sujet, trop long, langue, autre)
-- [ ] N4. Supabase : table `ratings` (insertion seule, une note par appareil et par réponse) + fonction `model_scores()` agrégée (appareils distincts, seuil minimal) lisible par l'app ; script SQL et docs/STATS.md
-- [ ] N5. App : 👍/👎 sous chaque réponse ; envoi groupé avec les statistiques quotidiennes (file d'attente locale, rien sans accord) ; « Voir ce qui est envoyé » montre les notes
-- [ ] N6. Retour global : l'app récupère `model_scores()` une fois par jour et le transmet au cœur → bonus/malus collectif borné (plus faible que le local)
+- [x] N4. Supabase : table `ratings` (insertion seule, une note par appareil et par réponse) + fonction `model_scores()` agrégée (appareils distincts, seuil minimal) lisible par l'app ; script SQL et docs/STATS.md
+- [x] N5. App : 👍/👎 sous chaque réponse ; envoi groupé avec les statistiques quotidiennes (file d'attente locale, rien sans accord) ; « Voir ce qui est envoyé » montre les notes
+- [x] N6. Retour global : l'app récupère `model_scores()` une fois par jour et le transmet au cœur → bonus/malus collectif borné (plus faible que le local)
+- [ ] N7. Le propriétaire exécute docs/stats/supabase_ratings.sql dans Supabase (syntaxe validée avec l'analyseur PostgreSQL ; pas encore exécuté sur une vraie base)
 - [ ] Q1. QR code vers le téléchargement : généré par script (`qrencode`), vérifié par lecture (`zbarimg`) ; dans « À propos » (dernière version) et sur le poster de chaque version (page de cette version)
 - [ ] R. Version 0.5.8 : CHANGELOG, nouveautés fr/en/mg, poster (avec QR), tests, essais émulateur
