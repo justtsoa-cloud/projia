@@ -1,0 +1,56 @@
+{
+  "shot": "card",
+  "lang": {
+    "fr": {
+      "tagline": "Nouveautés", "date": "12 octobre 2026",
+      "hero": ["Corrigez vos fichiers", "en une phrase"],
+      "sub": "Chaque version a son nom : v2, v3…",
+      "steps": [
+        ["Demandez une carte mentale", "ou un document"],
+        ["Dites seulement : « excellent", "mais des vraies citations »"],
+        ["Tontolo corrige ce fichier :", "v2, v3… sans rien écraser"]
+      ],
+      "also": "Aussi dans cette version",
+      "items": [
+        ["Plus de citation inventée", ["Seul ce qui est certain est entre", "guillemets, le reste est marqué ≈."]],
+        ["Retours sans verbe reconnus", ["« plus court », « en couleur »,", "« trop long »… suffisent."]],
+        ["Réponses plus propres", ["Les balises d'outils n'apparaissent", "plus dans le texte des réponses."]]
+      ],
+      "footer": "Gratuit · Android · Linux"
+    },
+    "en": {
+      "tagline": "What's new", "date": "October 12, 2026",
+      "hero": ["Fix your files", "in one sentence"],
+      "sub": "Every version has its own name: v2, v3…",
+      "steps": [
+        ["Ask for a mind map", "or a document"],
+        ["Just say: “great but with", "real quotes”"],
+        ["Tontolo fixes that file:", "v2, v3… nothing overwritten"]
+      ],
+      "also": "Also in this version",
+      "items": [
+        ["No more invented quotes", ["Only what is certain goes in", "quotation marks, the rest is marked ≈."]],
+        ["Feedback without a verb works", ["“shorter”, “in color”,", "“too long”… is enough."]],
+        ["Cleaner answers", ["Tool tags no longer show up", "in the text of answers."]]
+      ],
+      "footer": "Free · Android · Linux"
+    },
+    "mg": {
+      "tagline": "Vaovao", "date": "12 Oktobra 2026",
+      "hero": ["Ovay amin'ny", "fehezanteny iray"],
+      "sub": "Manana anarana ny dikan-teny rehetra: v2, v3…",
+      "steps": [
+        ["Angataho sarintsaina na", "antontan-taratasy"],
+        ["Lazao fotsiny hoe: « tsara", "fa tena teny nalaina izy »"],
+        ["Ahitsin'i Tontolo io rakitra:", "v2, v3… tsy misy voafafa"]
+      ],
+      "also": "Ao amin'ity dikan-teny ity koa",
+      "items": [
+        ["Tsy misy teny nampiana intsony", ["Ireo azo antoka ihany no ao anaty", "tondro, ny hafa misy « ≈ »."]],
+        ["Ekena ny fanehoan-kevitra fohy", ["« fohy kokoa », « misy loko »,", "« lava loatra »… ampy."]],
+        ["Valiny madio kokoa", ["Tsy miseho intsony ao amin'ny", "valiny ny marika fitaovana."]]
+      ],
+      "footer": "Maimaim-poana · Android · Linux"
+    }
+  }
+}

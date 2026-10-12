@@ -14,6 +14,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.5.5': [
+    NewsItem(Icons.history_edu_outlined, 'Corrigez vos fichiers en une phrase',
+        'Après une carte mentale ou un document, dites simplement « excellent mais des vraies citations » ou « plus court » : Tontolo corrige ce fichier et le livre en nouvelle version (-v2, -v3), sans écraser la précédente.',
+        'Fix your files in one sentence', 'After a mind map or a document, just say “great but with real quotes” or “shorter”: Tontolo fixes that file and delivers a new version (-v2, -v3) without overwriting the previous one.',
+        mg: 'Ovay amin\'ny fehezanteny iray ny rakitrao', mgText: 'Aorian\'ny sarintsaina na antontan-taratasy, lazao fotsiny hoe « tsara fa ampio ohatra tena izy » na « fohy kokoa »: ahitsin\'i Tontolo io rakitra io ary omeny dikan-teny vaovao (-v2, -v3) tsy mamafa ilay teo aloha.'),
+    NewsItem(Icons.format_quote_outlined, 'Plus de citations inventées',
+        'Quand vous demandez des citations, seules celles dont le modèle est certain sont entre guillemets ; les autres sont marquées « ≈ » pour être vérifiées. Les balises d\'outils n\'apparaissent plus dans les réponses.',
+        'No more invented quotes', 'When you ask for quotes, only those the model is sure of are in quotation marks; others are marked “≈” to be checked. Tool tags no longer show up in answers.',
+        mg: 'Tsy misy teny nampiana intsony', mgText: 'Rehefa mangataka teny nalaina ianao, ireo azon\'ny modely antoka ihany no apetraka ao anaty tondro; ny hafa dia misy marika « ≈ » mba hojerena. Tsy miseho intsony ao amin\'ny valiny ny marika fitaovana.'),
+  ],
   '0.5.4': [
     NewsItem(Icons.notifications_active_outlined, 'Qui travaille, qui vous attend',
         'Une pastille verte indique une discussion en cours sur cet appareil, une pastille bleue sur un autre appareil, une pastille orange « ? » qu\'elle attend votre réponse. Le menu porte un badge, et Tontolo vous prévient si une question vous attend ailleurs.',

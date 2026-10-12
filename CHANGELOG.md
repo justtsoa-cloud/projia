@@ -5,6 +5,20 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.5.5] - 2026-10-12
+
+### Corrigé
+- Corrections de fichiers : après une carte mentale, un document ou un PDF livré, un retour
+  sans verbe (« excellent mais des vraies citations », « plus court », « en couleur »)
+  corrige ce fichier. Avant, seules les demandes avec un verbe de modification étaient
+  reconnues : le reste partait en discussion et la carte mentale était recopiée en texte.
+- Deux versions d’un fichier ne portent plus le même nom : « …-v2 », « …-v3 », pour partager
+  et enregistrer sans écraser.
+- Demande de citations : plus de citation inventée. Seul ce dont le modèle est certain est
+  mis entre guillemets, le reste est marqué « ≈ » (à vérifier).
+- Certains modèles écrivaient leurs appels d’outils en texte (`<tool_call>…`) : ils sont
+  maintenant exécutés et le balisage n’apparaît plus dans la réponse.
+
 ## [0.5.4] - 2026-10-12
 
 ### Ajouté
