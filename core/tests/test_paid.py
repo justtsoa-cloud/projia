@@ -95,3 +95,14 @@ async def test_online_list_cannot_redirect_a_builtin_provider(monkeypatch, setti
     await service._build(svc.SourceCache(service.cache_dir, offline=True), record=False,
                          quick=True)
     assert service.catalog.providers["groq"]["base_url"] == "https://api.groq.com/openai/v1"
+
+
+def test_every_builtin_provider_is_translated() -> None:
+    from tontolo.catalog import service
+    from tontolo.catalog.i18n import PROVIDER_TEXT
+    from tontolo.catalog.sources import keyed, local_llm
+
+    ids = {*service.BUILTIN_PROVIDERS, *local_llm.PROVIDERS, *keyed.PROVIDERS, *paid.PROVIDERS}
+    for pid in ids:
+        assert PROVIDER_TEXT.get(pid, {}).get("en", {}).get("description"), pid
+        assert PROVIDER_TEXT[pid].get("mg", {}).get("description"), pid

@@ -33,6 +33,7 @@ from tontolo.agent.loop import dumps
 from tontolo.agent.mcp_client import load_config, save_config
 from tontolo.agent.workspace import is_desktop
 from tontolo.app_state import Core
+from tontolo.catalog.i18n import texts as provider_texts
 from tontolo.catalog.models import Category, ModelInfo
 from tontolo.config import CustomProvider, Settings, load_settings, save_settings
 from tontolo.creator import clarify
@@ -1299,7 +1300,7 @@ def create_app(
             target[m.provider] = target.get(m.provider, 0) + 1
         return [{**{k: v for k, v in p.items() if k not in ("base_url", "or_prefix")},
                  "has_key": secrets.has_key(pid), "free_models": counts.get(pid, 0),
-                 "paid_models": paid_counts.get(pid, 0)}
+                 "paid_models": paid_counts.get(pid, 0), "i18n": provider_texts(pid, p)}
                 for pid, p in sorted(core.catalog.catalog.providers.items())]
 
 

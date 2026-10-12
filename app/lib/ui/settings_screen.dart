@@ -8,6 +8,7 @@ import '../core/account.dart';
 import '../core/backend.dart';
 import '../core/key_guides.dart';
 import '../core/keys.dart';
+import '../core/provider_text.dart';
 import '../core/stats.dart';
 import '../core/sync.dart';
 import '../core/updater.dart';
@@ -225,12 +226,12 @@ class _ProviderKeysState extends State<ProviderKeys> {
           ListTile(
             leading: Icon(p['keyless'] == true ? Icons.lock_open : p['has_key'] == true ? Icons.check_circle : Icons.key_outlined,
                 color: p['has_key'] == true || p['keyless'] == true ? Theme.of(context).colorScheme.secondary : null),
-            title: Text('${p['name']}'),
+            title: Text(providerText(p, AppScope.of(context).prefs.locale, 'name')),
             subtitle: Text(
                 p['keyless'] == true
                     ? context.t('no_key_needed')
-                    : (p['free_models'] as int? ?? 0) == 0 && p['has_key'] != true && p['description'] != null
-                        ? '${p['description']}' // modèles découverts une fois la clé ajoutée
+                    : (p['free_models'] as int? ?? 0) == 0 && p['has_key'] != true && providerText(p, AppScope.of(context).prefs.locale, 'description').isNotEmpty
+                        ? providerText(p, AppScope.of(context).prefs.locale, 'description') // modèles découverts une fois la clé ajoutée
                         : context.t('n_free_models', {'n': '${p['free_models']}'}),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis),
@@ -430,8 +431,8 @@ class _PaidSimpleState extends State<PaidSimple> {
         ListTile(
           leading: Icon(s['has_key'] == true ? Icons.check_circle : Icons.key_outlined,
               color: s['has_key'] == true ? Theme.of(context).colorScheme.secondary : null),
-          title: Text('${s['name']}'),
-          subtitle: Text(s['id'] == 'openrouter' ? context.t('paid_openrouter') : '${s['description'] ?? ''}', maxLines: 2, overflow: TextOverflow.ellipsis),
+          title: Text(providerText(s, AppScope.of(context).prefs.locale, 'name')),
+          subtitle: Text(s['id'] == 'openrouter' ? context.t('paid_openrouter') : providerText(s, AppScope.of(context).prefs.locale, 'description'), maxLines: 2, overflow: TextOverflow.ellipsis),
           trailing: s['has_key'] == true && (s['paid_models'] as int? ?? 0) > 0
               ? Text(context.t('n_paid_models', {'n': '${s['paid_models']}'}), style: small)
               : null,
@@ -450,9 +451,9 @@ Future<void> editProviderKey(BuildContext context, Map<String, dynamic> p) async
     context: context,
     builder: (context) => StatefulBuilder(
       builder: (context, setLocal) => AlertDialog(
-        title: Text('${p['name']}'),
+        title: Text(providerText(p, AppScope.of(context).prefs.locale, 'name')),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          if (p['description'] != null) Text('${p['description']}', style: Theme.of(context).textTheme.bodySmall),
+          if (p['description'] != null) Text(providerText(p, AppScope.of(context).prefs.locale, 'description'), style: Theme.of(context).textTheme.bodySmall),
           const SizedBox(height: 8),
           KeyGuideView(providerId: '${p['id']}', fallbackUrl: p['key_url'] as String?),
           const SizedBox(height: 8),

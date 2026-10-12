@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../core/backend.dart';
+import '../core/provider_text.dart';
 import '../main.dart';
 
 class AdvancedRouting extends StatefulWidget {
@@ -302,7 +303,7 @@ class _AdvancedRoutingState extends State<AdvancedRouting> {
         child: Wrap(spacing: 6, runSpacing: 4, children: [
           for (final p in providers)
             FilterChip(
-              label: Text('${p['name']}'),
+              label: Text(providerText(p, AppScope.of(context).prefs.locale, 'name')),
               selected: excluded.contains(p['id']),
               onSelected: (v) => _patchRouting({
                 'excluded_providers': v ? [...excluded, p['id']] : excluded.where((x) => x != p['id']).toList(),
