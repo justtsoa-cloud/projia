@@ -334,5 +334,8 @@ Outils gratuits, locaux d'abord ; rien n'est exécuté depuis une pièce jointe.
 - [x] P3. Documents : docx, pptx, xlsx, odt/ods/odp, epub, rtf → texte extrait (bibliothèques pures Python déjà utilisées ou stdlib zip/xml)
 - [x] P4. Archives zip (et tar.gz) : liste + extraction en mémoire des fichiers lisibles, avec garde-fous (bombe zip, chemins « ../ », taille et nombre de fichiers bornés)
 - [x] P5. Son : transcription (modèle STT gratuit déjà routé : catégorie stt) ; vidéo : piste son transcrite + quelques images clés (ffmpeg s'il est présent sur le bureau ; Android : son seulement si possible)
+- [x] Essai émulateur : zip choisi dans le sélecteur (tous types), lu (3 pages), contenu juste dans la réponse
+- [x] B17. (essai émulateur) Le relecteur (équipe de modèles) ne voyait pas les documents joints et accusait la réponse d'inventer leur contenu → il reçoit documents et fin du fil
+- [x] B18. (essai émulateur) Carte de questions pour « résume ce fichier » → jamais pour une demande de résumé
 - [ ] P7. Vidéo : quelques images clés (ffmpeg) analysées par un modèle de vision, en plus de la transcription
 - [x] P6. App : sélecteur de fichiers élargi, aperçu par type (icône, nom, taille), limites claires ; tests de chaque type et des fichiers piégés

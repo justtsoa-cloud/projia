@@ -851,7 +851,15 @@ def create_app(
                 and not (final.get("message") or {}).get("tool_calls")):
             # Équipe de modèles : un second modèle d'une autre famille vérifie la réponse.
             yield {"type": "step", "step": "answer_reviewing"}
-            verdict = await core.creator.review_answer(text, answer, str(final.get("model")))
+            # Le relecteur voit ce que le rédacteur a vu : documents joints et fin du fil (sans
+            # quoi il prend le contenu d'un fichier joint pour une invention).
+            doc = await core.chat._documents_block(cid, text)
+            recent = await core.db.get_window(cid, 8)
+            thread = "\n".join(f"[{m['role']}] {_text_of(m.get('content') or '')[:1500]}"
+                               for m in recent[:-2] if m.get("role") in ("user", "assistant"))
+            context = (str(doc["content"]) if doc else "") + ("\n\n" + thread if thread else "")
+            verdict = await core.creator.review_answer(text, answer, str(final.get("model")),
+                                                       context=context)
             yield {"type": "review", **verdict} if verdict else {"type": "step",
                                                                  "step": "doc_done"}
         if switch and user_seq:

@@ -101,8 +101,8 @@ class CreatorService:
             raise CreationError("la photo n'a pas pu être lue")
         return text.strip()[:15000]
 
-    async def review_answer(self, question: str, answer: str, writer: str
-                            ) -> dict[str, Any] | None:
+    async def review_answer(self, question: str, answer: str, writer: str,
+                            context: str = "") -> dict[str, Any] | None:
         """Vérification croisée d'une réponse par un modèle d'une autre famille.
         None si aucun relecteur n'est disponible ou s'il tarde."""
         reviewer = await self.pick_reviewer(exclude=writer)
@@ -112,13 +112,17 @@ class CreatorService:
                   "réelles : calcul faux, raisonnement incorrect, code qui ne marche pas, fait "
                   "inexact. Ignore le style. Réponds UNIQUEMENT en JSON : {\"ok\": true|false, "
                   "\"issues\": [\"erreur précise, en une phrase, dans la langue de la "
-                  "question\"]} (0 à 3 erreurs).")
+                  "question\"]} (0 à 3 erreurs). Le contexte fourni (documents joints, échanges "
+                  "précédents) fait foi : ce qui s'y trouve n'est jamais « inventé ».")
         try:
             async with asyncio.timeout(75):
                 text, key, name = await self.ask(
                     [{"role": "system", "content": prompt},
-                     {"role": "user", "content": f"Question :\n{question[:6000]}\n\n"
-                                                 f"Réponse à vérifier :\n{answer[:12000]}"}],
+                     {"role": "user", "content": (
+                         (f"Contexte (documents joints, échanges précédents) :\n"
+                          f"{context[:12000]}\n\n" if context.strip() else "")
+                         + f"Question :\n{question[:6000]}\n\n"
+                         f"Réponse à vérifier :\n{answer[:12000]}")}],
                     model=reviewer)
         except Exception:  # relecture facultative : jamais d'erreur visible
             return None

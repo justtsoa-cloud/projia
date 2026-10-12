@@ -661,8 +661,9 @@ def test_math_answer_cross_checked_by_second_model(client: TestClient,
 
     seen: dict[str, str] = {}
 
-    async def review(self: Any, question: str, answer: str, writer: str) -> dict[str, Any]:
-        seen.update(question=question, writer=writer)
+    async def review(self: Any, question: str, answer: str, writer: str,
+                     context: str = "") -> dict[str, Any]:
+        seen.update(question=question, writer=writer, context=context)
         return {"ok": False, "issues": ["erreur de signe"], "model": "fake:b", "name": "B"}
 
     monkeypatch.setattr(CreatorService, "review_answer", review)
@@ -677,6 +678,15 @@ def test_math_answer_cross_checked_by_second_model(client: TestClient,
     # Conversation courante (« salut ») : pas de vérification.
     with client.stream("POST", "/tontolo/chat", json={"content": "salut"}) as s:
         assert not any('"review"' in x for x in s.iter_lines())
+    # Le relecteur voit les documents joints (sinon il prend leur contenu pour une invention).
+    up = client.post("/tontolo/documents", files={"file": (
+        "calc.py", b"def add(a, b):\n    return a + b  # fonction d'addition\n")}).json()
+    with client.stream("POST", "/tontolo/chat", json={
+            "conversation_id": up["conversation_id"],
+            "content": "Démontre que la fonction add de calc.py calcule bien la somme, étape par "
+                       "étape, avec une preuve mathématique rigoureuse"}) as s:
+        list(s.iter_lines())
+    assert "fonction d'addition" in seen["context"]
 
 
 def test_animate_reuses_last_generated_image(client: TestClient, catalog_service: CatalogService,
