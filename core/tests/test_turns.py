@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+import pytest
+
 from tontolo.agent.turns import TurnManager
 
 
@@ -57,3 +59,22 @@ async def test_error_inside_turn_is_reported() -> None:
     turn = mgr.start("c1", boom())
     events = [ev async for ev in turn.follow()]
     assert events[-1]["type"] == "error" and "RuntimeError" in events[-1]["message"]
+
+
+async def test_finished_turns_do_not_accumulate(monkeypatch: pytest.MonkeyPatch) -> None:
+    from tontolo.agent import turns as turns_mod
+
+    monkeypatch.setattr(turns_mod, "KEEP_FINISHED", 0.05)
+
+    async def quick(i: int) -> Any:
+        yield {"type": "delta", "content": "x" * 1000}
+        yield {"type": "done", "message": {"role": "assistant", "content": str(i)}}
+
+    manager = turns_mod.TurnManager()
+    for i in range(50):
+        manager.start(f"c{i}", quick(i))
+        await asyncio.sleep(0.01)
+    await asyncio.sleep(0.2)
+    manager.start("dernier", quick(99))
+    await asyncio.sleep(0.05)
+    assert len(manager.turns) <= 3  # les anciens tours et leurs événements sont libérés

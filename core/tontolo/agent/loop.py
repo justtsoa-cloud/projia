@@ -906,4 +906,6 @@ def compact_images(messages: list[dict[str, Any]], keep: int = KEEP_IMAGES
 
 
 def dumps(event: dict[str, Any]) -> str:
-    return json.dumps(event, ensure_ascii=False, default=str)
+    # Jamais de demi-paire Unicode dans un flux (l'encodage UTF-8 de la réponse échouerait).
+    return json.dumps(event, ensure_ascii=False, default=str).encode(
+        "utf-8", "replace").decode("utf-8")

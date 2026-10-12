@@ -273,3 +273,6 @@ Règle : tout test, bug trouvé et optimisation est noté ici au fur et à mesur
 - [x] B4. Résumé de fil jeté si un message arrive pendant le résumé (starvation en usage rapide) → comparer le préfixe résumé au lieu de la révision entière
 - [x] B5. Fil long jamais résumé (importé) : tout l'historique est envoyé au premier tour → fenêtre bornée sans résumé
 - [x] B6. Résumé de fil : seuls les 24 000 derniers caractères étaient lus (début d'un gros fil importé perdu) → résumé « roulant » par blocs de 18 000 caractères (4 par passage)
+- [x] B7. Fuite : les tours terminés (et tous leurs événements) s'accumulaient en mémoire tant que personne ne les relisait → nettoyage à chaque nouveau tour
+- [x] B8. Texte avec demi-paire Unicode (« \ud800 ») dans un message ou une réponse de modèle : échec de l'enregistrement / du flux (réponse perdue) → assaini partout
+- [x] B9. Entrées malformées → 500 : image_url sans url, catégorie inconnue (chat et catalogue), contenu invalide, message de plusieurs Mo → validation 4xx (message ≤ 1,5 M de caractères)

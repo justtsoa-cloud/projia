@@ -23,7 +23,7 @@ from typing import Any
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from tontolo import __version__, documents, importer, secrets
 from tontolo.agent import planner
@@ -72,7 +72,7 @@ async def _read_limited(file: UploadFile) -> bytes:
 def _text_of(content: Any) -> str:
     if isinstance(content, str):
         return content
-    return " ".join(p.get("text", "") for p in content if isinstance(p, dict)
+    return " ".join(str(p.get("text", "")) for p in content if isinstance(p, dict)
                     and p.get("type") == "text")
 
 
@@ -256,8 +256,9 @@ def _first_image(content: Any) -> bytes | None:
     if not isinstance(content, list):
         return None
     for part in content:
-        url = (part.get("image_url") or {}).get("url", "") if isinstance(part, dict) else ""
-        if url.startswith("data:") and "," in url:
+        image = part.get("image_url") if isinstance(part, dict) else None
+        url = image.get("url", "") if isinstance(image, dict) else ""
+        if isinstance(url, str) and url.startswith("data:") and "," in url:
             encoded = url.split(",", 1)[1]
             if len(encoded) > (MAX_UPLOAD_BYTES + 2) // 3 * 4:
                 raise HTTPException(413, "Image trop volumineuse (25 Mo maximum)")
@@ -271,11 +272,62 @@ def _first_image(content: Any) -> bytes | None:
     return None
 
 
-class ChatBody(BaseModel):
-    conversation_id: str | None = None
+def _clean(value: Any) -> Any:
+    """Retire les demi-paires de substitution Unicode (« \\ud800 » isolé) : elles font échouer
+    l'enregistrement et l'envoi aux modèles ; tout le reste du texte est conservé."""
+    if isinstance(value, str):
+        return value.encode("utf-8", "replace").decode("utf-8")
+    if isinstance(value, list):
+        return [_clean(v) for v in value]
+    if isinstance(value, dict):
+        return {_clean(k): _clean(v) for k, v in value.items()}
+    return value
+
+
+class SafeModel(BaseModel):
+    """Corps de requête : textes assainis avant toute validation."""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _sanitize(cls, data: Any) -> Any:
+        return _clean(data)
+
+
+MAX_CONTENT_CHARS = 1_500_000
+MAX_PARTS = 24
+
+
+def _check_content(value: Any) -> Any:
+    if isinstance(value, str):
+        if len(value) > MAX_CONTENT_CHARS:
+            raise ValueError("message trop long (1,5 million de caractères au maximum)")
+        return value
+    if not isinstance(value, list) or not value or len(value) > MAX_PARTS:
+        raise ValueError("contenu invalide")
+    total = 0
+    for part in value:
+        if not isinstance(part, dict) or not isinstance(part.get("type"), str):
+            raise ValueError("partie de message invalide")
+        if part["type"] == "text":
+            if not isinstance(part.get("text"), str):
+                raise ValueError("texte invalide")
+            total += len(part["text"])
+        elif part["type"] == "image_url":
+            image = part.get("image_url")
+            if not isinstance(image, dict) or not isinstance(image.get("url"), str):
+                raise ValueError("image invalide")
+        else:
+            raise ValueError(f"type de partie inconnu : {part['type'][:30]}")
+    if total > MAX_CONTENT_CHARS:
+        raise ValueError("message trop long")
+    return value
+
+
+class ChatBody(SafeModel):
+    conversation_id: str | None = Field(default=None, max_length=64)
     content: str | list[dict[str, Any]]
-    model: str | None = None
-    category: str | None = None
+    model: str | None = Field(default=None, max_length=200)
+    category: str | None = Field(default=None, max_length=40)
     strict: bool = False
     use_tools: bool = True
     # « general » ou « learn » (mode Apprendre) ; `level` : primaire, college, lycee…
@@ -284,12 +336,28 @@ class ChatBody(BaseModel):
     # Mode agent : « auto », « researcher », « developer », « writer », « analyst ».
     agent: str | None = Field(default=None, pattern="^[a-z]{1,20}$")
 
+    @field_validator("content")
+    @classmethod
+    def _content(cls, v: Any) -> Any:
+        return _check_content(v)
 
-class WorkspaceBody(BaseModel):
+    @field_validator("category")
+    @classmethod
+    def _category(cls, v: str | None) -> str | None:
+        if v is None or v.startswith("file:"):
+            return v
+        try:
+            Category(v)
+        except ValueError as exc:
+            raise ValueError("catégorie inconnue") from exc
+        return v
+
+
+class WorkspaceBody(SafeModel):
     path: str | None = Field(default=None, max_length=1024)
 
 
-class LocalMediaBody(BaseModel):
+class LocalMediaBody(SafeModel):
     conversation_id: str | None = None
     content: str | list[dict[str, Any]]
     result_b64: str
@@ -299,56 +367,56 @@ class LocalMediaBody(BaseModel):
     model_name: str = "Retouche locale (sur l'appareil)"
 
 
-class EditBody(BaseModel):
+class EditBody(SafeModel):
     seq: int
     content: str
     model: str | None = None
 
 
-class PinBody(BaseModel):
+class PinBody(SafeModel):
     pinned: bool
 
 
-class MemoryBody(BaseModel):
+class MemoryBody(SafeModel):
     text: str
     kind: str = "fact"
 
 
-class ResumeBody(BaseModel):
+class ResumeBody(SafeModel):
     approved: bool
     model: str | None = None
 
 
-class ImportBody(BaseModel):
+class ImportBody(SafeModel):
     url: str | None = Field(default=None, max_length=500)
     data: str | None = Field(default=None, max_length=importer.MAX_DATA)
     folder: str | None = Field(default=None, max_length=60)
 
 
-class FolderShareBody(BaseModel):
+class FolderShareBody(SafeModel):
     folder: str = Field(min_length=1, max_length=60)
     share: bool
 
 
-class RenameBody(BaseModel):
+class RenameBody(SafeModel):
     title: str | None = None
     folder: str | None = None
 
 
-class PrefBody(BaseModel):
+class PrefBody(SafeModel):
     scope: str = "global"            # global | conversation | category
     scope_key: str = ""
     model: str | None = None         # None ou « auto » : retour en Auto
     strict: bool = False
 
 
-class KeyBody(BaseModel):
+class KeyBody(SafeModel):
     key: str
     persist: bool = True
     validate_key: bool = True   # l'application renvoie ses clés au démarrage sans revalider
 
 
-class MediaBody(BaseModel):
+class MediaBody(SafeModel):
     kind: str
     prompt: str = ""
     model: str | None = None
@@ -1083,6 +1151,11 @@ def create_app(
                       limit: int = 100) -> dict[str, Any]:
         core = core_of(request)
         usable_set = core.catalog.usable_providers()
+        if category is not None:
+            try:
+                Category(category)
+            except ValueError as exc:
+                raise HTTPException(400, "catégorie inconnue") from exc
         models = core.catalog.catalog.filter(category=category, free_only=free,
                                              usable=usable_set if usable else None)
         if q:

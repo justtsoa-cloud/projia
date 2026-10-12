@@ -151,6 +151,12 @@ def now() -> float:
     return time.time()
 
 
+def _safe_json(value: Any) -> str:
+    """JSON sans demi-paire de substitution Unicode (un modèle peut en émettre : « \\ud800 »),
+    qui ferait échouer l'écriture en base et perdre la réponse."""
+    return json.dumps(value, ensure_ascii=False).encode("utf-8", "replace").decode("utf-8")
+
+
 class Database:
     """Accès asynchrone à la base. Une seule connexion, sérialisée par aiosqlite."""
 
@@ -387,8 +393,7 @@ class Database:
         await self.conn.execute(
             """INSERT INTO messages(uid, conversation_id, seq, role, body, model, created_at,
                updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            (uid, cid, seq, message["role"], json.dumps(message, ensure_ascii=False), model, ts,
-             ts),
+            (uid, cid, seq, message["role"], _safe_json(message), model, ts, ts),
         )
         await self.conn.execute("UPDATE conversations SET updated_at = ? WHERE id = ?", (ts, cid))
         await self.conn.commit()

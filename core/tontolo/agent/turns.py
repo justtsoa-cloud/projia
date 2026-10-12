@@ -111,6 +111,7 @@ class TurnManager:
         current = self.active(conversation_id)
         if current is not None:
             return current
+        self._cleanup()  # sans cela, les tours terminés (et tous leurs événements) s'accumulent
         turn = Turn(conversation_id)
         self.turns[conversation_id] = turn
         self.waiting.pop(conversation_id, None)  # un nouveau tour : l'utilisateur a répondu
