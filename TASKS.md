@@ -373,7 +373,7 @@ Inexact : pièces jointes envoyées en multipart (pas en base64), historique du 
 - [x] R2 (P0). Masquage des clés élargi (sk-ant, sk-or, ghp_/github_pat_, xox*, JWT, AKIA, clés privées, AIza complète) + tests
 - [x] R3 (P0). Import cloud : validation stricte (schéma) et rapport des éléments refusés au lieu d'un silence
 - [x] Trouvé en route (R3) : une conversation synchronisée à moitié invalide effaçait les messages existants avant d'échouer → tout est vérifié avant d'écrire
-- [ ] R4 (P1). Mises à jour Linux signées (ed25519) : la CI signe SHA256SUMS, l'application vérifie avec la clé publique intégrée (Android : déjà protégé par la signature APK vérifiée par le système)
+- [x] R4 (P1). Mises à jour Linux signées (ed25519) : la CI signe SHA256SUMS, l'application vérifie avec la clé publique intégrée (Android : déjà protégé par la signature APK vérifiée par le système)
 - [x] R5 (P1). OpenAPI local (/openapi.json avec jeton) + docs/API.md généré
 - [x] R6 (P1). Métriques locales /tontolo/metrics (format Prometheus : tours, erreurs, latences par modèle), rien n'est envoyé
 - [x] R7 (P1). Banc rapide en CI (régression de performance du cœur)

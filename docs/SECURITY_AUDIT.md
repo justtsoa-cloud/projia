@@ -5,6 +5,11 @@ alerte haute.
 
 ## Corrigé
 
+- **Mises à jour Linux signées** (2026-10-13) : `SHA256SUMS` est signé en Ed25519 par la CI
+  (clé privée uniquement dans un secret GitHub) ; l'AppImage n'est remplacée que si la signature
+  est valide avec la clé publique embarquée, puis si l'empreinte du fichier correspond. Une
+  release GitHub compromise ne suffit donc plus à pousser une mise à jour Linux.
+
 | Point | Avant | Après |
 |---|---|---|
 | `secrets.json` (repli sans trousseau) | clés en clair (mode 0600) | chiffré : Fernet si `cryptography` est présent, sinon HMAC-SHA256 en mode compteur + étiquette ; ancien fichier migré à la première lecture ; fichiers temporaires distincts (bogue trouvé par les tests) |

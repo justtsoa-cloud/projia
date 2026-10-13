@@ -169,17 +169,32 @@ jobs:
           cd dist
           sha256sum * > SHA256SUMS
           { echo "| Fichier | Taille |"; echo "|---|---|"
-            for f in *; do [ "$f" = SHA256SUMS ] || echo "| $f | $(du -h "$f" | cut -f1) |"; done; } > ../size-report.md
+            for f in *; do case "$f" in SHA256SUMS*) ;; *) echo "| $f | $(du -h "$f" | cut -f1) |" ;; esac; done; } > ../size-report.md
           cat ../size-report.md
+      - name: Signature des empreintes (mises à jour Linux vérifiées)
+        # La clé privée n'existe que dans le secret ; l'application vérifie avec la clé
+        # publique embarquée (app/lib/core/update_key.dart), identique à .github/update-signing.pub.
+        env:
+          UPDATE_SIGNING_KEY: ${{ secrets.UPDATE_SIGNING_KEY }}
+        run: |
+          test -n "$UPDATE_SIGNING_KEY" || { echo "::error::Secret UPDATE_SIGNING_KEY absent"; exit 1; }
+          key=$(mktemp); trap 'rm -f "$key"' EXIT
+          printf '%s\n' "$UPDATE_SIGNING_KEY" > "$key"
+          openssl pkeyutl -sign -rawin -inkey "$key" -in dist/SHA256SUMS -out dist/SHA256SUMS.sig
+          openssl pkeyutl -verify -rawin -pubin -inkey .github/update-signing.pub \
+            -in dist/SHA256SUMS -sigfile dist/SHA256SUMS.sig
+          raw=$(openssl pkey -pubin -in .github/update-signing.pub -outform DER | tail -c 32 | base64)
+          grep -q "$raw" app/lib/core/update_key.dart \
+            || { echo "::error::Clé publique de l'application différente de .github/update-signing.pub"; exit 1; }
       - name: Compatibilité des mises à jour (saut de versions depuis 0.2.0)
         # Les applications déjà installées (0.2.0 et suivantes) cherchent ces noms exacts :
         # les changer casserait leur mise à jour automatique.
         run: |
           v=${GITHUB_REF_NAME#v}
           for f in "tontolo-$v-arm64-v8a.apk" "tontolo-$v-armeabi-v7a.apk" "tontolo-$v-x86_64.apk" \
-                   "Tontolo-$v-x86_64.AppImage" SHA256SUMS; do
+                   "Tontolo-$v-x86_64.AppImage" SHA256SUMS SHA256SUMS.sig; do
             test -f "dist/$f" || { echo "::error::Fichier attendu absent : $f"; exit 1; }
-            [ "$f" = SHA256SUMS ] || grep -q "  $f\$" dist/SHA256SUMS
+            case "$f" in SHA256SUMS*) ;; *) grep -q "  $f\$" dist/SHA256SUMS ;; esac
           done
           grep -q "^## \[$v\]" CHANGELOG.md || { echo "::error::CHANGELOG sans section $v"; exit 1; }
           # Règle de version : x.y.9 → x.(y+1).0, x.9.9 → (x+1).0.0 (docs/RELEASING.md).
@@ -212,7 +227,7 @@ jobs:
             echo "| [tontolo-$v-x86_64.apk]($dl/tontolo-$v-x86_64.apk) | 💻 Émulateurs, Chromebooks, Android sur PC (Intel/AMD) | $(size tontolo-$v-x86_64.apk) |"
             echo "| [**Tontolo-$v-x86_64.AppImage**]($dl/Tontolo-$v-x86_64.AppImage) | 🐧 **Linux** (Ubuntu 22.04+, Debian 12+, Fedora, Arch…) : \`chmod +x\` puis double-clic | $(size Tontolo-$v-x86_64.AppImage) |"
             echo "| [tontolo-$v-py3-none-any.whl]($dl/tontolo-$v-py3-none-any.whl) | 🧑‍💻 Ligne de commande et serveur compatible OpenAI (Python ≥ 3.11) | $(size tontolo-$v-py3-none-any.whl) |"
-            echo "| [SHA256SUMS]($dl/SHA256SUMS) | 🔒 Empreintes pour vérifier les fichiers | |"
+            echo "| [SHA256SUMS]($dl/SHA256SUMS) · [signature]($dl/SHA256SUMS.sig) | 🔒 Empreintes signées (Ed25519) pour vérifier les fichiers | |"
             echo
             echo "> Déjà installé ? Tontolo se met à jour tout seul (depuis n'importe quelle version ≥ 0.2.0). Alerte « Play Protect » : normale hors Play Store, touchez « Analyser »."
             echo

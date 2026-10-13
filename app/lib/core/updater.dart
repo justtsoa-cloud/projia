@@ -12,6 +12,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:cryptography/cryptography.dart' show Ed25519, KeyPairType, Signature, SimplePublicKey;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
@@ -20,6 +21,7 @@ import 'storage_dirs.dart';
 
 import '../l10n/strings.dart';
 import 'prefs.dart';
+import 'update_key.dart';
 
 const appVersion = '0.6.1';
 const repo = 'raantss18/tontolo';
@@ -138,6 +140,17 @@ class Updater extends ChangeNotifier {
       }
       final sumsResp = await http.get(Uri.parse(sums['browser_download_url'])).timeout(const Duration(seconds: 30));
       if (sumsResp.statusCode != 200) throw _UpdateError('upd_missing');
+      // Empreintes signées (Ed25519) : exigé pour l'AppImage, qui remplace l'application sans
+      // contrôle du système ; vérifié aussi sur Android quand la signature est publiée.
+      final sig = assets.where((a) => a['name'] == 'SHA256SUMS.sig').firstOrNull;
+      final sigResp = sig == null
+          ? null
+          : await http.get(Uri.parse('${sig['browser_download_url']}')).timeout(const Duration(seconds: 30));
+      final signature = sigResp?.statusCode == 200 ? sigResp!.bodyBytes : null;
+      if (signature == null && t.$1 == 'linux') throw _UpdateError('upd_bad_signature');
+      if (signature != null && !await verifySums(sumsResp.bodyBytes, signature)) {
+        throw _UpdateError('upd_bad_signature');
+      }
       final sumsText = sumsResp.body;
       final expected = _parseSums(sumsText)[asset['name']];
       if (expected == null) throw _UpdateError('upd_no_hash');
@@ -150,6 +163,19 @@ class Updater extends ChangeNotifier {
     } catch (e) {
       message = tr(prefs.locale, 'upd_unreachable');
       _set(UpdateStatus.failed);
+    }
+  }
+
+  /// Vrai si `signature` (Ed25519, 64 octets) signe exactement `sums` avec la clé publique de
+  /// Tontolo (ou `publicKey`, pour les tests).
+  static Future<bool> verifySums(List<int> sums, List<int> signature, {String publicKey = updateSigningKey}) async {
+    if (signature.length != 64) return false;
+    try {
+      return await Ed25519().verify(sums,
+          signature: Signature(signature,
+              publicKey: SimplePublicKey(base64Decode(publicKey), type: KeyPairType.ed25519)));
+    } catch (_) {
+      return false;
     }
   }
 
@@ -183,7 +209,7 @@ class Updater extends ChangeNotifier {
     String dl(String n) => 'https://github.com/$repo/releases/download/v$v/$n';
     final names = [
       for (final abi in ['arm64-v8a', 'armeabi-v7a', 'x86_64']) 'tontolo-$v-$abi.apk',
-      'Tontolo-$v-x86_64.AppImage', 'Tontolo-$v-aarch64.AppImage', 'SHA256SUMS',
+      'Tontolo-$v-x86_64.AppImage', 'Tontolo-$v-aarch64.AppImage', 'SHA256SUMS', 'SHA256SUMS.sig',
     ];
     return {
       'tag_name': 'v$v',

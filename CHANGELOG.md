@@ -5,6 +5,11 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+### Sécurité
+- Mises à jour Linux signées : les empreintes de chaque version (`SHA256SUMS`) sont signées en
+  Ed25519 par la CI ; l'application refuse une mise à jour dont la signature est absente ou
+  invalide, avant même de vérifier l'empreinte du fichier.
+
 ### Ajouté
 - Suivi d'une réponse en cours : une ligne « modèle · ce qu'il fait · pourcentage » avec une
   barre d'avancement estimée (étapes, texte reçu, temps écoulé ; jamais en recul). Un toucher

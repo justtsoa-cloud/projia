@@ -1,8 +1,10 @@
 // Saut de mises à jour : de n'importe quelle version (0.2.0…) à la dernière.
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tontolo/core/update_key.dart';
 import 'package:tontolo/core/updater.dart';
 import 'package:tontolo/core/whats_new.dart';
 
@@ -45,5 +47,21 @@ void main() {
   test('chaque version de l\'application a ses nouveautés et son CHANGELOG', () {
     expect(newsFor(appVersion), isNotEmpty);
     expect(File('../CHANGELOG.md').readAsStringSync().contains('## [$appVersion]'), isTrue);
+  });
+
+  test('empreintes signées : signature openssl (comme la CI) acceptée, toute altération refusée', () async {
+    // Vecteur produit par `openssl pkeyutl -sign -rawin` avec une clé jetable (comme la CI).
+    const pub = 'O6l5dFQk2gG7WSLOhlZaXWiLlsnwYcR0qqGZjvoJUkU=';
+    final sig = base64Decode('APW7Dt353xmHGJxKAhL9XiGau+oAkay56kjNNiMW04jbRr+R2HMBw7rKAteASlgh+b6azvoGbPQcW8hyAHXvCA==');
+    final sums = utf8.encode('abc123  Tontolo-9.9.9-x86_64.AppImage\n');
+    expect(await Updater.verifySums(sums, sig, publicKey: pub), isTrue);
+    final forged = utf8.encode('abc124  Tontolo-9.9.9-x86_64.AppImage\n');
+    expect(await Updater.verifySums(forged, sig, publicKey: pub), isFalse);
+    expect(await Updater.verifySums(sums, sig), isFalse); // autre clé (celle de Tontolo)
+    expect(await Updater.verifySums(sums, sig.sublist(1)), isFalse);
+    // La clé embarquée est celle de .github/update-signing.pub.
+    expect(File('../.github/update-signing.pub').readAsStringSync(), contains('MCowBQYDK2VwAyEA'));
+    expect(base64Decode(updateSigningKey), hasLength(32));
+    expect(Updater.fallbackRelease('9.9.9')['assets'].map((a) => a['name']), contains('SHA256SUMS.sig'));
   });
 }

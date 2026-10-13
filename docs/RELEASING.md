@@ -41,6 +41,22 @@ la cohérence des fichiers, et la release refuse une étiquette qui ne suit pas 
 | `ANDROID_KEYSTORE_PASSWORD` | Mot de passe du keystore |
 | `ANDROID_KEY_ALIAS` | Alias de la clé |
 | `ANDROID_KEY_PASSWORD` | Mot de passe de la clé |
+| `UPDATE_SIGNING_KEY` | Clé privée Ed25519 (PEM) qui signe `SHA256SUMS` → `SHA256SUMS.sig` ; **obligatoire** : la release échoue sans elle |
+
+Clé de signature des mises à jour (une seule fois ; la clé publique va dans
+`.github/update-signing.pub` et `app/lib/core/update_key.dart`, la CI vérifie qu'elles sont
+identiques) :
+
+```bash
+openssl genpkey -algorithm ed25519 -out release-keys/update-signing.pem
+openssl pkey -in release-keys/update-signing.pem -pubout -out .github/update-signing.pub
+openssl pkey -pubin -in .github/update-signing.pub -outform DER | tail -c 32 | base64   # → update_key.dart
+gh secret set UPDATE_SIGNING_KEY < release-keys/update-signing.pem
+```
+
+**Sauvegardez `release-keys/update-signing.pem` hors de la machine** : sans elle, il faudrait
+une nouvelle clé, et les applications Linux déjà installées refuseraient les mises à jour
+signées par celle-ci (réinstallation manuelle).
 
 Créer un keystore :
 
