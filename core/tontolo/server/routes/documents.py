@@ -20,6 +20,7 @@ from tontolo.server.common import (
     Hub,
     RateLimiter,
     _audio_track,
+    _describe_keyframes,
     _read_limited,
     core_of,
 )
@@ -46,14 +47,23 @@ def register(app: FastAPI, hub: Hub, ws_connects: RateLimiter) -> None:
             if len(audio) > MAX_UPLOAD_BYTES:
                 raise HTTPException(413, "Vidéo trop longue à transcrire sur cet appareil "
                                          "(25 Mo maximum sans ffmpeg).")
-            job = await core.media.submit("stt", input_bytes=audio, input_name=audio_name)
-            done = await core.media.wait(job["id"])
-            text = str(((done or {}).get("params") or {}).get("text") or "").strip()
-            if not done or done["status"] != "done" or not text:
+
+            async def transcript() -> tuple[str, dict[str, Any] | None]:
+                job = await core.media.submit("stt", input_bytes=audio, input_name=audio_name)
+                done = await core.media.wait(job["id"])
+                return str(((done or {}).get("params") or {}).get("text") or "").strip(), done
+
+            # Vidéo : ce qu'on voit (images clés) en même temps que ce qu'on entend.
+            (text, done), seen = await asyncio.gather(
+                transcript(), _describe_keyframes(core, name, data) if kind == "video"
+                else asyncio.sleep(0, ""))
+            heard = bool(done) and done["status"] == "done" and bool(text)
+            if not heard and not seen:
                 raise HTTPException(422, "Transcription impossible pour l'instant : "
                                          + str((done or {}).get("error") or "aucun texte"))
             what = "de la vidéo" if kind == "video" else "de l'enregistrement"
-            pages = [f"Transcription {what} « {name} » :\n{text}"]
+            pages = ([f"Transcription {what} « {name} » :\n{text}"] if heard else []) + \
+                ([seen] if seen else [])
         else:
             try:
                 pages = await asyncio.to_thread(documents.extract_pages, name, data)

@@ -39,8 +39,11 @@ _KEYWORDS: dict[Category, tuple[tuple[str, float], ...]] = {
     ),
     Category.VIDEO_GEN: (
         # Demande de création (et non simple mention : « explique cette vidéo » reste du chat).
+        # « la / cette / ma vidéo » désigne une vidéo existante (jointe) : pas une création.
         (r"\b(cr[ée]e[rz]?|g[ée]n[èe]re[rz]?|fai[st]|faire|produi[st]|r[ée]alise[rz]?|"
-         r"montre)(-moi)?(\s+\S{1,12}){0,3}?\s+(vid[ée]os?|clips?|animations?)\b", 5),
+         r"montre-moi)(-moi)?(\s+\S{1,12}){0,3}?(?<!\bla)(?<!\bcette)(?<!\bles)(?<!\bces)"
+         r"(?<!\bma)(?<!\bta)(?<!\bsa)(?<!\bvotre)(?<!\bnotre)"
+         r"\s+(vid[ée]os?|clips?|animations?)\b", 5),
         (r"\b(anime[rz]?|fais bouger|faire bouger|donne vie [àa])\b.{0,30}"
          r"\b(photo|image|dessin|portrait|sc[èe]ne|illustration)s?\b", 5),
         (r"^\s*(une\s+)?(courte\s+|petite\s+)?vid[ée]o\s+(d'|de |du |des |o[ùu] )", 4),

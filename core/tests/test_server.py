@@ -1154,6 +1154,42 @@ def test_any_attachment_type(client: TestClient, monkeypatch: pytest.MonkeyPatch
     assert r.status_code == 422 and "Transcription impossible" in r.text
 
 
+@pytest.mark.skipif(not (shutil.which("ffmpeg") and shutil.which("ffprobe")),
+                    reason="ffmpeg absent")
+def test_video_keyframes_described_even_without_sound(client: TestClient, tmp_path: Any,
+                                                      monkeypatch: pytest.MonkeyPatch) -> None:
+    from tontolo.creator.service import CreatorService
+    from tontolo.media.service import MediaService
+
+    clip = tmp_path / "cours.mp4"
+    subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "lavfi", "-i",
+                    "testsrc=duration=8:size=320x240:rate=10", "-pix_fmt", "yuv420p", str(clip)],
+                   check=True)
+    seen: list[Any] = []
+
+    async def ask(self: Any, messages: Any, **kw: Any) -> tuple[str, str, str]:
+        seen.append((messages[-1]["content"], kw.get("category")))
+        return "[0:01] Mire de couleurs avec un compteur.\n[0:07] Même mire.", "v:x", "V"
+
+    async def submit(self: Any, kind: str, prompt: str = "", **kw: Any) -> dict[str, Any]:
+        return {"id": "j1"}
+
+    async def silent(self: Any, job_id: str, *a: Any, **k: Any) -> dict[str, Any]:
+        return {"status": "failed", "error": "aucune piste son", "params": {}}
+
+    monkeypatch.setattr(CreatorService, "ask", ask)
+    monkeypatch.setattr(MediaService, "submit", submit)
+    monkeypatch.setattr(MediaService, "wait", silent)
+    r = client.post("/tontolo/documents", files={"file": ("cours.mp4", clip.read_bytes())})
+    assert r.status_code == 200, r.text
+    content, category = seen[0]
+    images = [p for p in content if p["type"] == "image_url"]
+    assert len(images) == 4 and str(category) == "vision"
+    assert images[0]["image_url"]["url"].startswith("data:image/jpeg;base64,/9j/")
+    assert "0:01, 0:03, 0:05, 0:07" in content[0]["text"]
+    assert r.json()["pages"] == 1  # pas de transcription : seulement les images clés
+
+
 def test_event_websocket_connection_cap(client: TestClient) -> None:
     from starlette.websockets import WebSocketDisconnect
 

@@ -84,6 +84,82 @@ async def _audio_track(name: str, data: bytes) -> tuple[str, bytes]:
     return name, data
 
 
+KEYFRAMES = 4  # images clés d'une vidéo jointe, décrites par un modèle à vision
+
+
+async def _keyframes(data: bytes, count: int = KEYFRAMES) -> list[tuple[float, bytes]]:
+    """Images clés réparties sur la vidéo (ffmpeg, sur l'appareil), réduites à 640 px de
+    large en JPEG. Liste vide sans ffmpeg ou si la vidéo est illisible."""
+    import shutil
+    import tempfile
+
+    exe, probe = shutil.which("ffmpeg"), shutil.which("ffprobe")
+    if exe is None or probe is None:
+        return []
+    frames: list[tuple[float, bytes]] = []
+    with tempfile.TemporaryDirectory() as tmp:
+        src = Path(tmp) / "in"
+        src.write_bytes(data)
+
+        async def run(*args: str, limit: float = 30) -> bytes | None:
+            proc = await asyncio.create_subprocess_exec(
+                *args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
+            try:
+                out, _ = await asyncio.wait_for(proc.communicate(), limit)
+            except TimeoutError:
+                proc.kill()
+                return None
+            return out if proc.returncode == 0 else None
+
+        raw = await run(probe, "-v", "error", "-show_entries", "format=duration", "-of",
+                        "default=noprint_wrappers=1:nokey=1", str(src))
+        try:
+            duration = float((raw or b"").strip() or 0)
+        except ValueError:
+            duration = 0.0
+        if duration <= 0:
+            return []
+        for i in range(count):
+            at = duration * (i + 0.5) / count
+            out = Path(tmp) / f"{i}.jpg"
+            done = await run(exe, "-nostdin", "-loglevel", "error", "-ss", f"{at:.2f}", "-i",
+                             str(src), "-frames:v", "1", "-vf", "scale='min(640,iw)':-2",
+                             "-q:v", "5", str(out))
+            if done is not None and out.exists() and out.stat().st_size > 0:
+                frames.append((at, out.read_bytes()))
+    return frames
+
+
+def _clock(seconds: float) -> str:
+    s = int(seconds)
+    return f"{s // 3600}:{s % 3600 // 60:02d}:{s % 60:02d}" if s >= 3600 else \
+        f"{s // 60}:{s % 60:02d}"
+
+
+async def _describe_keyframes(core: Core, name: str, data: bytes) -> str:
+    """Ce qu'on voit dans la vidéo (diapositives, tableau, schémas, gestes…), image clé par
+    image clé, par un modèle à vision. Chaîne vide si impossible : la transcription suffit."""
+    frames = await _keyframes(data)
+    if not frames:
+        return ""
+    content: list[dict[str, Any]] = [{"type": "text", "text": (
+        f"Voici {len(frames)} images clés d'une vidéo, dans l'ordre, aux instants "
+        + ", ".join(_clock(t) for t, _ in frames)
+        + ". Pour chacune, une ligne « [instant] description » : ce qu'on voit, tout texte, "
+        "formule ou schéma lisible à l'écran (formules en LaTeX). Factuel, sans "
+        "interprétation ni introduction.")}]
+    content += [{"type": "image_url", "image_url": {
+        "url": "data:image/jpeg;base64," + base64.b64encode(jpg).decode()}} for _, jpg in frames]
+    try:
+        text, _, _ = await core.creator.ask([{"role": "user", "content": content}],
+                                            category=Category.VISION, limit=90)
+    except Exception:  # images clés facultatives : jamais bloquantes
+        return ""
+    text = text.strip()[:6000]
+    return f"Images clés de la vidéo « {name} » (décrites par un modèle à vision) :\n{text}" \
+        if text else ""
+
+
 def _text_of(content: Any) -> str:
     if isinstance(content, str):
         return content

@@ -102,6 +102,7 @@ def test_jpeg_size() -> None:
     "Crée une vidéo d'un chat qui danse", "fais-moi une courte vidéo de la mer",
     "génère un clip d'une fusée", "une vidéo de dauphins au coucher du soleil",
     "make a video of a dragon", "Mamorona horonan-tsary",
+    "Montre-moi une vidéo d'un chat qui danse",
 ])
 def test_video_requests(text: str) -> None:
     assert classify([{"role": "user", "content": text}]).category == Category.VIDEO_GEN
@@ -110,6 +111,8 @@ def test_video_requests(text: str) -> None:
 @pytest.mark.parametrize("text", [
     "explique-moi cette vidéo sur la photosynthèse", "quelle est la meilleure caméra vidéo ?",
     "comment monter une vidéo sur YouTube", "résume la vidéo d'hier",
+    "Que montre la vidéo jointe, et quel exemple y est donné ?",
+    "fais un résumé de cette vidéo", "explique ma vidéo",
 ])
 def test_video_mentions_are_not_generation(text: str) -> None:
     assert classify([{"role": "user", "content": text}]).category != Category.VIDEO_GEN
