@@ -29,7 +29,7 @@ class _Core extends Backend {
 }
 
 void main() {
-  Future<void> open(WidgetTester tester, double width) async {
+  Future<ChatController> open(WidgetTester tester, double width) async {
     SharedPreferences.setMockInitialValues({'locale': 'fr'});
     final prefs = await Prefs.load();
     final core = _Core(prefs);
@@ -50,6 +50,7 @@ void main() {
       child: const MaterialApp(home: ChatScreen()),
     ));
     await tester.pump(const Duration(milliseconds: 300));
+    return chat;
   }
 
   testWidgets('très grand écran : la liste des discussions reste affichée, sans bouton de tiroir', (tester) async {
@@ -70,5 +71,15 @@ void main() {
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pump(const Duration(milliseconds: 600));
     expect(find.byType(HistoryDrawer), findsOneWidget);
+  });
+
+  testWidgets('« Demander à Tontolo » : le curseur arrive dans la saisie', (tester) async {
+    final chat = await open(tester, 800);
+    final field = find.byType(TextField);
+    expect(tester.widget<TextField>(field).focusNode!.hasFocus, isFalse);
+    chat.requestInputFocus();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(tester.widget<TextField>(field).focusNode!.hasFocus, isTrue);
   });
 }

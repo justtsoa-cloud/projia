@@ -140,7 +140,7 @@ Règle : chaque étape est livrée seule (tests verts, rien de cassé), puis pub
 - [~] 9. Partage d'une discussion : page web faite (0.2.11) ; image d'une réponse à faire
 - [~] 10. Dictée vocale faite (menu +, « Dicter ») ; mode conversation mains libres à faire
 - [ ] 11. Design : thème coloré enfantin-sérieux aligné sur le logo (palette, typographie, animations légères)
-- [ ] 12. Android : widget d'écran d'accueil + raccourci « Demander à Tontolo »
+- [x] 12. Android : raccourci d'appui long « Demander à Tontolo » + widget d'écran d'accueil (barre « Demander à Tontolo… », 4×1) : nouvelle discussion, curseur dans la saisie, application fermée ou ouverte. Vérifié sur l'émulateur : raccourci et widget enregistrés par le système, l'action ouvre bien l'application prête à écrire ; l'ajout du widget sur l'écran d'accueil reste à voir sur un vrai téléphone
 - [x] 13. Tablette / bureau : rail de navigation (≥ 840 px), plan de travail en deuxième colonne (déjà là) et, depuis le 2026-10-13, liste des discussions permanente à gauche à partir de 1180 px (test `chat_layout_test.dart`)
 - [x] U. Mises à jour : repli sans API GitHub (limite de débit), résultat toujours affiché, notes et nouveautés cumulées des versions sautées, CI de compatibilité depuis 0.2.0, test de base 0.2.0
 - [ ] Transversal : plus d'interactivité (suggestions de relance après chaque réponse, actions rapides sur les messages, retours haptiques, animations)

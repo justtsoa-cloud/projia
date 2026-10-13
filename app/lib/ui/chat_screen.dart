@@ -42,6 +42,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final input = TextEditingController();
   final scroll = ScrollController();
   final focus = FocusNode();
+  int _seenFocus = 0;
   final List<String> attachments = [];
   String? forcedCategory;
   final recorder = AudioRecorder();
@@ -455,6 +456,12 @@ class _ChatScreenState extends State<ChatScreen> {
       listenable: Listenable.merge([chat, backend, scope.updater, scope.cloud, scope.activity]),
       builder: (context, _) {
         _scrollToEnd();
+        if (chat.focusRequests != _seenFocus) {
+          _seenFocus = chat.focusRequests;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) focus.requestFocus();
+          });
+        }
         return Scaffold(
           appBar: AppBar(
             titleSpacing: 8,

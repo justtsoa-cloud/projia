@@ -72,6 +72,14 @@ class ChatController extends ChangeNotifier {
   String? status; // « Recherche sur le web… », etc.
   /// Avancement de la réponse en cours (pourcentage, modèles en action, journal).
   final TurnProgress progress = TurnProgress();
+
+  /// Compteur incrémenté pour demander à l'écran de discussion de mettre le curseur dans la
+  /// saisie (raccourci / widget « Demander à Tontolo »).
+  int focusRequests = 0;
+  void requestInputFocus() {
+    focusRequests++;
+    notifyListeners();
+  }
   PendingAction? pending;
   List<AskedQuestion> asked = []; // questions à choix en attente de réponse
   StreamSubscription<Map<String, dynamic>>? _sub;

@@ -2,4 +2,8 @@
 <resources>
     <string name="work_channel">Valiny eo am-panaovana</string>
     <string name="work_text">Tontolo mamarana ny valinao…</string>
+    <string name="shortcut_ask_short">Anontanio i Tontolo</string>
+    <string name="shortcut_ask_long">Manoratra fanontaniana</string>
+    <string name="widget_ask_hint">Anontanio i Tontolo…</string>
+    <string name="widget_description">Anontanio i Tontolo</string>
 </resources>

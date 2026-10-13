@@ -10,6 +10,12 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private var authChannel: MethodChannel? = null
+    private var shortcutChannel: MethodChannel? = null
+    private var askPending = false
+
+    companion object {
+        const val ACTION_ASK = "io.github.raantss18.tontolo.ASK"
+    }
 
     private fun authLink(intent: Intent?): String? {
         val uri = intent?.data ?: return null
@@ -21,6 +27,15 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         authChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "tontolo/auth")
+        // Raccourci et widget « Demander à Tontolo » : nouvelle discussion, clavier prêt.
+        askPending = intent?.action == ACTION_ASK
+        shortcutChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "tontolo/shortcut")
+        shortcutChannel?.setMethodCallHandler { call, result ->
+            if (call.method == "initialAsk") {
+                result.success(askPending)
+                askPending = false
+            } else result.notImplemented()
+        }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "tontolo/background")
             .setMethodCallHandler { call, result ->
                 try {
@@ -89,6 +104,7 @@ class MainActivity : FlutterActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        if (intent.action == ACTION_ASK) shortcutChannel?.invokeMethod("ask", null)
         authLink(intent)?.let { authChannel?.invokeMethod("authLink", it) }
     }
 }

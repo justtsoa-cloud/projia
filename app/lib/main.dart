@@ -1,6 +1,9 @@
 // Tontolo — application Flutter (Android + Linux).
 // L'interface s'affiche immédiatement ; le cœur Python démarre en arrière-plan.
 
+import 'dart:io';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -216,7 +219,28 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
       _updater = AppScope.of(context).updater..addListener(_onUpdate);
       _maybeWhatsNew();
       _onUpdate();
+      _listenShortcut();
     });
+  }
+
+  /// Raccourci d'appui long et widget « Demander à Tontolo » (Android) : nouvelle discussion,
+  /// clavier prêt ; que l'application soit fermée (« initialAsk ») ou déjà ouverte (« ask »).
+  void _listenShortcut() {
+    if (kIsWeb || !Platform.isAndroid) return;
+    const channel = MethodChannel('tontolo/shortcut');
+    channel.setMethodCallHandler((call) async {
+      if (call.method == 'ask' && mounted) _ask();
+    });
+    channel.invokeMethod<bool>('initialAsk').then((asked) {
+      if (asked == true && mounted) _ask();
+    }).catchError((Object _) {});
+  }
+
+  void _ask() {
+    final chat = AppScope.of(context).chat;
+    if (!chat.busy) chat.newChat();
+    setState(() => index = 0);
+    chat.requestInputFocus();
   }
 
   @override

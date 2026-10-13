@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Appui long sur l'icône : ouvre une nouvelle discussion, clavier prêt -->
+    <shortcut
+        android:shortcutId="ask"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_ask_short"
+        android:shortcutLongLabel="@string/shortcut_ask_long">
+        <intent
+            android:action="io.github.raantss18.tontolo.ASK"
+            android:targetPackage="io.github.raantss18.tontolo"
+            android:targetClass="io.github.raantss18.tontolo.MainActivity" />
+    </shortcut>
+</shortcuts>

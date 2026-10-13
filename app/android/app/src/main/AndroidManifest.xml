@@ -46,7 +46,16 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Raccourci d'appui long « Demander à Tontolo » -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity>
+        <!-- Widget d'écran d'accueil : barre « Demander à Tontolo… » -->
+        <receiver android:name=".AskWidget" android:exported="true" android:label="@string/shortcut_ask_short">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/ask_widget_info" />
+        </receiver>
         <service
             android:name=".TurnService"
             android:exported="false"
