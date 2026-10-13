@@ -389,3 +389,8 @@ But : l'utilisateur ne doit jamais avoir l'impression d'attendre dans le vide.
 - [ ] V1. Pourcentage d'avancement : estimation du taux d'achèvement de la demande et de chaque étape (plan, sections, outils, relecture), anticipée à partir des étapes prévues et de la durée observée des modèles ; jamais de recul, jamais 100 % avant la fin.
 - [ ] V2. « Ce que fait Tontolo » : un résumé court et lisible de ce qui se passe derrière (une ligne qui se met à jour), au lieu d'un long texte qui défile ; un toucher ouvre le détail (étapes, outils, modèles, durées).
 - [ ] V3. Nom court du ou des modèles en action et leur rôle dans la tâche (ex. « Llama 3.3 · rédige », « Gemini Flash · lit les images », « Qwen · relit »).
+
+## Communication (demande du 2026-10-13)
+- [x] C1. README attrayant pour trois publics : entreprises, professionnels, grand public (promesse claire, cas d'usage, captures, gratuit et privé, installation en 1 minute) — en restant factuel.
+- [x] C2. Affiche publicitaire : `press/campaign-2026-10-13/` (1080×1920 et 1080×1350, fr/en/mg, captures réelles, QR relu, `build_ad.py` + `copy.json`).
+- [x] C3. Textes pour les réseaux sociaux (`press/campaign-2026-10-13/posts.md`, chiffres vérifiés sur le catalogue : 773 modèles, 147 gratuits, 45 sans clé) (Facebook, LinkedIn, X, WhatsApp ; fr/en/mg).

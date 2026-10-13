@@ -1,78 +1,133 @@
 <p align="center">
-  <img src="docs/brand/tontolo-icon-512.png" width="128" alt="Logo Tontolo">
+  <img src="docs/brand/tontolo-icon-512.png" width="120" alt="Logo Tontolo">
 </p>
 
 <h1 align="center">Tontolo</h1>
 
 <p align="center">
-  <b>Le meilleur modèle d'IA gratuit, automatiquement.</b><br>
-  Hub d'IA libre pour Linux et Android : il choisit le meilleur modèle gratuit pour chaque
-  demande, bascule tout seul quand un quota est épuisé, puis revient au meilleur.
+  <b>Une seule app. Les meilleures IA gratuites.</b><br>
+  Tontolo choisit pour vous le meilleur modèle d'IA gratuit selon ce que vous demandez,<br>
+  et en change tout seul quand l'un est saturé. Gratuit, privé, open source.
+</p>
+
+<p align="center">
+  <a href="https://github.com/raantss18/tontolo/releases/latest"><b>📲 Télécharger pour Android</b></a> ·
+  <a href="https://github.com/raantss18/tontolo/releases/latest"><b>🐧 Télécharger pour Linux</b></a> ·
+  <a href="#in-english">English</a> ·
+  <a href="#aminny-teny-malagasy">Malagasy</a>
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-Apache--2.0-blue" alt="Licence Apache-2.0"></a>
   <a href="https://github.com/raantss18/tontolo/actions/workflows/ci.yml"><img src="https://github.com/raantss18/tontolo/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/raantss18/tontolo/releases/latest"><img src="https://img.shields.io/github/v/release/raantss18/tontolo" alt="Dernière version"></a>
+  <img src="https://img.shields.io/badge/prix-0%20%E2%82%AC-67e5be" alt="Gratuit">
+  <img src="https://img.shields.io/badge/langues-fr%20%C2%B7%20en%20%C2%B7%20mg-8a7dff" alt="Français, anglais, malgache">
+</p>
+
+<p align="center">
+  <img src="docs/brand/tontolo-affiche.png" alt="Tontolo : apprendre, produire, garder la main" width="560">
 </p>
 
 ---
 
-<p align="center">
-  <img src="docs/screenshots/presentation.png" alt="Tontolo sur Android : réponse avec formules, retouche de photo, modèles gratuits" width="760">
-</p>
+## Pourquoi Tontolo ?
 
-## Ce que fait Tontolo
+Les IA gratuites sont nombreuses, mais chacune a ses forces, ses quotas et ses pannes. **Tontolo
+les réunit dans une seule application** : il lit votre demande, choisit le modèle gratuit le
+mieux classé pour cette tâche (d'après les classements publics d'Artificial Analysis et de
+LMArena), et s'il est saturé, passe au suivant **sans perdre le fil**, puis revient au meilleur.
 
-- **Choix automatique** du meilleur modèle **gratuit** selon la tâche (code, maths,
-  rédaction, traduction, vision, recherche…), d'après les classements en ligne
-  d'Artificial Analysis et de LMArena.
-- **Bascule automatique** sur quota épuisé (429, quota journalier, erreur fournisseur), **sans
-  perdre l'historique**, puis **retour** au meilleur modèle dès qu'il est disponible.
-- **Gratuit d'abord** : vos comptes payants ne servent que si vous l'autorisez, avec plafond.
-- **Agentique** : recherche web sourcée, lecture de pages, calculatrice, client **MCP**.
-- **Multimodal** : images, transcription, synthèse vocale (voix locale toujours disponible),
-  vidéo « au mieux ».
-- **Toujours à jour** : le catalogue se met à jour à chaque utilisation (nouveaux modèles
-  gratuits, modèles retirés, changements de quotas) et l'application se met à jour toute
-  seule depuis les releases GitHub (fichiers vérifiés par SHA-256).
-- **Fonctionne sans clé** : plus de 30 modèles gratuits sans inscription (Pollinations,
-  Kilo Code, LLM7, OVHcloud) ; ajoutez vos clés gratuites (OpenRouter, Groq, Gemini,
-  Mistral, NVIDIA…) pour en débloquer davantage.
-- **Retouche de photo fidèle** (lumière, contraste, couleurs, noir et blanc, vintage, style
-  professionnel…) faite **sur l'appareil**, sans changer la personne ni la composition.
-- **Mémoire locale** qui se compacte toute seule, **instructions personnalisées**,
-  régénérer, modifier et renvoyer, épingler, exporter en Markdown, raccourcis « / »,
-  lecture à voix haute avec arrêt.
-- **Sécurisé** : serveur local protégé (jeton, CSRF, DNS rebinding), anti-SSRF, clés
-  épinglées à leur fournisseur, outils sensibles soumis à confirmation.
-- **Compatible OpenAI** : n'importe quel client OpenAI peut pointer sur Tontolo.
-- **Mode Apprendre** pour élèves et étudiants : tuteur pas à pas selon le niveau, quiz
-  interactifs, fiches de révision, plan de révision.
-- **Continuez ici une discussion de Claude, ChatGPT ou Gemini** : collez son lien de partage.
-- **Compte facultatif** (Google, GitHub) et **synchronisation chiffrée de bout en bout**
-  des discussions, mémoires et clés entre vos appareils ([détails](docs/ACCOUNTS.md)).
+| | |
+|:---:|---|
+| **773** | modèles référencés, dont **147 gratuits** chez **20 fournisseurs** |
+| **45** | modèles utilisables **sans aucune inscription**, dès l'installation |
+| **0 €** | ni abonnement, ni publicité, ni compte obligatoire |
+| **3** | langues : français, anglais, malgache |
+| **100 %** | du code ouvert (Apache-2.0) : auditable, modifiable, auto-hébergeable |
 
-Aucune liste de modèles, aucun classement et aucun quota n'est codé en dur : tout vient des
-plateformes en ligne.
+<sub>Chiffres du catalogue au 13 octobre 2026 : il se met à jour tout seul à chaque utilisation.</sub>
 
-## Installation
+## Pour qui ?
+
+### 🎓 Le grand public, les élèves et les étudiants
+- **Mode Apprendre** : un tuteur qui guide pas à pas selon votre niveau, sans faire le travail
+  à votre place, avec indices et correction d'exercice en photo.
+- **Votre cours devient un quiz interactif** ou des fiches de révision : joignez le PDF,
+  demandez « crée un quiz de 5 questions ».
+- **Vos vidéos comprises** : Tontolo écoute le son et regarde les images (tableau,
+  diapositives, formules), même dans une vidéo muette.
+- Recherche web sourcée, images générées gratuitement, retouche fidèle de vos photos, lecture
+  à voix haute, dictée.
+
+### 💼 Les professionnels
+- **Des documents prêts à envoyer** : Word, PDF, PowerPoint, Excel, présentations Beamer,
+  cartes mentales, schémas, graphiques. Chaque fichier est **relu par un second modèle**
+  d'une autre famille avant livraison.
+- **Toutes vos pièces jointes** : PDF, Office, epub, archives zip, code, sons, vidéos. Les
+  longs documents (un livre de 300 pages) sont résumés en fiche compacte sur l'appareil.
+- **Des questions à choix** quand la demande est floue (public, longueur, ton), comme un
+  collègue qui précise avant de se lancer.
+- **Plusieurs modèles sur une même tâche** : « écris le code ; explique-le ; traduis » est
+  découpé et confié en parallèle, puis réuni.
+- Export des discussions en **PDF** ou Markdown, épinglage, dossiers, mémoire locale.
+
+### 🏢 Les entreprises et les équipes techniques
+- **Vos clés, vos données** : les requêtes partent **directement** de l'appareil vers les
+  fournisseurs que vous choisissez. Aucun serveur intermédiaire, aucune collecte.
+- **API compatible OpenAI** (`model="auto"`) : vos outils existants profitent du routage
+  automatique sans changer une ligne de logique.
+- **Serveur Linux auto-hébergé** avec jeton, pour toute une équipe sur le réseau local.
+- **Modèles locaux** (Ollama, llama.cpp) utilisés automatiquement quand le réseau tombe.
+- **Fournisseurs personnalisés**, listes d'exclusion, enchaînements de modèles par type de
+  tâche, plafond de dépenses si vous autorisez des modèles payants.
+- **Sécurité** : stockage chiffré des clés, protections CSRF, SSRF et DNS rebinding, outils
+  sensibles soumis à confirmation, serveurs MCP locaux isolés (bubblewrap), audit documenté
+  ([docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md)), métriques locales au format Prometheus.
+
+## Aperçu
+
+| Votre cours en quiz | Une vidéo comprise | Préciser avant d'écrire | Fichier relu et livré |
+|:---:|:---:|:---:|:---:|
+| <img src="docs/screenshots/android-quiz.png" width="190"> | <img src="docs/screenshots/android-video.png" width="190"> | <img src="docs/screenshots/android-questions.png" width="190"> | <img src="docs/screenshots/android-fichier.png" width="190"> |
+
+| Formules et code | Retouche fidèle | Image gratuite, sans clé | Modèles gratuits |
+|:---:|:---:|:---:|:---:|
+| <img src="docs/screenshots/android-chat.png" width="190"> | <img src="docs/screenshots/android-retouche-photo.png" width="190"> | <img src="docs/screenshots/android-image-gratuite.png" width="190"> | <img src="docs/screenshots/android-modeles-gratuits.png" width="190"> |
+
+Sur Linux, la même application avec une barre latérale :
+
+<img src="docs/screenshots/bureau-linux.png" alt="Tontolo sur Linux" width="760">
+
+## Comment ça marche
+
+1. **Vous écrivez** (ou dictez, ou joignez un fichier).
+2. **Tontolo classe la demande** (code, maths, rédaction, traduction, vision, recherche…) et
+   choisit le meilleur modèle gratuit disponible pour ce type de tâche.
+3. **Si le modèle tarde ou atteint son quota**, il bascule sur le suivant en gardant toute la
+   conversation, puis revient au meilleur dès qu'il est libre.
+4. **Vous voyez qui répond** : le nom du modèle s'affiche sous chaque réponse, et « Pourquoi
+   ce modèle ? » explique le choix. Vos 👍 et 👎 améliorent les choix suivants.
+
+Aucune liste de modèles, aucun classement ni quota n'est codé en dur : tout vient des
+plateformes en ligne, et un catalogue de secours embarqué permet de démarrer même sans Internet.
+
+## Installation en une minute
 
 ### Android (7.0 à 16)
-Téléchargez l'APK de votre appareil depuis la
-[dernière release](https://github.com/raantss18/tontolo/releases/latest), puis ouvrez-le :
+Téléchargez l'APK depuis la [dernière version](https://github.com/raantss18/tontolo/releases/latest)
+et ouvrez-le. L'application se met ensuite à jour toute seule.
 
 | Fichier | Appareils |
 |---|---|
-| `arm64-v8a` | **Presque tous les téléphones et tablettes depuis 2016** (ARMv8, 64 bits) — le bon choix en cas de doute |
+| `arm64-v8a` | **Presque tous les téléphones et tablettes depuis 2016** : le bon choix en cas de doute |
 | `armeabi-v7a` | Appareils anciens ou d'entrée de gamme (ARM 32 bits) |
-| `x86_64` | Émulateurs, Chromebooks, Android x86 (Intel/AMD) |
+| `x86_64` | Émulateurs, Chromebooks, Android x86 |
 
-> **Message « Google Play Protect : analyse recommandée » ?** Il apparaît pour toute application
+> **« Google Play Protect : analyse recommandée » ?** Ce message apparaît pour toute application
 > installée hors du Play Store que Google ne connaît pas encore ; ce n'est pas une détection de
-> virus. Touchez **Analyser l'application** : l'APK est envoyé à Google pour vérification, puis
-> l'installation continue. Tous les APK sont signés avec la même clé et leur empreinte SHA-256
-> figure dans `SHA256SUMS` de chaque release ; le code est public.
+> virus. Touchez **Analyser l'application**, puis l'installation continue. Tous les APK sont
+> signés avec la même clé et leurs empreintes figurent dans `SHA256SUMS` ; le code est public.
 
 ### Linux (application)
 ```bash
@@ -80,15 +135,15 @@ chmod +x Tontolo-*-x86_64.AppImage
 ./Tontolo-*-x86_64.AppImage
 ```
 
-### Linux (CLI et serveur)
+### Linux (ligne de commande et serveur)
 ```bash
-pip install "tontolo[linux] @ https://github.com/raantss18/tontolo/releases/latest/download/tontolo-0.5.0-py3-none-any.whl"
+pip install "tontolo[linux] @ https://github.com/raantss18/tontolo/releases/download/v0.6.1/tontolo-0.6.1-py3-none-any.whl"
 tontolo catalog list --free --category code
 tontolo chat "Explique-moi les intégrales"
 tontolo serve            # API compatible OpenAI sur http://127.0.0.1:8765/v1
 ```
 
-Utilisation avec un client OpenAI :
+Avec n'importe quel client OpenAI :
 
 ```python
 from openai import OpenAI
@@ -97,72 +152,85 @@ r = client.chat.completions.create(model="auto", messages=[{"role": "user", "con
 print(r.model, r.choices[0].message.content)   # modèle réellement utilisé
 ```
 
-### Mode client-serveur
-Lancez `TONTOLO_TOKEN=un-secret tontolo serve --host 0.0.0.0` sur votre machine Linux, puis
-dans l'application : **Réglages › Avancé › Serveur distant** (URL + jeton). La
-synchronisation de l'historique entre appareils se règle au même endroit.
+Référence complète de l'API : [docs/API.md](docs/API.md).
 
-## Modèles locaux (sans Internet)
+### Pour une équipe (client-serveur)
+Lancez `TONTOLO_TOKEN=un-secret tontolo serve --host 0.0.0.0` sur une machine Linux, puis dans
+chaque application : **Réglages › Avancé › Serveur distant** (adresse + jeton).
 
+### Modèles locaux, sans Internet
 Si [Ollama](https://ollama.com) (port 11434) ou `llama-server` de
-[llama.cpp](https://github.com/ggml-org/llama.cpp) (port 8080, modèles GGUF) tourne sur
-l'appareil — sous Linux, ou dans Termux sous Android — Tontolo le détecte tout seul et s'en sert
-en **dernier recours**, et **immédiatement quand il n'y a plus de réseau**. La détection
-interroge uniquement `127.0.0.1` : rien ne sort de l'appareil.
+[llama.cpp](https://github.com/ggml-org/llama.cpp) (port 8080) tourne sur l'appareil, Tontolo le
+détecte et s'en sert en dernier recours, et tout de suite quand le réseau est coupé. La
+détection n'interroge que `127.0.0.1`.
 
 ```bash
 ollama pull llama3.2:3b
 ```
 
-## Captures
-
-| Réponse avec formules | Retouche fidèle d'une photo | Image gratuite, sans clé |
-|:---:|:---:|:---:|
-| <img src="docs/screenshots/android-chat.png" width="220"> | <img src="docs/screenshots/android-retouche-photo.png" width="220"> | <img src="docs/screenshots/android-image-gratuite.png" width="220"> |
-
-| Modèles gratuits | Mode sombre | Clés gratuites |
-|:---:|:---:|:---:|
-| <img src="docs/screenshots/android-modeles-gratuits.png" width="220"> | <img src="docs/screenshots/android-mode-sombre.png" width="220"> | <img src="docs/screenshots/android-reglages.png" width="220"> |
-
-Sur Linux (même application, barre latérale) :
-
-<img src="docs/screenshots/bureau-linux.png" alt="Tontolo sur Linux" width="760">
-
 ## Clés gratuites (facultatif)
 
-Dans l'application : **Réglages › Simple › Clés gratuites** (lien direct vers chaque
-fournisseur, validation immédiate). En ligne de commande : `tontolo keys set openrouter`,
-ou un fichier `.env` (voir `.env.example`). Les clés restent sur votre appareil.
+Tontolo fonctionne sans aucune clé. Pour débloquer davantage de modèles, ajoutez vos clés
+gratuites (OpenRouter, Groq, Gemini, Mistral, NVIDIA…) dans **Réglages › Simple › Clés
+gratuites** : lien direct vers chaque fournisseur, validation immédiate. Les clés restent sur
+votre appareil, dans le stockage sécurisé du système.
 
-## Performances mesurées (v0.1.0)
+## Qualité vérifiée
 
-Mesures du 2026-10-10 (émulateur Android 16 x86_64, poste Linux KDE). Les budgets sont
-vérifiés par la CI : une release qui les dépasse est bloquée.
+Chaque version est bloquée si un contrôle échoue : analyse statique, typage, plus de 400 tests
+du cœur et 68 tests de l'interface, garde-fou de performance (30 utilisateurs simultanés, fil
+de 1 500 messages), budgets de taille.
 
-| Mesure | Valeur mesurée | Budget |
-|---|---|---|
-| APK arm64-v8a / armeabi-v7a / x86_64 | 24,8 / 23,8 / 25,4 Mo | 30 Mo |
-| AppImage Linux x86_64 | 45 Mo | 55 Mo |
-| Roue Python | 93 Ko | 220 Ko (165 Ko en 0.4.0) |
-| Interface affichée à froid (Android) | 1,3 à 1,6 s | < 2 s |
-| Démarrage du cœur Python embarqué (imports) | 2,6 s, en arrière-plan | non bloquant |
-| Sélection du modèle (760 modèles) | < 1 ms | < 20 ms |
-| Catalogue depuis le cache | 0,12 s | — |
-| Tests automatisés | 88 (cœur) + 4 (interface) | — |
-| Android | testé sur 10 (API 29) et 16 (API 36) | ≥ 7 (API 24) |
+| Mesure (v0.6.1) | Valeur |
+|---|---|
+| APK arm64-v8a / armeabi-v7a / x86_64 | 26 / 25 / 26 Mo (budget 30 Mo) |
+| AppImage Linux x86_64 | 45 Mo (budget 55 Mo) |
+| Cœur Python | moins de 300 Ko |
+| Sélection du modèle parmi tout le catalogue | moins d'une milliseconde |
+| Android testé | 10 (API 29) et 16 (API 36), minimum 7.0 |
+
+## In English
+
+**One app. The best free AI models.** Tontolo picks the best free AI model for each request
+(studies, code, writing, translation, vision, search…) according to public rankings, and
+switches by itself when one is busy, without losing the conversation.
+
+- **Everyone**: Learn mode with a step-by-step tutor, your course turned into an interactive
+  quiz, videos understood (sound and images), free image generation, faithful photo retouching.
+- **Professionals**: ready-to-send Word, PDF, PowerPoint, Excel, Beamer and mind maps, checked
+  by a second model; every kind of attachment; PDF export of chats.
+- **Businesses**: your own keys and no middleman, OpenAI-compatible API (`model="auto"`),
+  self-hosted Linux server, local models when offline, open source under Apache-2.0.
+
+Free, no subscription, no ads. Android and Linux:
+[download the latest release](https://github.com/raantss18/tontolo/releases/latest).
+
+## Amin'ny teny malagasy
+
+**App iray monja. Ireo IA maimaim-poana tsara indrindra.** Mifidy ny modely IA maimaim-poana
+tsara indrindra isaky ny fangatahana i Tontolo (lesona, kaody, fanoratana, fandikan-teny,
+sary…), ary miova ho azy raha feno ny iray, nefa tsy very ny resaka.
+
+- **Ho an'ny rehetra**: mpampianatra dingana tsirairay, lasa quiz mifandray ny lesonao, azo
+  ny horonan-tsarinao (feo sy sary).
+- **Ho an'ny matihanina**: Word, PDF, PowerPoint, takelaka ary sarintsaina vonona halefa,
+  jeren'ny modely faharoa.
+- **Ho an'ny orinasa**: ny fanalahidinao, tsy misy mpanelanelana, API mifanaraka amin'ny
+  OpenAI, mpizara Linux, kaody misokatra.
+
+Maimaim-poana, tsy misy famandrihana, tsy misy doka. Android sy Linux:
+[ampidino ny dikan-teny farany](https://github.com/raantss18/tontolo/releases/latest).
 
 ## Documentation
 
-- [Architecture](docs/ARCHITECTURE.md) — fonctionnement et choix techniques
-- [Sources](docs/SOURCES.md) — API consultées et dates de vérification
-- [Attributions](docs/ATTRIBUTIONS.md) · [Conformité](docs/COMPLIANCE.md)
-- [Publier une version](docs/RELEASING.md) · [Maquettes](docs/UI_MOCKUPS.md)
-- [Comptes et synchronisation](docs/ACCOUNTS.md) · [Publier sur les boutiques](docs/DISTRIBUTION.md)
-- [Contribuer](CONTRIBUTING.md) · [Sécurité](SECURITY.md) · [Journal](CHANGELOG.md)
+- [Architecture](docs/ARCHITECTURE.md) · [API](docs/API.md) · [Sources](docs/SOURCES.md)
+- [Sécurité](SECURITY.md) · [Audit](docs/SECURITY_AUDIT.md) · [Conformité](docs/COMPLIANCE.md)
+- [Comptes et synchronisation](docs/ACCOUNTS.md) · [Boutiques](docs/DISTRIBUTION.md)
+- [Publier une version](docs/RELEASING.md) · [Contribuer](CONTRIBUTING.md) · [Journal](CHANGELOG.md)
 
 ## Auteur
 
-**RANIRIAMANJAKA Antsa** — conception et développement
+**RANIRIAMANJAKA Antsa**, conception et développement
 - GitHub : [github.com/raantss18](https://github.com/raantss18)
 - E-mail : [antsa.raniriamanjaka@univ-antananarivo.mg](mailto:antsa.raniriamanjaka@univ-antananarivo.mg)
 - Téléphone / WhatsApp : [+261 33 43 838 82](https://wa.me/261334383882)
@@ -175,4 +243,4 @@ Fournisseurs gratuits : [awesome-free-llm-apis](https://github.com/mnfst/awesome
 
 ## Licence
 
-[Apache-2.0](LICENSE) — libre, gratuit, avec licence de brevets explicite.
+[Apache-2.0](LICENSE) : libre, gratuit, avec licence de brevets explicite.
