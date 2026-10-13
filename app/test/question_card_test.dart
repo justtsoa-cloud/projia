@@ -30,4 +30,22 @@ void main() {
     await tester.tap(find.text('Word'));
     expect(sent, 'Format ? → Word');
   });
+
+  testWidgets('plusieurs questions : choix multiples, précision libre, envoi groupé', (tester) async {
+    String? sent;
+    await tester.pumpWidget(MaterialApp(
+        home: Scaffold(body: SingleChildScrollView(child: QuestionCard(questions: qs, onSend: (t) => sent = t)))));
+    final send = find.widgetWithText(FilledButton, 'Envoyer mes choix');
+    expect(tester.widget<FilledButton>(send).onPressed, isNull); // rien choisi
+    await tester.tap(find.text('Élèves'));
+    await tester.tap(find.text('Pro')); // choix unique : remplace « Élèves »
+    await tester.tap(find.text('Courte'));
+    await tester.tap(find.text('Longue')); // choix multiple : les deux
+    await tester.pump();
+    expect(sent, isNull); // plusieurs questions : jamais d'envoi au premier toucher
+    await tester.enterText(find.byType(TextField), 'avec des exemples');
+    await tester.pump();
+    await tester.tap(send);
+    expect(sent, 'Pour qui ? → Pro\nLongueur ? → Courte, Longue\navec des exemples');
+  });
 }

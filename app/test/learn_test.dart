@@ -43,4 +43,26 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('1 / 1'), findsOneWidget);
   });
+
+  testWidgets('fiches : retourner, « Je savais » / « À revoir », revoir les difficiles', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: Scaffold(body: SingleChildScrollView(
+        child: FlashcardsDeck(cards: [('Capitale du Japon ?', 'Tokyo'), ('7 × 8 ?', '56')])))));
+    expect(find.text('1/2'), findsOneWidget);
+    expect(find.text('Tokyo'), findsNothing);
+    await tester.tap(find.text('Capitale du Japon ?'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tokyo'), findsOneWidget);
+    await tester.tap(find.text('Je savais'));
+    await tester.pumpAndSettle();
+    expect(find.text('À revoir'), findsNothing); // boutons après avoir retourné la carte
+    await tester.tap(find.text('7 × 8 ?'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('À revoir'));
+    await tester.pumpAndSettle();
+    expect(find.text('1 sur 2 sues'), findsOneWidget);
+    await tester.tap(find.text('Revoir les 1 difficiles'));
+    await tester.pumpAndSettle();
+    expect(find.text('1/1'), findsOneWidget);
+    expect(find.text('7 × 8 ?'), findsOneWidget);
+  });
 }

@@ -1,0 +1,159 @@
+{
+ "settings": {
+  "catalog_ttl_hours": 6.0,
+  "weights": {
+   "quality": 0.6,
+   "speed": 0.15,
+   "reliability": 0.25
+  },
+  "paid": {
+   "fallback": "off",
+   "daily_cap_usd": 0.0,
+   "monthly_cap_usd": 0.0,
+   "allowed_models": []
+  },
+  "agent": {
+   "max_iterations": 8,
+   "max_seconds": 120.0,
+   "workdir": null
+  },
+  "server": {
+   "host": "127.0.0.1",
+   "port": 8765
+  },
+  "llm_classifier": false,
+  "media_quota_mb": 1024,
+  "language": "fr",
+  "check_updates": true,
+  "memory_enabled": true,
+  "memory_max_items": 60,
+  "answer_cache": true,
+  "memory_budget_chars": 1500,
+  "custom_instructions": "",
+  "auto_update": true,
+  "speed_first": false,
+  "team_review": true,
+  "shared_folders": [],
+  "auto_compact": true,
+  "task_planning": true,
+  "orchestrate": false,
+  "user_name": "",
+  "custom_providers": [],
+  "routing": {
+   "excluded_providers": [],
+   "chains": {},
+   "first_token_s": null,
+   "stall_s": null,
+   "think_s": null
+  }
+ },
+ "memory": {
+  "enabled": true,
+  "items": []
+ },
+ "answers": {
+  "enabled": true,
+  "count": 0
+ },
+ "providers": [
+  {
+   "keyless": false,
+   "id": "groq",
+   "name": "Groq",
+   "key_url": "https://console.groq.com/keys",
+   "description": "Très rapide. Offre gratuite permanente (débit limité).",
+   "country": "US",
+   "has_key": false,
+   "free_models": 3,
+   "paid_models": 0,
+   "i18n": {
+    "en": {
+     "description": "Very fast. Permanent free tier (rate limited)."
+    },
+    "mg": {
+     "description": "Haingana dia haingana. Maimaim-poana mandrakariva (voafetra)."
+    }
+   }
+  },
+  {
+   "keyless": true,
+   "id": "llm7",
+   "name": "LLM7.io",
+   "key_url": "https://token.llm7.io",
+   "description": "API gateway with a free tier. Anonymous access needs no key and reaches the `turbo` models; a free token from token.llm7.io raises the rate and token limits but reaches the same models.",
+   "country": "GB",
+   "has_key": false,
+   "free_models": 4,
+   "paid_models": 0,
+   "i18n": {}
+  },
+  {
+   "id": "openrouter",
+   "name": "OpenRouter",
+   "key_url": "https://openrouter.ai/settings/keys",
+   "description": "Agrégateur : nombreux modèles « :free » avec une clé gratuite.",
+   "has_key": false,
+   "free_models": 33,
+   "paid_models": 629,
+   "i18n": {
+    "en": {
+     "description": "Aggregator: many “:free” models with a free key."
+    },
+    "mg": {
+     "description": "Mpanangona: modely « :free » maro miaraka amin'ny fanalahidy maimaim-poana."
+    }
+   }
+  }
+ ],
+ "spend": {
+  "today": 0.0,
+  "month": 0.0,
+  "entries": []
+ },
+ "status": {
+  "quotas": {},
+  "usable_providers": [
+   "hf_spaces",
+   "kilo",
+   "llamacpp_local",
+   "llm7",
+   "local",
+   "ollama_local",
+   "ovh",
+   "pollinations"
+  ],
+  "catalog_updated_at": 1791857788.3476975,
+  "sources": {
+   "openrouter": 662,
+   "pollinations": 3,
+   "freeapis": 101,
+   "artificial_analysis": 0,
+   "lmarena": 0
+  },
+  "mcp_errors": {}
+ },
+ "mcp": {
+  "servers": [],
+  "errors": {},
+  "tools": []
+ },
+ "storage": {
+  "conversations": 4096,
+  "creations": 0,
+  "tasks": 0,
+  "backups": 0,
+  "browser_profile": 0,
+  "cache_catalog": 1271292,
+  "cache_updates": 0,
+  "cache_tmp": 0,
+  "cache_browser": 0,
+  "cache_total": 1271292,
+  "total": 1275388
+ },
+ "workspace": {
+  "path": null,
+  "desktop": true,
+  "commands": false,
+  "history": []
+ }
+}
