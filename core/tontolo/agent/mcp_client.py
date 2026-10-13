@@ -13,15 +13,23 @@ Configuration : `mcp_servers.yaml` dans le dossier de données ::
         args: ["-y", "@modelcontextprotocol/server-filesystem", "/home/moi/Documents"]
         enabled: false
 
+Sous Linux, un serveur stdio est lancé dans un bac à sable bubblewrap (`bwrap`) s'il est
+installé : système en lecture seule, dossier personnel et /run masqués (clés, trousseau,
+D-Bus), seuls les dossiers passés en arguments restent accessibles. `sandbox: false`
+le désactive pour un serveur.
+
 Un outil MCP sans l'annotation `readOnlyHint` est considéré à effet de bord
 et exige la confirmation de l'utilisateur.
 """
 
 from __future__ import annotations
 
+import functools
 import logging
 import os
 import re
+import shutil
+import subprocess
 from contextlib import AsyncExitStack, suppress
 from pathlib import Path
 from typing import Any
@@ -77,6 +85,8 @@ def check_server(srv: dict[str, Any]) -> str | None:
         if not isinstance(args, list) or len(args) > 50 or any(
                 not isinstance(a, str) or len(a) > 500 for a in args):
             return "arguments invalides (50 au plus, 500 caractères chacun)"
+        if not isinstance(srv.get("sandbox", True), bool):
+            return "sandbox : vrai ou faux"
         if _INTERPRETERS.match(base) and any(a in _INLINE_CODE for a in args):
             return "code en ligne refusé (utilisez un module ou un fichier)"
         if not isinstance(env, dict) or len(env) > 20 or any(
@@ -91,6 +101,73 @@ def check_server(srv: dict[str, Any]) -> str | None:
     if not isinstance(headers, dict) or len(headers) > 20:
         return "en-têtes invalides"
     return None
+
+
+# Outillage sous le dossier personnel laissé visible (lecture seule, sauf caches).
+_HOME_TOOLCHAINS_RO = (".local/bin", ".local/share/uv", ".local/share/pnpm", ".nvm", ".volta",
+                       ".bun", ".deno", ".cargo/bin", ".pyenv", ".asdf")
+_HOME_CACHES_RW = (".npm", ".cache/uv", ".cache/pip", ".cache/deno")
+_HOME_SECRET = re.compile(r"^\.(ssh|gnupg|password-store|pki|aws|kube|docker|config|mozilla|"
+                          r"local/share/(keyrings|tontolo))(/|$)")
+
+
+@functools.cache
+def bwrap_usable() -> str | None:
+    """Chemin de bwrap s'il est installé ET fonctionne (espaces de noms utilisateur)."""
+    exe = shutil.which("bwrap")
+    if not exe or is_android():
+        return None
+    try:
+        ok = subprocess.run([exe, "--ro-bind", "/", "/", "--unshare-all", "--die-with-parent",
+                             "true"], capture_output=True, timeout=5).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        ok = False
+    return exe if ok else None
+
+
+def sandbox_argv(bwrap: str, command: str, args: list[str], *, home: Path,
+                 hide: tuple[Path, ...] = ()) -> list[str]:
+    """Ligne de commande bwrap qui enveloppe `command args`."""
+    home = home.resolve()
+    argv = [bwrap, "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc",
+            "--tmpfs", "/tmp", "--tmpfs", "/run", "--tmpfs", str(home)]
+    for h in hide:  # dossier de données hors du dossier personnel
+        if h.exists() and not h.resolve().is_relative_to(home):
+            argv += ["--tmpfs", str(h.resolve())]
+
+    def expose(path: Path, writable: bool) -> None:
+        nonlocal argv
+        if path.exists():
+            argv += ["--bind" if writable else "--ro-bind", str(path), str(path)]
+
+    for rel in _HOME_TOOLCHAINS_RO:
+        expose(home / rel, False)
+    for rel in _HOME_CACHES_RW:
+        expose(home / rel, True)
+    exe = shutil.which(command)
+    if exe:  # programme installé ailleurs sous le dossier personnel : son dossier, en lecture
+        target = Path(exe).resolve()
+        if target.is_relative_to(home):
+            parts = target.relative_to(home).parts
+            if parts and not _HOME_SECRET.match("/".join(parts)):
+                # ~/.nvm entier (bibliothèques voisines) ; dans ~/.local, son seul dossier
+                expose(target.parent if parts[0] in (".local", ".cache") else home / parts[0],
+                       False)
+    for a in args:  # dossiers explicitement confiés au serveur (ex. serveur de fichiers)
+        if a.startswith(("/", "~")):
+            p = Path(a).expanduser()
+            if p.exists() and p.resolve() != Path("/"):
+                r = p.resolve()
+                in_home = r.is_relative_to(home)
+                if in_home and (r == home or _HOME_SECRET.match(
+                        "/".join(r.relative_to(home).parts))):
+                    continue  # jamais tout le dossier personnel ni un dossier de secrets
+                if not in_home and r.parts[1] in ("run", "proc", "dev", "sys", "var"):
+                    continue  # zones masquées ou système : jamais rouvertes
+                if not any(r.is_relative_to(h.resolve()) for h in hide if h.exists()):
+                    expose(r, True)
+    return [*argv, "--unshare-all", "--share-net", "--die-with-parent", "--new-session",
+            "--chdir", "/tmp", "--", command, *args]
 
 
 def load_config(path: Path) -> list[dict[str, Any]]:
@@ -160,8 +237,15 @@ class McpManager:
                         raise RuntimeError("transport stdio indisponible sous Android")
                     from mcp.client.stdio import StdioServerParameters, stdio_client
 
-                    params = StdioServerParameters(command=srv["command"],
-                                                   args=list(srv.get("args", [])),
+                    command, args = srv["command"], list(srv.get("args", []))
+                    bwrap = bwrap_usable() if srv.get("sandbox", True) is not False else None
+                    if bwrap:
+                        command, *args = sandbox_argv(bwrap, command, args, home=Path.home(),
+                                                      hide=(self.config_path.parent,))
+                    elif srv.get("sandbox", True) is not False:
+                        log.warning("Serveur MCP %s lancé sans bac à sable (bwrap absent)",
+                                    name)
+                    params = StdioServerParameters(command=command, args=args,
                                                    env=srv.get("env"))
                     read, write = await self._stack.enter_async_context(stdio_client(params))
                 else:

@@ -134,3 +134,39 @@ def test_mcp_endpoint_limits(settings: Settings, tmp_path: Path) -> None:
         r = remote.put("/tontolo/mcp", json={"servers": [
             {"name": "interne", "transport": "http", "url": "http://127.0.0.1:9000/mcp"}]})
         assert r.status_code == 403  # pas d'accès au réseau interne depuis un autre appareil
+
+
+def test_stdio_sandbox_hides_home(tmp_path: Path) -> None:
+    import shutil
+    import subprocess
+
+    from tontolo.agent.mcp_client import bwrap_usable, check_server, sandbox_argv
+
+    assert check_server({"name": "x", "transport": "stdio", "command": "npx",
+                         "sandbox": "non"}) is not None
+    home = tmp_path / "home"
+    (home / ".ssh").mkdir(parents=True)
+    (home / ".ssh" / "id_ed25519").write_text("SECRET")
+    (home / ".local" / "share" / "tontolo").mkdir(parents=True)
+    docs = home / "Documents"
+    docs.mkdir()
+    (docs / "cours.md").write_text("ok")
+    ls = shutil.which("ls") or "/usr/bin/ls"
+    argv = sandbox_argv("bwrap", ls, [str(docs), str(home), str(home / ".ssh")], home=home)
+    binds = [argv[i + 1] for i, a in enumerate(argv) if a in ("--bind", "--ro-bind")]
+    assert str(docs.resolve()) in binds
+    assert str(home.resolve()) not in binds and str((home / ".ssh").resolve()) not in binds
+    assert argv[argv.index("--") + 1:] == [ls, str(docs), str(home), str(home / ".ssh")]
+    bwrap = bwrap_usable()
+    if not bwrap:
+        return
+    argv = sandbox_argv(bwrap, ls, ["-a", str(docs)], home=home)
+    out = subprocess.run(argv, capture_output=True, text=True, timeout=10)
+    assert out.returncode == 0 and "cours.md" in out.stdout
+    cat = shutil.which("cat") or "/usr/bin/cat"
+    out = subprocess.run(sandbox_argv(bwrap, cat, [str(home / ".ssh" / "id_ed25519")],
+                                      home=home), capture_output=True, text=True, timeout=10)
+    assert out.returncode != 0 and "SECRET" not in out.stdout
+    out = subprocess.run(sandbox_argv(bwrap, ls, ["/run"], home=home), capture_output=True,
+                         text=True, timeout=10)
+    assert out.stdout.strip() == ""  # trousseau, D-Bus : masqués
