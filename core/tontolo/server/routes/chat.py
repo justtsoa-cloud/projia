@@ -222,7 +222,21 @@ def register(app: FastAPI, hub: Hub, ws_connects: RateLimiter) -> None:
                             for s in plan.subtasks]}
         if core.orchestrator is None:
             return
-        out = await core.orchestrator.run(plan, context)
+        # Avancement des parties relayé en direct (modèle et rôle de chacune).
+        events: asyncio.Queue[dict[str, Any]] = asyncio.Queue()
+        running = asyncio.create_task(core.orchestrator.run(plan, context, events.put_nowait))
+        while not running.done() or not events.empty():
+            getter = asyncio.ensure_future(events.get())
+            await asyncio.wait({getter, running}, return_when=asyncio.FIRST_COMPLETED)
+            if getter.done():
+                ev = getter.result()
+                if ev.get("model"):
+                    m = core.router.catalog.catalog.get(ev["model"])
+                    ev["name"] = m.name if m else ev["model"]
+                yield ev
+            else:
+                getter.cancel()
+        out = running.result()
         msg = {"role": "assistant", "content": out["text"]}
         saved = await core.db.add_message(cid, msg, model=out["model"] or None)
         model = core.router.catalog.catalog.get(out["model"]) if out["model"] else None

@@ -13,6 +13,7 @@ import asyncio
 import hashlib
 import time
 from collections import OrderedDict
+from collections.abc import Callable
 from typing import Any
 
 from tontolo.catalog.models import Category
@@ -97,12 +98,17 @@ class HierarchicalPipeline:
     # --- Exécution -------------------------------------------------------------------------
 
     async def _solve(self, plan: Plan, sub: Subtask, prior: str, context: str,
-                     metrics: list[dict[str, Any]]) -> PartResult:
+                     metrics: list[dict[str, Any]], emit: Callable[[dict[str, Any]], None]
+                     ) -> PartResult:
         started = time.monotonic()
+        emit({"type": "subtask", "index": sub.index, "status": "running",
+              "category": sub.category.value})
         key = self._key(sub, prior)
         if (hit := self._cached(key)) is not None:
             metrics.append({"index": sub.index, "category": sub.category.value,
                             "model": hit.model, "seconds": 0.0, "cached": True})
+            emit({"type": "subtask", "index": sub.index, "status": "done", "model": hit.model,
+                  "category": sub.category.value})
             return hit
         system = SUB_PROMPT + f"\nDemande complète : {plan.request[:3000]}"
         if context:
@@ -128,23 +134,33 @@ class HierarchicalPipeline:
                         "seconds": round(time.monotonic() - started, 2), "cached": False,
                         "ok": part.ok})
         self._store(key, part)
+        emit({"type": "subtask", "index": sub.index, "status": "done" if part.ok else "failed",
+              "model": model, "category": sub.category.value})
         return part
 
-    async def run(self, plan: Plan, context: str = "") -> dict[str, Any]:
-        """Exécute un plan ; renvoie la réponse fusionnée et les mesures."""
+    async def run(self, plan: Plan, context: str = "",
+                  on_event: Callable[[dict[str, Any]], None] | None = None) -> dict[str, Any]:
+        """Exécute un plan ; renvoie la réponse fusionnée et les mesures. `on_event` reçoit
+        l'avancement (partie lancée, terminée avec son modèle, réunion) pour l'affichage."""
         started = time.monotonic()
+
+        def emit(event: dict[str, Any]) -> None:
+            if on_event is not None:
+                on_event(event)
+
         metrics: list[dict[str, Any]] = []
         results: dict[int, PartResult] = {}
-        first = await asyncio.gather(*(self._solve(plan, s, "", context, metrics)
+        first = await asyncio.gather(*(self._solve(plan, s, "", context, metrics, emit)
                                        for s in plan.parallel))
         for s, r in zip(plan.parallel, first, strict=True):
             results[s.index] = r
         for s in plan.sequential:  # dans l'ordre : chacune voit tout ce qui précède
             prior = "\n\n".join(f"[{results[i].title}]\n{results[i].text}"
                                 for i in sorted(results) if i < s.index)
-            results[s.index] = await self._solve(plan, s, prior, context, metrics)
+            results[s.index] = await self._solve(plan, s, prior, context, metrics, emit)
         parts = [results[i] for i in sorted(results)]
         merge_started = time.monotonic()
+        emit({"type": "step", "step": "synthesizing", "n": len(parts)})
         text, strategy, synth_model = await self.synthesizer.merge(plan.request, parts,
                                                                    plan.complexity)
         return {

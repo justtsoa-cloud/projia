@@ -184,6 +184,15 @@ def test_default_chat_is_unchanged_and_orchestration_is_opt_in(
     assert done["metrics"]["subtasks"] and done["metrics"]["seconds"] >= 0
     assert done["message"]["content"]
     assert Category.CODE.value in [s["category"] for s in done["metrics"]["subtasks"]]
+    # Avancement en direct : chaque partie lancée puis terminée avec son modèle, puis réunion.
+    parts = [e for e in orch if e["type"] == "subtask"]
+    n = len(done["metrics"]["subtasks"])
+    assert [e["status"] for e in parts].count("running") == n
+    finished = [e for e in parts if e["status"] in ("done", "failed")]
+    assert len(finished) == n and all(e.get("model") and e.get("name") for e in finished)
+    steps = [e for e in orch if e["type"] == "step"]
+    assert steps and steps[-1]["step"] == "synthesizing"
+    assert orch.index(steps[-1]) < orch.index(done)
 
 
 def test_orchestration_setting_applies_to_every_chat(client: TestClient) -> None:
