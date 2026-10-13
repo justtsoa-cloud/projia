@@ -27,7 +27,16 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, Web
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from tontolo import __version__, attachments, documents, importer, metrics, secrets, security
+from tontolo import (
+    __version__,
+    attachments,
+    documents,
+    importer,
+    metrics,
+    pdfexport,
+    secrets,
+    security,
+)
 from tontolo.agent import planner
 from tontolo.agent.loop import dumps
 from tontolo.agent.mcp_client import MAX_SERVERS as MCP_MAX_SERVERS
@@ -1250,14 +1259,19 @@ def create_app(
         return {"ok": True}
 
     @app.get("/tontolo/conversations/{cid}/export")
-    async def export(request: Request, cid: str) -> Response:
-        """Export Markdown d'une conversation (partage, archivage)."""
+    async def export(request: Request, cid: str, format: str = "md",
+                     lang: str = "fr") -> Response:
+        """Export Markdown (par défaut) ou PDF d'une conversation (partage, archivage) ;
+        le PDF est produit sur l'appareil, sans service en ligne."""
         db = core_of(request).db
         if not await db.conversation_exists(cid):
             raise HTTPException(404, "Conversation introuvable")
+        if format not in ("md", "pdf"):
+            raise HTTPException(400, "Format inconnu")
         convs = {c["id"]: c for c in await db.list_conversations(limit=10_000)}
         title = convs.get(cid, {}).get("title") or "Conversation"
-        lines = [f"# {title}", ""]
+        you = {"en": "You", "mg": "Ianao"}.get(lang, "Vous")
+        turns: list[tuple[str, str, str]] = []
         for m in await db.get_messages(cid):
             if m["role"] not in ("user", "assistant"):
                 continue
@@ -1266,8 +1280,14 @@ def create_app(
                 content = "\n".join(p.get("text", "[image]") for p in content)
             if not content:
                 continue
-            who = "**Vous**" if m["role"] == "user" else f"**Tontolo** · _{m['_meta']['model']}_"
-            lines += [who, "", str(content), ""]
+            model = "" if m["role"] == "user" else str(m["_meta"].get("model") or "")
+            turns.append((you if m["role"] == "user" else "Tontolo", model, str(content)))
+        if format == "pdf":
+            pdf = await asyncio.to_thread(pdfexport.build, title, turns)
+            return Response(pdf, media_type="application/pdf")
+        lines = [f"# {title}", ""]
+        for who, model, content in turns:
+            lines += [f"**{who}**" + (f" · _{model}_" if model else ""), "", content, ""]
         return Response("\n".join(lines), media_type="text/markdown; charset=utf-8")
 
     @app.delete("/tontolo/conversations/{cid}")

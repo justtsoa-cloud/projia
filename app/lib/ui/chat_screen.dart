@@ -307,6 +307,17 @@ class _ChatScreenState extends State<ChatScreen> {
     ]));
   }
 
+  /// PDF produit par le cœur, sur l'appareil (aucun service en ligne).
+  Future<void> _exportPdf(ChatController chat) async {
+    final b = AppScope.of(context).backend;
+    final lang = AppScope.of(context).prefs.locale;
+    final r = await http.get(b.uri('/tontolo/conversations/${chat.conversationId}/export', {'format': 'pdf', 'lang': lang}), headers: b.headers);
+    if (r.statusCode != 200) return;
+    await SharePlus.instance.share(ShareParams(files: [
+      XFile.fromData(r.bodyBytes, mimeType: 'application/pdf', name: 'tontolo-discussion.pdf'),
+    ]));
+  }
+
   /// Page web autonome et sûre (sans script) de toute la discussion, à partager.
   Future<void> _exportHtml(ChatController chat) async {
     final prefs = AppScope.of(context).prefs;
@@ -475,6 +486,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   onSelected: (v) => switch (v) {
                     'export' => _export(chat),
                     'export_html' => _exportHtml(chat),
+                    'export_pdf' => _exportPdf(chat),
                     'compact' => _compact(chat),
                     'tasks' => showTaskResults(context, chat.conversationId!),
                     _ => _pin(chat),
@@ -482,6 +494,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemBuilder: (context) => [
                     PopupMenuItem(value: 'pin', child: ListTile(leading: const Icon(Icons.push_pin_outlined), title: Text(context.t('pin')))),
                     PopupMenuItem(value: 'export_html', child: ListTile(leading: const Icon(Icons.web_outlined), title: Text(context.t('export_html')))),
+                    PopupMenuItem(value: 'export_pdf', child: ListTile(leading: const Icon(Icons.picture_as_pdf_outlined), title: Text(context.t('export_pdf')))),
                     PopupMenuItem(value: 'export', child: ListTile(leading: const Icon(Icons.ios_share), title: Text(context.t('export')))),
                     PopupMenuItem(value: 'compact', child: ListTile(leading: const Icon(Icons.compress), title: Text(context.t('compact')))),
                     PopupMenuItem(value: 'tasks', child: ListTile(leading: const Icon(Icons.inventory_2_outlined), title: Text(context.t('task_results')))),

@@ -78,7 +78,7 @@ Serveur local (127.0.0.1, jeton `Authorization: Bearer …` hors boucle locale).
 | `POST` | `/tontolo/conversations/{cid}/compact` | Compactage manuel : fiche structurée du début du fil (messages conservés). |
 | `GET` | `/tontolo/conversations/{cid}/documents` | List Documents |
 | `DELETE` | `/tontolo/conversations/{cid}/documents/{doc_id}` | Delete Document |
-| `GET` | `/tontolo/conversations/{cid}/export` | Export Markdown d'une conversation (partage, archivage). |
+| `GET` | `/tontolo/conversations/{cid}/export` | Export Markdown (par défaut) ou PDF d'une conversation (partage, archivage) ; |
 | `PUT` | `/tontolo/conversations/{cid}/pin` | Pin |
 | `DELETE` | `/tontolo/conversations/{cid}/plan` | Abandonner le plan en cours (la discussion continue normalement). |
 | `GET` | `/tontolo/conversations/{cid}/tasks` | Résultats intermédiaires de la tâche (parties, étapes, sorties, brouillons). |

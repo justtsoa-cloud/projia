@@ -4,6 +4,9 @@ image et transcription passent par la même chaîne de bascule que le texte."""
 from __future__ import annotations
 
 import json
+import re
+import shutil
+import subprocess
 from collections.abc import Iterator
 from typing import Any
 
@@ -583,6 +586,33 @@ def test_import_conversation_then_continue(client: TestClient) -> None:
     r = client.post("/tontolo/import", json={
         "url": "https://claude.ai/chat/04393426-e2c1-4fce-a779-ad538512da66"})
     assert r.status_code == 422 and r.json()["detail"]["code"] == "import_private"
+
+
+def test_export_markdown_and_pdf(client: TestClient, tmp_path: Any) -> None:
+    long = " ".join(["Réponse détaillée, très longue, avec des accents ôàè."] * 400)
+    snap = {"snapshot_name": "Révision (export)", "chat_messages": [
+        {"sender": "human", "content": [{"type": "text", "text": "Ma question 🚀 → ?"}]},
+        {"sender": "assistant", "content": [{"type": "text", "text":
+            f"## Titre\n\n- **point** un\n\n```python\nprint('(x)')\n```\n\n{long}"}]}]}
+    cid = client.post("/tontolo/import", json={"data": json.dumps(snap)}).json()[
+        "conversations"][0]["id"]
+    md = client.get(f"/tontolo/conversations/{cid}/export")
+    assert md.status_code == 200 and "**Vous**" in md.text and "## Titre" in md.text
+    r = client.get(f"/tontolo/conversations/{cid}/export", params={"format": "pdf",
+                                                                  "lang": "mg"})
+    assert r.status_code == 200 and r.headers["content-type"] == "application/pdf"
+    assert r.content.startswith(b"%PDF-") and r.content.rstrip().endswith(b"%%EOF")
+    assert client.get(f"/tontolo/conversations/{cid}/export",
+                      params={"format": "exe"}).status_code == 400
+    if shutil.which("pdftotext"):
+        f = tmp_path / "c.pdf"
+        f.write_bytes(r.content)
+        text = subprocess.run(["pdftotext", "-layout", str(f), "-"], capture_output=True,
+                              text=True, check=True).stdout
+        assert "Ianao" in text and "Ma question" in text and "print('(x)')" in text
+        assert "accents ôàè" in text and "• point un" in text
+        info = subprocess.run(["pdfinfo", str(f)], capture_output=True, text=True).stdout
+        assert int(re.search(r"Pages:\s+(\d+)", info).group(1)) >= 3  # type: ignore[union-attr]
 
 
 def test_learn_mode_is_kept_per_conversation(client: TestClient, fake: FakeProvider) -> None:
