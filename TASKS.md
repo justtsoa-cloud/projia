@@ -377,7 +377,7 @@ Inexact : pièces jointes envoyées en multipart (pas en base64), historique du 
 - [x] R5 (P1). OpenAPI local (/openapi.json avec jeton) + docs/API.md généré
 - [x] R6 (P1). Métriques locales /tontolo/metrics (format Prometheus : tours, erreurs, latences par modèle), rien n'est envoyé
 - [x] R7 (P1). Banc rapide en CI (régression de performance du cœur)
-- [ ] R8 (P1). server/app.py découpé en routeurs (chat, fichiers, réglages, sync, MCP…) sans changer l'API
+- [x] R8 (P1). server/app.py (2 229 lignes) découpé : `server/common.py` (corps validés, limites, aides) + 10 routeurs `server/routes/` enregistrés dans l'ordre ; app.py = lifespan, garde d'authentification, enregistrement (95 lignes). OpenAPI identique à l'octet près et ordre des routes inchangé (vérifiés contre l'ancienne version). Budget de roue 300 → 350 Kio (297 Kio : code source seulement)
 - [ ] R9 (P1). Tests Flutter des écrans (réglages, carte de questions, notes, quiz)
 - [x] R10 (P1). Catalogue de secours embarqué : `catalog/seed.json` (40 modèles gratuits sans clé, 17 Ko, régénéré par `scripts/catalog_seed.py`) utilisé si ni cache ni réseau au premier lancement ; jamais prioritaire sur un catalogue téléchargé. Roue 289 Ko (budget 300)
 - [x] R11 (P2). MCP stdio sous bubblewrap s'il est installé et utilisable : `/` en lecture seule, `$HOME`, `/run` (trousseau, D-Bus) et données masqués ; dossiers en arguments, outillage (~/.nvm, ~/.local/bin…) et caches (~/.npm, ~/.cache/uv) rouverts ; réseau gardé ; repli sans bac à sable avec avertissement ; essai réel : serveur de fichiers npx, 14 outils

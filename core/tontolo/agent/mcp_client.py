@@ -130,7 +130,7 @@ def sandbox_argv(bwrap: str, command: str, args: list[str], *, home: Path,
     """Ligne de commande bwrap qui enveloppe `command args`."""
     home = home.resolve()
     argv = [bwrap, "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc",
-            "--tmpfs", "/tmp", "--tmpfs", "/run", "--tmpfs", str(home)]
+            "--tmpfs", "/tmp", "--tmpfs", "/run", "--tmpfs", str(home)]  # nosec B108
     for h in hide:  # dossier de données hors du dossier personnel
         if h.exists() and not h.resolve().is_relative_to(home):
             argv += ["--tmpfs", str(h.resolve())]
@@ -167,7 +167,7 @@ def sandbox_argv(bwrap: str, command: str, args: list[str], *, home: Path,
                 if not any(r.is_relative_to(h.resolve()) for h in hide if h.exists()):
                     expose(r, True)
     return [*argv, "--unshare-all", "--share-net", "--die-with-parent", "--new-session",
-            "--chdir", "/tmp", "--", command, *args]
+            "--chdir", "/tmp", "--", command, *args]  # nosec B108
 
 
 def load_config(path: Path) -> list[dict[str, Any]]:

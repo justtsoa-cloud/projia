@@ -9,7 +9,7 @@ from fastapi import HTTPException
 
 from tontolo.catalog.models import Category
 from tontolo.router.classifier import classify
-from tontolo.server.app import _first_image, _image_source, _media_history, _media_prompt
+from tontolo.server.common import _first_image, _image_source, _media_history, _media_prompt
 from tontolo.storage.db import Database
 
 

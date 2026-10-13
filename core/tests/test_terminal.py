@@ -160,7 +160,7 @@ def test_agent_reads_terminal_and_sees_its_commands(client: TestClient, fake: Fa
 
 
 def test_oversized_terminal_message_closes_the_socket(client: TestClient) -> None:
-    from tontolo.server.app import TERM_MAX_MESSAGE
+    from tontolo.server.common import TERM_MAX_MESSAGE
 
     with client.websocket_connect(_ws("gros")) as ws:
         ws.receive_bytes()
@@ -171,7 +171,7 @@ def test_oversized_terminal_message_closes_the_socket(client: TestClient) -> Non
 
 
 def test_rate_limiter() -> None:
-    from tontolo.server.app import RateLimiter
+    from tontolo.server.common import RateLimiter
 
     rl = RateLimiter(3, 60)
     assert [rl.allow("a") for _ in range(4)] == [True, True, True, False]

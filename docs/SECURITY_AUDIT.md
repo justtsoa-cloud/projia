@@ -23,4 +23,5 @@ données ; le trousseau du système reste la voie préférée.
   (`c.deleted = 0`, `AND c.folder = ?`, liste fixe de colonnes) ; toutes les valeurs sont des
   paramètres liés.
 - XML marqués `# nosec B314/B318` : DTD et entités refusées juste avant l'analyse.
+- `agent/mcp_client.py` (B108) : `/tmp` y est un point de montage vide *dans* le bac à sable bubblewrap (`--tmpfs /tmp`), aucun fichier n'y est écrit par le cœur.
 - `agent/browser.py` (B104) : simple comparaison de texte, aucune écoute réseau.

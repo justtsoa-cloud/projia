@@ -18,7 +18,7 @@ from tontolo.providers.registry import ProviderRegistry
 from tontolo.router.classifier import TaskProfile
 from tontolo.router.engine import Router
 from tontolo.router.scoring import rank
-from tontolo.server import app as server
+from tontolo.server import common as server
 from tontolo.server.app import create_app
 
 

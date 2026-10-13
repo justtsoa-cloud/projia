@@ -113,7 +113,7 @@ def test_latex_cannot_read_or_run_files() -> None:
 
 
 def test_media_served_safely(client: TestClient, tmp_path: Path) -> None:
-    from tontolo.server.app import safe_mime
+    from tontolo.server.common import safe_mime
 
     assert safe_mime("text/html") == "text/html" and safe_mime("<script>") == \
         "application/octet-stream"

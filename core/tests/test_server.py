@@ -489,7 +489,7 @@ def test_paused_image_source_is_retried(client: TestClient, catalog_service: Cat
 
 
 async def test_media_prompt_translated_to_english() -> None:
-    from tontolo.server.app import _english_prompt
+    from tontolo.server.common import _english_prompt
 
     class R:
         async def quick(self, messages: list[dict[str, Any]]) -> str:
@@ -756,7 +756,7 @@ def test_animate_reuses_last_generated_image(client: TestClient, catalog_service
 
     monkeypatch.setattr(mp, "generate_image", fake_image)
     monkeypatch.setattr(mp, "generate_video", fake_video)
-    monkeypatch.setattr("tontolo.server.app._english_prompt", same)
+    monkeypatch.setattr("tontolo.server.common._english_prompt", same)
     with client.stream("POST", "/tontolo/chat", json={
             "content": "Dessine un baobab au coucher du soleil"}) as s:
         events = [json.loads(x[5:]) for x in s.iter_lines() if x.startswith("data:")]
@@ -1157,7 +1157,7 @@ def test_any_attachment_type(client: TestClient, monkeypatch: pytest.MonkeyPatch
 def test_event_websocket_connection_cap(client: TestClient) -> None:
     from starlette.websockets import WebSocketDisconnect
 
-    from tontolo.server import app as server
+    from tontolo.server import common as server
 
     opened = []
     for _ in range(server.WS_MAX_CLIENTS):
@@ -1170,7 +1170,7 @@ def test_event_websocket_connection_cap(client: TestClient) -> None:
 
 
 async def test_long_document_material_uses_the_compact_digest(client: TestClient) -> None:
-    from tontolo.server.app import _file_material
+    from tontolo.server.common import _file_material
 
     pages = [f"Chapitre {c} Sujet {c}\nOn appelle concept{c} une idée du chapitre {c}. "
              + "Remplissage du chapitre. " * 400 for c in range(1, 41)]
