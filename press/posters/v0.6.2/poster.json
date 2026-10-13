@@ -1,0 +1,56 @@
+{
+  "shot": "progress",
+  "lang": {
+    "fr": {
+      "tagline": "Nouveautés", "date": "13 octobre 2026",
+      "hero": ["Voyez où en est", "votre réponse"],
+      "sub": "Modèle au travail, action et pourcentage.",
+      "steps": [
+        ["Posez une question", "ou une demande longue"],
+        ["Une ligne indique le modèle,", "ce qu'il fait et le", "pourcentage d'avancement"],
+        ["Touchez-la : le journal", "détaillé de ce que", "fait Tontolo"]
+      ],
+      "also": "Aussi dans cette version",
+      "items": [
+        ["Mises à jour Linux signées", ["Signature Ed25519 vérifiée avant", "toute installation."]],
+        ["Formules dans la phrase", ["Le texte suivant reste sur la même", "ligne que la formule."]],
+        ["Réflexion en une ligne", ["Plus de texte brut qui défile :", "le détail est à un toucher."]]
+      ],
+      "footer": "Gratuit · Android · Linux"
+    },
+    "en": {
+      "tagline": "What's new", "date": "October 13, 2026",
+      "hero": ["See how your", "answer is going"],
+      "sub": "Model at work, action and percentage.",
+      "steps": [
+        ["Ask a question or", "a long request"],
+        ["One line shows the model,", "what it is doing and the", "progress percentage"],
+        ["Tap it: the detailed log", "of what Tontolo is", "doing"]
+      ],
+      "also": "Also in this version",
+      "items": [
+        ["Signed Linux updates", ["Ed25519 signature checked before", "any installation."]],
+        ["Formulas in a sentence", ["The following text stays on the", "same line as the formula."]],
+        ["Reasoning in one line", ["No more raw scrolling text:", "details are one tap away."]]
+      ],
+      "footer": "Free · Android · Linux"
+    },
+    "mg": {
+      "tagline": "Vaovao", "date": "13 Oktobra 2026",
+      "hero": ["Jereo ny fandrosoan'ny", "valinao"],
+      "sub": "Modely miasa, fiasana ary isan-jato.",
+      "steps": [
+        ["Mametraha fanontaniana", "na fangatahana lava"],
+        ["Andalana iray no mampiseho ny", "modely, ny ataony ary ny", "isan-jaton'ny fandrosoana"],
+        ["Tsindrio: ny diary", "amin'ny antsipiriany momba", "ny ataon'i Tontolo"]
+      ],
+      "also": "Ao amin'ity dikan-teny ity koa",
+      "items": [
+        ["Fanavaozana Linux misy sonia", ["Sonia Ed25519 hamarinina alohan'ny", "fametrahana rehetra."]],
+        ["Raikipohy ao anaty fehezanteny", ["Mijanona eo amin'ny andalana ihany", "ny lahatsoratra manaraka."]],
+        ["Fisainana amin'ny andalana iray", ["Tsy misy lahatsoratra mivezivezy intsony:", "ny antsipiriany dia tsindry iray."]]
+      ],
+      "footer": "Maimaim-poana · Android · Linux"
+    }
+  }
+}

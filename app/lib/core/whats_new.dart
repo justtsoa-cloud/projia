@@ -14,6 +14,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.6.2': [
+    NewsItem(Icons.speed_outlined, 'Voyez où en est votre réponse',
+        'Pendant qu\'une réponse se prépare, une ligne indique le modèle au travail, ce qu\'il fait et l\'avancement en pourcentage. Touchez-la pour le détail : modèle choisi, bascules, outils, parties confiées à plusieurs modèles.',
+        'See how your answer is going', 'While an answer is being prepared, one line shows the model at work, what it is doing and the progress as a percentage. Tap it for the details: model chosen, switches, tools, parts given to several models.',
+        mg: 'Jereo ny fandrosoan\'ny valiny', mgText: 'Raha mbola ahomanana ny valiny, misy andalana iray mampiseho ny modely miasa, izay ataony ary ny fandrosoana amin\'ny isan-jato. Tsindrio raha te hahita ny antsipiriany: modely voafidy, fifindrana, fitaovana, ampahany nomena modely maro.'),
+    NewsItem(Icons.verified_user_outlined, 'Mises à jour Linux signées',
+        'Les empreintes de chaque version sont signées : l\'application Linux refuse toute mise à jour dont la signature est absente ou invalide. Les formules dans une phrase restent aussi sur la ligne.',
+        'Signed Linux updates', 'Every release\'s fingerprints are signed: the Linux app refuses any update whose signature is missing or invalid. Formulas inside a sentence also stay on the line.',
+        mg: 'Fanavaozana Linux misy sonia', mgText: 'Misy sonia ny rantsan-tànan\'ny dikan-teny rehetra: lavin\'ny rindrambaiko Linux ny fanavaozana tsy misy sonia na diso ny sonia. Mijanona eo amin\'ny andalana ihany koa ny raikipohy ao anaty fehezanteny.'),
+  ],
   '0.6.1': [
     NewsItem(Icons.movie_outlined, 'Tontolo voit aussi vos vidéos',
         'Joignez une vidéo de cours et demandez « que montre la vidéo ? » : Tontolo écoute le son et regarde les images clés (diapositives, tableau, formules), même dans une vidéo muette.',
