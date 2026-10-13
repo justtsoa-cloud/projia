@@ -56,6 +56,8 @@ async def core(fake: FakeProvider | None = None, home: Path | None = None
                ) -> AsyncIterator[tuple[Core, FakeProvider, Path]]:
     fake = fake or FakeProvider()
     home = home or Path(tempfile.mkdtemp(prefix="tontolo-bench-"))
+    previous_home = os.environ.get("TONTOLO_HOME")
+    previous_load = CatalogService.load
     os.environ["TONTOLO_HOME"] = str(home)
     settings = Settings()
     svc = CatalogService(settings)
@@ -80,6 +82,12 @@ async def core(fake: FakeProvider | None = None, home: Path | None = None
         yield c, fake, home
     finally:
         await c.stop()
+        # Rien ne déborde du banc (utilisé aussi par les tests de performance de la CI).
+        CatalogService.load = previous_load  # type: ignore[method-assign]
+        if previous_home is None:
+            os.environ.pop("TONTOLO_HOME", None)
+        else:
+            os.environ["TONTOLO_HOME"] = previous_home
 
 
 async def drain(gen: AsyncIterator[dict[str, Any]]) -> list[dict[str, Any]]:
