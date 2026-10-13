@@ -386,9 +386,10 @@ Inexact : pièces jointes envoyées en multipart (pas en base64), historique du 
 
 ## Suivi visible d'une réponse en cours (demande du 2026-10-13)
 But : l'utilisateur ne doit jamais avoir l'impression d'attendre dans le vide.
-- [ ] V1. Pourcentage d'avancement : estimation du taux d'achèvement de la demande et de chaque étape (plan, sections, outils, relecture), anticipée à partir des étapes prévues et de la durée observée des modèles ; jamais de recul, jamais 100 % avant la fin.
-- [ ] V2. « Ce que fait Tontolo » : un résumé court et lisible de ce qui se passe derrière (une ligne qui se met à jour), au lieu d'un long texte qui défile ; un toucher ouvre le détail (étapes, outils, modèles, durées).
-- [ ] V3. Nom court du ou des modèles en action et leur rôle dans la tâche (ex. « Llama 3.3 · rédige », « Gemini Flash · lit les images », « Qwen · relit »).
+- [x] V1. Pourcentage d'avancement : estimation du taux d'achèvement de la demande et de chaque étape (plan, sections, outils, relecture), anticipée à partir des étapes prévues et de la durée observée des modèles ; jamais de recul, jamais 100 % avant la fin.
+- [x] V2. « Ce que fait Tontolo » : un résumé court et lisible de ce qui se passe derrière (une ligne qui se met à jour), au lieu d'un long texte qui défile ; un toucher ouvre le détail (étapes, outils, modèles, durées).
+- [x] V3. Nom court du ou des modèles en action et leur rôle dans la tâche (ex. « Llama 3.3 · rédige », « Gemini Flash · lit les images », « Qwen · relit »).
+  Fait : `app/lib/core/turn_progress.dart` (pourcentage par étapes, texte reçu et temps écoulé, jamais en recul ni à 100 % avant la fin ; journal horodaté ; noms courts) ; ligne « modèle · action · % » avec barre, toucher = journal « Ce que fait Tontolo » ; réflexion du modèle résumée en une ligne (« 230 mots de réflexion · touchez pour lire ») au lieu du texte brut qui défile ; orchestration : chaque partie relayée avec son modèle. Vérifié sur l'émulateur.
 
 ## Communication (demande du 2026-10-13)
 - [x] C1. README attrayant pour trois publics : entreprises, professionnels, grand public (promesse claire, cas d'usage, captures, gratuit et privé, installation en 1 minute) — en restant factuel.

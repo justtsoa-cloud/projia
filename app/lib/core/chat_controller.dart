@@ -14,6 +14,7 @@ import 'background.dart';
 import 'backend.dart';
 import 'notifier.dart';
 import 'stats.dart';
+import 'turn_progress.dart';
 import 'retouch.dart';
 
 class ChatMessage {
@@ -69,6 +70,8 @@ class ChatController extends ChangeNotifier {
   String? modelOverride; // null = Auto (ou préférence enregistrée côté cœur)
   String? lastModelName;
   String? status; // « Recherche sur le web… », etc.
+  /// Avancement de la réponse en cours (pourcentage, modèles en action, journal).
+  final TurnProgress progress = TurnProgress();
   PendingAction? pending;
   List<AskedQuestion> asked = []; // questions à choix en attente de réponse
   StreamSubscription<Map<String, dynamic>>? _sub;
@@ -641,6 +644,7 @@ class ChatController extends ChangeNotifier {
     bool currentStream() => epoch == _epoch && streamEpoch == _streamEpoch;
     busy = true;
     status = null;
+    if (!replay || !progress.active) progress.start();
     notifyListeners();
     ChatMessage? current;
     var terminal = false; // fin normale du tour reçue (sinon : connexion coupée → rattachement)
@@ -659,6 +663,7 @@ class ChatController extends ChangeNotifier {
 
     _sub = events.listen((ev) {
       if (!currentStream()) return;
+      progress.onEvent(ev);
       switch (ev['type']) {
         case 'conversation':
           conversationId = ev['id'] as String;
@@ -736,6 +741,8 @@ class ChatController extends ChangeNotifier {
           status = 'tool|${ev['name']}';
         case 'tool_result':
           status = null;
+        case 'subtask':
+          status = 'orchestrating|${progress.partsTotal}';
         case 'orchestration':
           // Demande en plusieurs parties : confiées en même temps à plusieurs modèles.
           status = 'orchestrating|${(ev['subtasks'] as List?)?.length ?? 2}';
@@ -853,6 +860,7 @@ class ChatController extends ChangeNotifier {
 
   void _finish() {
     BackgroundWork.stop();
+    progress.finish();
     busy = false;
     status = null;
     for (final m in messages) {

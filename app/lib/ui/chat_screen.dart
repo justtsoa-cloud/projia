@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 // Écran principal : conversation + champ de saisie. Rien d'autre par défaut.
 
@@ -608,7 +609,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
               if (chat.plan != null && (chat.planActive || chat.busy)) _PlanBar(chat),
-              if (chat.status != null) _StatusLine(chat.status!),
+              if (chat.busy || chat.status != null) _ProgressLine(chat),
               if (chat.pending != null) _PendingBar(chat),
               _InputBar(this, chat, backend),
             ])),
@@ -852,32 +853,133 @@ class _Notice extends StatelessWidget {
   }
 }
 
-class _StatusLine extends StatelessWidget {
-  const _StatusLine(this.status);
-  final String status;
+/// Texte lisible d'un statut ou d'une ligne du journal d'avancement.
+String progressText(BuildContext context, String status) {
+  final p = status.split('|');
+  String arg(int i) => p.length > i ? p[i] : '';
+  return switch (p[0]) {
+    'thinking' => context.t('thinking'),
+    'tool' => context.t('log_tool', {'t': arg(1)}),
+    'offline' => context.t('offline_wait'),
+    'book_chapter' || 'slides_section' => context.t(p[0], {'n': arg(1), 't': arg(2)}),
+    'waiting' => context.t('waiting', {'s': arg(1)}),
+    'orchestrating' => context.t('orchestrating', {'n': arg(1)}),
+    'log_route' => context.t('log_route', {'m': arg(1)}),
+    'log_switched' => context.t('log_switched', {'m': arg(1)}),
+    'log_reviewed' => context.t('log_reviewed', {'m': arg(1)}),
+    'part_running' => context.t('part_running', {'n': arg(1)}),
+    'part_done' => context.t('part_done', {'n': arg(1), 'm': arg(2)}),
+    'part_failed' => context.t('part_failed', {'n': arg(1)}),
+    'synthesizing' => context.t('synthesizing', {'n': arg(1)}),
+    _ => context.t(p[0]),
+  };
+}
+
+/// Une ligne qui dit ce que fait Tontolo (modèle · action · pourcentage) avec une barre
+/// d'avancement ; un toucher ouvre le détail. Remplace le long texte qui défile.
+class _ProgressLine extends StatefulWidget {
+  const _ProgressLine(this.chat);
+  final ChatController chat;
+
+  @override
+  State<_ProgressLine> createState() => _ProgressLineState();
+}
+
+class _ProgressLineState extends State<_ProgressLine> {
+  Timer? _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    _tick = Timer.periodic(const Duration(milliseconds: 500), (_) => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  String _summary(BuildContext context) {
+    final chat = widget.chat;
+    final pr = chat.progress;
+    final status = chat.status;
+    if (pr.partsTotal > 0 && pr.parts.isNotEmpty && (status == null || status.startsWith('orchestrating') || status == 'plan_running')) {
+      final ready = pr.parts.values.where((p) => p.$1 == 'done' || p.$1 == 'failed').length;
+      final models = {for (final p in pr.parts.values) if (p.$2.isNotEmpty) p.$2};
+      final who = models.length > 1 ? context.t('n_models', {'n': '${models.length}'}) : models.join();
+      return [if (who.isNotEmpty) who, context.t('parts_progress', {'k': '$ready', 'n': '${pr.partsTotal}'})].join(' · ');
+    }
+    final action = status != null
+        ? progressText(context, status)
+        : context.t(pr.chars > 0 ? 'role_writing' : 'role_starting');
+    final who = pr.model;
+    return who == null || who.isEmpty ? action : '$who · $action';
+  }
+
+  void _details(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => ListenableBuilder(
+        listenable: widget.chat,
+        builder: (context, _) {
+          final log = widget.chat.progress.log;
+          final small = Theme.of(context).textTheme.bodySmall;
+          return SafeArea(
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Text(context.t('progress_details'), style: Theme.of(context).textTheme.titleMedium),
+              ),
+              Flexible(
+                child: ListView(shrinkWrap: true, padding: const EdgeInsets.fromLTRB(20, 0, 20, 16), children: [
+                  for (final e in log)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 3),
+                      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        SizedBox(
+                          width: 44,
+                          child: Text('${e.at.inMinutes}:${(e.at.inSeconds % 60).toString().padLeft(2, '0')}',
+                              style: small?.copyWith(fontFeatures: const [FontFeature.tabularFigures()])),
+                        ),
+                        Expanded(child: Text(progressText(context, e.status))),
+                      ]),
+                    ),
+                ]),
+              ),
+            ]),
+          );
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final text = status == 'thinking'
-        ? context.t('thinking')
-        : status.startsWith('tool|')
-        ? '⚙ ${status.substring(5)}'
-        : status.startsWith('offline|')
-        ? context.t('offline_wait')
-        : status.startsWith('book_chapter|') || status.startsWith('slides_section|')
-            ? context.t(status.split('|')[0], {'n': status.split('|')[1], 't': status.split('|')[2]})
-        : status.startsWith('waiting|')
-            ? context.t('waiting', {'s': status.substring(8)})
-        : status.startsWith('orchestrating|')
-            ? context.t('orchestrating', {'n': status.substring(14)})
-            : context.t(status);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
-      child: Row(children: [
-        const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
-        const SizedBox(width: 8),
-        Text(text, style: Theme.of(context).textTheme.bodySmall),
-      ]),
+    final pct = widget.chat.progress.percent();
+    final scheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: () => _details(context),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Row(children: [
+            Expanded(
+              child: Text(_summary(context),
+                  maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.bodySmall),
+            ),
+            const SizedBox(width: 8),
+            Text('${pct.round()} %', style: Theme.of(context).textTheme.labelSmall?.copyWith(color: scheme.primary)),
+            Icon(Icons.expand_less, size: 16, color: scheme.outline),
+          ]),
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(2),
+            child: LinearProgressIndicator(value: pct / 100, minHeight: 3),
+          ),
+        ]),
+      ),
     );
   }
 }

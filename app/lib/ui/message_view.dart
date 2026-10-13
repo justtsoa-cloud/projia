@@ -197,9 +197,9 @@ class _Reasoning extends StatelessWidget {
   Widget build(BuildContext context) {
     final style = Theme.of(context).textTheme.bodySmall
         ?.copyWith(color: Theme.of(context).hintColor);
-    final tail = text.length > 160
-        ? '…${text.substring(text.length - 160)}'
-        : text;
+    // Pas de défilement du texte brut (souvent en anglais) : une ligne courte et stable ;
+    // le détail complet reste à un toucher.
+    final words = RegExp(r'\S+').allMatches(text).length;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Theme(
@@ -219,14 +219,7 @@ class _Reasoning extends StatelessWidget {
             live ? context.t('thinking') : context.t('thought'),
             style: style,
           ),
-          subtitle: live
-              ? Text(
-                  tail,
-                  style: style,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                )
-              : null,
+          subtitle: live ? Text(context.t('thinking_detail', {'n': '$words'}), style: style) : null,
           children: [SelectableText(text, style: style)],
         ),
       ),

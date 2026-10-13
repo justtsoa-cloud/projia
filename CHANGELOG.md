@@ -5,6 +5,14 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+### Ajouté
+- Suivi d'une réponse en cours : une ligne « modèle · ce qu'il fait · pourcentage » avec une
+  barre d'avancement estimée (étapes, texte reçu, temps écoulé ; jamais en recul). Un toucher
+  ouvre « Ce que fait Tontolo » : le journal horodaté (modèle choisi, bascules, outils,
+  parties confiées à plusieurs modèles, relecture).
+- La réflexion du modèle n'est plus un texte brut qui défile : une ligne courte, le détail
+  complet à un toucher.
+
 ### Corrigé
 - Formules dans une phrase : le texte qui suit n’est plus rejeté à la ligne suivante
   (« … en gras a²+b²=c², puis … » reste sur la même ligne) ; une formule `$$…$$` seule sur
