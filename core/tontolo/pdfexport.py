@@ -23,7 +23,7 @@ _HELV = [278, 278, 355, 556, 556, 889, 667, 191, 333, 333, 389, 584, 278, 333, 2
          944, 667, 667, 611, 278, 278, 278, 469, 556, 333, 556, 556, 500, 556, 556, 278,
          556, 556, 222, 222, 500, 222, 833, 556, 556, 556, 556, 333, 500, 278, 556, 500,
          722, 500, 500, 500, 334, 260, 334, 584]
-_SUBST = {"→": "->", "←": "<-", "⇒": "=>", "≤": "<=", "≥": ">=", "≠": "!=", "×": "x",
+_SUBST = {"\u2010": "-", "\u2011": "-", "\u2012": "-", "\u2015": "-", "\u2212": "-", "→": "->", "←": "<-", "⇒": "=>", "≤": "<=", "≥": ">=", "≠": "!=", "×": "x",
           "−": "-", "✓": "v", "✔": "v", "✗": "x", "\t": "    ", " ": " ", " ": " "}
 
 
@@ -81,8 +81,21 @@ def _wrap(text: str, size: float, font: str, width: float) -> list[str]:
     return lines
 
 
+_TABLE_SEP = re.compile(r"^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?$")
+
+
+def _table_row(line: str) -> str | None:
+    """Ligne de tableau Markdown → cellules séparées par « | » ; la ligne de séparation
+    (|---|---|) est supprimée (None)."""
+    if _TABLE_SEP.match(line):
+        return None
+    cells = [c.strip() for c in line.strip().strip("|").split("|")]
+    return "  |  ".join(c for c in cells if c)
+
+
 def _inline(text: str) -> str:
     """Marques Markdown en ligne retirées (gras, italique, code, liens)."""
+    text = re.sub(r"<(https?://[^>\s]+)>", r"\1", text)
     text = re.sub(r"\[([^\]]+)\]\((https?://[^)]+)\)", r"\1 (\2)", text)
     text = re.sub(r"(\*\*|__)(.+?)\1", r"\2", text)
     text = re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"\1", text)
@@ -118,6 +131,14 @@ def _layout(title: str, turns: list[tuple[str, str, str]]) -> list[_Line]:
             line = raw.strip()
             if not line:
                 gap = 5.0
+                continue
+            if line.startswith("|") and line.count("|") >= 2:
+                row = _table_row(line)
+                if row is None:
+                    continue
+                line = row
+            elif re.fullmatch(r"-{3,}|\*{3,}|_{3,}", line):
+                gap = 8.0  # filet horizontal Markdown : simple espace
                 continue
             font, size = "F1", BODY
             if m := re.match(r"(#{1,6})\s+(.*)", line):

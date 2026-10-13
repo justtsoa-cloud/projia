@@ -17,7 +17,7 @@ from tontolo import (
     importer,
     pdfexport,
 )
-from tontolo.agent import planner
+from tontolo.agent import openlinks, planner
 from tontolo.agent.loop import dumps
 from tontolo.app_state import Core
 from tontolo.catalog.models import Category
@@ -184,6 +184,12 @@ def register(app: FastAPI, hub: Hub, ws_connects: RateLimiter) -> None:
                 break                     # on ne montre pas le refus
             yield ev
         answer = str(((final or {}).get("message") or {}).get("content") or "")
+        if (final is not None and not switch and not (final.get("message") or {}).get("tool_calls")
+                and openlinks.wants_open(text)
+                and not (await core.db.get_mode(cid)).startswith("agent")):
+            urls = openlinks.links_in(answer)
+            if urls:  # « Ouvre le site… » : bouton sous la réponse (navigateur de l'appareil)
+                yield {"type": "open_links", "urls": urls}
         if (not switch and final is not None and core.settings.team_review
                 and topic in REVIEWED_TOPICS and len(answer) > 80
                 and "```quiz" not in answer and "```flashcards" not in answer

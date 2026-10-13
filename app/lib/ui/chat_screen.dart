@@ -824,6 +824,19 @@ class _Notice extends StatelessWidget {
   Widget build(BuildContext context) {
     final parts = raw.split('|');
     final scheme = Theme.of(context).colorScheme;
+    if (parts.first == 'openlinks') {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        child: Wrap(spacing: 8, runSpacing: 6, children: [
+          for (final url in parts.skip(1))
+            FilledButton.tonalIcon(
+              icon: const Icon(Icons.open_in_new, size: 18),
+              label: Text(context.t('open_site', {'site': Uri.tryParse(url)?.host.replaceFirst('www.', '') ?? url})),
+              onPressed: () => openSafeLink(url),
+            ),
+        ]),
+      );
+    }
     final (icon, text, color, action) = switch (parts.first) {
       'switched' => (
           Icons.swap_horiz,

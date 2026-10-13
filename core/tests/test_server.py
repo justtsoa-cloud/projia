@@ -1282,3 +1282,16 @@ def test_local_metrics(client: TestClient) -> None:
     assert 'tontolo_model_calls_total{model="fake:' in text and 'result="ok"' in text
     assert "tontolo_uptime_seconds" in text and "tontolo_models_usable" in text
     assert "Bonjour" not in text  # aucun contenu de discussion
+
+
+def test_pdf_export_cleans_markdown_tables_and_odd_hyphens() -> None:
+    from tontolo import pdfexport
+
+    assert pdfexport._clean("ci‑dessus") == "ci-dessus"  # trait d'union insécable
+    assert pdfexport._table_row("|---|:---:|---|") is None
+    assert pdfexport._table_row("| Site | Lien |") == "Site  |  Lien"
+    assert pdfexport._inline("voir <https://tryhackme.com>") == "voir https://tryhackme.com"
+    turns = [("Vous", "", "Table :\n| A | B |\n|---|---|\n| 1 | 2 |\n\n---\n\nFin ci‑dessus")]
+    laid = [ln.text for ln in pdfexport._layout("T", turns)]
+    assert "A | B" in laid and "1 | 2" in laid and "Fin ci-dessus" in laid
+    assert not any(set(t) <= set("|-: ") and "-" in t for t in laid)  # plus de |---|

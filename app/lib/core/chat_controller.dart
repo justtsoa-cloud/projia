@@ -688,6 +688,10 @@ class ChatController extends ChangeNotifier {
               : '${ev['step']}' == 'book_chapter' || '${ev['step']}' == 'slides_section'
                   ? '${ev['step']}|${ev['n']}|${ev['total']}'
                   : '${ev['step']}';
+        case 'open_links':
+          // « Ouvre le site… » : un bouton par lien, sous la réponse (navigateur de l'appareil).
+          final urls = ((ev['urls'] as List?) ?? const []).map((u) => '$u').where((u) => !u.contains('|'));
+          if (urls.isNotEmpty) messages.add(ChatMessage(role: 'notice', text: 'openlinks|${urls.join('|')}'));
         case 'review':
           // Équipe de modèles : verdict du second modèle sur la réponse qui vient d'arriver.
           status = null;

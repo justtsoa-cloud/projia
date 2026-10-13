@@ -6,6 +6,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 ## [Non publié]
 
 ### Corrigé
+- Export PDF : tableaux Markdown lisibles (plus de lignes |---|), liens `<…>` nettoyés, trait
+  d'union insécable (« ci‑dessus » s'affichait « ci?dessus »).
 - Synchronisation : deux appareils qui continuaient la même discussion hors ligne perdaient les
   messages de l'appareil le moins récent. Ils sont désormais gardés dans une copie « (autre
   appareil) ». Une suppression reste une suppression ; une réponse régénérée remplace l'ancienne.

@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Any
 
 from tontolo import documents, metrics
-from tontolo.agent import browser, planner
+from tontolo.agent import browser, openlinks, planner
 from tontolo.agent.mcp_client import McpManager
 from tontolo.agent.taskstore import TOOL_INLINE, TaskStore
 from tontolo.agent.terminal import TerminalManager
@@ -851,6 +851,8 @@ class ChatService:
             # Du moins prioritaire au plus prioritaire (le plus proche de la demande compte le
             # plus) : mémoire → dossier partagé (si activé) → documents du fil → fil.
             messages = [self._system(await self.db.get_mode(cid))]
+            if not mode.startswith("agent") and openlinks.wants_open(_last_user_text(recent)):
+                messages[0]["content"] += "\n\n" + openlinks.HINT
             mem_block = self.memory.system_block(
                 await self.memory.recall(question, thread=cid))
             if mem_block is not None:
