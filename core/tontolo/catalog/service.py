@@ -8,6 +8,7 @@ import json
 import logging
 import re
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 from tontolo import http, secrets, security
@@ -87,8 +88,32 @@ class CatalogService:
             # Premier lancement : catalogues rapides d'abord (quelques secondes) ; les
             # classements, plus lents, arrivent ensuite en arrière-plan.
             await self._build(SourceCache(self.cache_dir), record=True, quick=True)
+            if not self._has_remote_models():
+                self._load_seed()  # hors ligne au premier lancement : instantané embarqué
             self.refresh_in_background()
         return self.catalog
+
+    def _has_remote_models(self) -> bool:
+        return any(m.provider not in ("local", "hf_spaces", *local_llm.PROVIDERS)
+                   for m in self.catalog.models.values())
+
+    def _load_seed(self) -> None:
+        """Instantané de secours (modèles gratuits sans clé, scores compris) livré avec le
+        cœur : jamais un premier lancement sans aucun modèle. Remplacé dès le premier
+        catalogue téléchargé."""
+        try:
+            data = json.loads((Path(__file__).parent / "seed.json").read_text("utf-8"))
+        except (OSError, ValueError):
+            return
+        for pid, p in data.get("providers", {}).items():
+            self.catalog.providers.setdefault(pid, p)
+        for row in data.get("models", []):
+            try:
+                m = ModelInfo(**row)
+            except ValueError:
+                continue
+            self.catalog.models.setdefault(m.key, m)
+        log.info("Catalogue de secours embarqué utilisé (%d modèles)", len(data.get("models", [])))
 
     async def refresh(self, force: bool = False) -> list[dict[str, Any]]:
         return await self._build(SourceCache(self.cache_dir), force=force, record=True)

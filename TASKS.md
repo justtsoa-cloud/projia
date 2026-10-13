@@ -379,7 +379,7 @@ Inexact : pièces jointes envoyées en multipart (pas en base64), historique du 
 - [x] R7 (P1). Banc rapide en CI (régression de performance du cœur)
 - [ ] R8 (P1). server/app.py découpé en routeurs (chat, fichiers, réglages, sync, MCP…) sans changer l'API
 - [ ] R9 (P1). Tests Flutter des écrans (réglages, carte de questions, notes, quiz)
-- [ ] R10 (P1). Catalogue de secours embarqué (premier lancement hors ligne)
+- [x] R10 (P1). Catalogue de secours embarqué : `catalog/seed.json` (40 modèles gratuits sans clé, 17 Ko, régénéré par `scripts/catalog_seed.py`) utilisé si ni cache ni réseau au premier lancement ; jamais prioritaire sur un catalogue téléchargé. Roue 289 Ko (budget 300)
 - [ ] R11 (P2). MCP stdio sous bubblewrap s'il est installé (Linux, facultatif)
 - [ ] R12 (P2). Export PDF d'une discussion
 Écarté (contraire à la philosophie ou hors cible) : iOS (compte Apple payant), microservices / RBAC / multi-utilisateurs (application personnelle locale), nsjail ou Firecracker obligatoires (trop lourds : R11 à la place), terminal « sandboxé » (c'est le terminal de l'utilisateur, local et volontaire), OWASP ZAP / sqlmap (API locale ; fuzz + bandit + pip-audit suffisent), place de marché de plugins (fournisseurs personnalisés + MCP), pile Prometheus/Grafana (R6 seulement), renommer le service du trousseau (casserait les clés existantes), TTL du catalogue (déjà rafraîchi en arrière-plan à chaque usage).
