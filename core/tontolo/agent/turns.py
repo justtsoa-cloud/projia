@@ -93,6 +93,23 @@ def _awaits_user(ev: dict[str, Any]) -> str:
     return ""
 
 
+def storage_error_code(exc: BaseException) -> str | None:
+    """`storage_full` (disque plein) ou `storage_busy` (base verrouillée) pour une panne de
+    stockage, sinon None : l'application l'explique et propose de réessayer."""
+    import errno
+    import sqlite3
+
+    if isinstance(exc, OSError) and exc.errno in (errno.ENOSPC, errno.EDQUOT):
+        return "storage_full"
+    if isinstance(exc, sqlite3.Error):
+        text = str(exc).lower()
+        if "disk is full" in text or "no space" in text:
+            return "storage_full"
+        if "locked" in text or "busy" in text:
+            return "storage_busy"
+    return None
+
+
 class TurnManager:
     def __init__(self) -> None:
         self.turns: dict[str, Turn] = {}
@@ -130,7 +147,13 @@ class TurnManager:
                         self.waiting[conversation_id] = reason
             except Exception as exc:  # une erreur inattendue ne doit pas rester muette
                 log.exception("Tour en échec")
-                turn.push({"type": "error", "message": f"Erreur interne : {type(exc).__name__}"})
+                code = storage_error_code(exc)
+                if code:  # disque plein ou base occupée : message précis, la reprise est possible
+                    turn.push({"type": "error", "code": code,
+                               "message": "Stockage indisponible : " + code})
+                else:
+                    turn.push({"type": "error",
+                               "message": f"Erreur interne : {type(exc).__name__}"})
 
         def finalize(task: asyncio.Task[None]) -> None:
             # Appelé dans tous les cas, y compris une annulation avant le premier démarrage.

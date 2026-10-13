@@ -79,7 +79,7 @@ Légende : `[x]` fait · `[~]` en cours · `[ ]` à faire
 - [x] Compatibilité Android 10 (API 29) → dernière version, testée sur émulateur API 29 et 36
 - [x] Audit de sécurité et corrections (CSRF/DNS rebinding, SSRF, épinglage des fournisseurs,
       liens, calculatrice, MCP distant, journaux, mises à jour)
-- [ ] Tests, CI, push GitHub, release v0.2.0
+- [x] Tests, CI, push GitHub, release v0.2.0 (publiée ; versions jusqu'à 0.6.2 depuis)
 
 - [x] Bascule sans clé : Kilo Code, LLM7, OVHcloud (signalé le 2026-10-10)
 
@@ -138,7 +138,7 @@ Règle : chaque étape est livrée seule (tests verts, rien de cassé), puis pub
 - [x] 7. Documents : PDF / page web → questions avec citations des passages
 - [x] 8. Dossiers de discussions + recherche plein texte
 - [~] 9. Partage d'une discussion : page web faite (0.2.11) ; image d'une réponse à faire
-- [ ] 10. Dictée vocale + mode conversation mains libres
+- [~] 10. Dictée vocale faite (menu +, « Dicter ») ; mode conversation mains libres à faire
 - [ ] 11. Design : thème coloré enfantin-sérieux aligné sur le logo (palette, typographie, animations légères)
 - [ ] 12. Android : widget d'écran d'accueil + raccourci « Demander à Tontolo »
 - [ ] 13. Tablette / bureau : volet permanent + deux colonnes (discussion / aperçu)
@@ -155,7 +155,7 @@ Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cass�
 - [x] F2. Réglages simplifiés : proposer les serveurs d'API payants avec plafond de dépense (simple)
 - [x] Essai émulateur : cache (« Efa novaliana… », réponse instantanée), écran avancé (fournisseurs, exclusions, enchaînement ajouté puis retiré, délais) OK ; date du cache localisée
 - [x] F3. Noms et descriptions des fournisseurs intégrés en anglais et malgache (cœur : champ i18n ; app : providerText)
-- [ ] F3. Mode Apprendre (élèves / étudiants), inspiré de Khanmigo, MagicSchool, MIA Seconde, Dinobot : bascule Général / Apprendre bien visible, niveau scolaire, guidage pas à pas sans donner la réponse, indices, quiz interactifs, fiches, correction d'exercice en photo, plan de révision
+- [x] F3. Mode Apprendre (élèves / étudiants), inspiré de Khanmigo, MagicSchool, MIA Seconde, Dinobot : bascule Général / Apprendre bien visible, niveau scolaire, guidage pas à pas sans donner la réponse, indices, quiz interactifs, fiches, correction d'exercice en photo, plan de révision
 - [~] F4. Comptes et synchronisation chiffrée : code, tests, SQL et doc faits ; Supabase configuré le 2026-10-11 (table sync_items + RLS vérifiées, URL de retour localhost:43823, **connexion GitHub active**) ; reste : Google (facultatif), essai de connexion réel sur téléphone par l'auteur, relecture du protocole par Codex
 - [x] F5. Guide de publication : Play Store, F-Droid, dépôts Linux (Flathub, AUR, Snap, .deb)
 - [x] F6. Audit de vulnérabilités + compatibilité de saut de mise à jour (0.2.0 → 0.3.0) sur émulateur
@@ -190,8 +190,8 @@ Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cass�
 - [x] Configurer le consentement et le client OAuth Web Google avec le callback exact du projet Supabase ; conserver GitHub. Configuration créée et secret enregistré par le propriétaire.
 - [x] Activer Google dans Supabase, sans placer le secret OAuth dans le dépôt ou dans l’application. Google et GitHub ENABLED vérifiés ; retour http://localhost:43823/ autorisé ; dossier de clés ignoré et permissions privées.
 - [x] (connexion Google testée par le propriétaire le 2026-10-12) Tester connexion, annulation, retour Android/Linux, déconnexion et reconnexion ; vérifier GitHub également.
-- [ ] Relire le protocole de synchronisation séparément et vérifier la conservation des données.
-- [ ] Réconcilier les anciennes cases non cochées (publication 0.2.0, F3 Apprendre) avec les preuves de livraison ; ne pas les considérer automatiquement comme fonctionnalités absentes.
+- [x] Relire le protocole de synchronisation séparément et vérifier la conservation des données. Relu le 2026-10-13 : (1) BUG trouvé — deux appareils qui continuent la même discussion hors ligne : le plus récent écrasait l'autre et ses messages disparaissaient. Corrigé : les messages que l'autre appareil n'a pas vus sont gardés dans une copie « (autre appareil) » qui se synchronise aussi ; une réponse régénérée ailleurs reste remplacée ; une suppression reste une suppression. (2) Reste voulu : dernier écrit gagne pour titre, épingle, dossier. 4 tests (`test_sync_conflict.py`).
+- [x] Réconcilier les anciennes cases non cochées (publication 0.2.0, F3 Apprendre) avec les preuves de livraison ; ne pas les considérer automatiquement comme fonctionnalités absentes.
 
 - [x] (2026-10-12 : essai Google réel par le propriétaire réussi) Google reste en statut Testing sans utilisateurs de test : ajouter un testeur autorisé avant essai ; compléter présentation/confidentialité avant publication publique.
 - [x] Tests ciblés PKCE et synchronisation : 5 tests réussis ; ne constitue pas un essai OAuth réel Android/Linux.
@@ -263,7 +263,7 @@ l'emploi ; bureau Linux = fichiers + commandes confirmées dans un dossier chois
 Règle : tout test, bug trouvé et optimisation est noté ici au fur et à mesure.
 - [x] E1. (fait : core/bench/b1–b4 ; résultats dans docs/ENDURANCE.md) Bancs d'essai du cœur (fournisseurs simulés) : très longue discussion (milliers de messages, images, vidéos, fichiers), nombreuses discussions, tours en parallèle, arrêt/reprise, mémoire, synchro ; mesurer temps et mémoire
 - [x] E2. Essais réels avec modèles gratuits : livre long, projet multi-fichiers, plan complexe en parallèle, chaîne de corrections, agent avec outils
-- [ ] E3. Robustesse : entrées extrêmes (énormes, Unicode, injections), pannes de fournisseurs, coupures réseau, base verrouillée, disque plein
+- [x] E3. Robustesse : entrées extrêmes (énormes, Unicode, injections), pannes de fournisseurs, coupures réseau, base verrouillée, disque plein (fuzz, bancs, `test_resilience.py` : stockage plein ou occupé = erreur lisible traduite, le serveur reste vivant et reprend sans redémarrage)
 - [x] E4. Fuites et croissance : terminaux, onglets, résultats de tâches, caches, tâches de fond, connexions
 - [ ] E5. Application : longue discussion à l'écran (défilement, mémoire), arrière-plan Android, synchro de gros volumes
 - [ ] E6. Correctifs et optimisations issus de E1–E5 (liste ci-dessous, au fil de l'eau)

@@ -1,16 +1,19 @@
-// Thème Material You : bleu indigo + vert menthe + blanc cassé, clair et sombre.
+// Thème Material You aligné sur le logo : bleu indigo (fond), vert menthe (l'Afrique et l'anneau),
+// orange (Madagascar) en accent, blanc cassé ; clair et sombre.
 // Contrastes vérifiés WCAG AA pour le texte principal.
 
 import 'package:flutter/material.dart';
 
 const indigo = Color(0xFF3F51B5);
 const mint = Color(0xFF3EB489);
+const madagascar = Color(0xFFE8672A); // orange du logo, accent (tertiaire)
 const offWhite = Color(0xFFFAF9F6);
 
 ThemeData buildTheme(Brightness brightness, {bool reduceMotion = false}) {
   final scheme = ColorScheme.fromSeed(
     seedColor: indigo,
     secondary: mint,
+    tertiary: madagascar,
     brightness: brightness,
     surface: brightness == Brightness.light ? offWhite : null,
   );

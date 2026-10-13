@@ -785,6 +785,8 @@ String _errorText(BuildContext context, List<String> parts) {
     'strict_waiting' => context.t('err_strict'),
     'agent_timeout' => context.t('err_agent_timeout'),
     'agent_steps' => context.t('err_agent_steps'),
+    'storage_full' => context.t('err_storage_full'),
+    'storage_busy' => context.t('err_storage_busy'),
     _ => parts.length > 3 ? parts.sublist(3).join('|') : context.t('error_generic'),
   };
   if (at != null) {

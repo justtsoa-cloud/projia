@@ -871,6 +871,8 @@ class Database:
         row = await self._fetchone("SELECT updated_at FROM conversations WHERE id = ?", (cid,))
         if row is not None and float(row["updated_at"]) >= float(conv["updated_at"]):
             return False
+        if row is not None and not int(conv.get("deleted") or 0):
+            await self._keep_diverged_copy(cid, conv)
         values = {k: conv.get(k) for k in self._CONV_SYNC_COLS}
         values.update(title=str(values["title"] or "")[:200], deleted=int(values["deleted"] or 0),
                       pinned=int(values["pinned"] or 0), folder=str(values["folder"] or "")[:60],
@@ -892,6 +894,40 @@ class Database:
                  m.get("model"), float(m["created_at"]), float(m["updated_at"])))
         await self.conn.commit()
         return True
+
+
+
+    async def _keep_diverged_copy(self, cid: str, remote: dict[str, Any]) -> None:
+        """Avant que la version distante (plus récente) remplace la version locale : si celle-ci
+        contient des messages que l'autre appareil n'a jamais vus (les deux ont continué la
+        discussion hors ligne), ils sont conservés dans une copie « autre appareil ». Seule
+        une réponse régénérée ailleurs (un seul message d'assistant remplacé) est écartée."""
+        remote_uids = {str(m["uid"]) for m in remote.get("messages") or []}
+        local = await self._fetchall(
+            "SELECT uid, seq, role, body, model, created_at, updated_at FROM messages "
+            "WHERE conversation_id = ? ORDER BY seq", (cid,))
+        only = [r for r in local if r["uid"] not in remote_uids]
+        if not only or (len(only) == 1 and only[0]["role"] == "assistant"):
+            return
+        head = await self._fetchone(
+            "SELECT title, created_at, pinned, folder, mode FROM conversations WHERE id = ?",
+            (cid,))
+        if head is None:
+            return
+        copy_id = uuid.uuid4().hex
+        ts = now()
+        label = " (autre appareil)"
+        title = (str(head["title"] or "")[: 200 - len(label)]) + label
+        await self.conn.execute(
+            """INSERT INTO conversations(id, title, created_at, updated_at, deleted, pinned,
+               folder, mode) VALUES (?, ?, ?, ?, 0, 0, ?, ?)""",
+            (copy_id, title, head["created_at"], ts, head["folder"], head["mode"]))
+        for r in local:
+            await self.conn.execute(
+                """INSERT INTO messages(uid, conversation_id, seq, role, body, model, created_at,
+                   updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                (uuid.uuid4().hex, copy_id, r["seq"], r["role"], r["body"], r["model"],
+                 r["created_at"], r["updated_at"]))
 
 
 _SYNC_ROLES = frozenset({"user", "assistant", "tool", "system"})

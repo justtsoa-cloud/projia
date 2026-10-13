@@ -5,6 +5,13 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+### Corrigé
+- Synchronisation : deux appareils qui continuaient la même discussion hors ligne perdaient les
+  messages de l'appareil le moins récent. Ils sont désormais gardés dans une copie « (autre
+  appareil) ». Une suppression reste une suppression ; une réponse régénérée remplace l'ancienne.
+- Disque plein ou mémoire de Tontolo occupée : message clair (fr/en/mg) au lieu de « Erreur
+  interne », et reprise sans redémarrage.
+
 ### Modifié
 - Nouveau logo : l'Afrique et Madagascar (en orange), un anneau ouvert aux extrémités effilées
   et un « T » fin à boucle posé sur le continent ; l'Afrique s'estompe vers le nord et le cercle
