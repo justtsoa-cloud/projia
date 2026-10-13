@@ -1,0 +1,56 @@
+{
+  "shot": "video",
+  "lang": {
+    "fr": {
+      "tagline": "Nouveautés", "date": "13 octobre 2026",
+      "hero": ["Tontolo voit aussi", "vos vidéos"],
+      "sub": "Et vos discussions s'exportent en PDF.",
+      "steps": [
+        ["Joignez une vidéo de", "cours (+ › Photo ou fichier)"],
+        ["Demandez : « que montre", "ce clip, et quel exemple", "y voit-on ? »"],
+        ["Réponse tirée du son et", "des images : formules,", "tableau, diapositives"]
+      ],
+      "also": "Aussi dans cette version",
+      "items": [
+        ["Discussions en PDF", ["Menu ⋮ › « Exporter en PDF » : fabriqué", "sur l'appareil, rien n'est envoyé."]],
+        ["Prêt même hors ligne", ["Au premier lancement sans Internet,", "40 modèles gratuits sont déjà là."]],
+        ["Outils locaux isolés", ["Linux : serveurs MCP dans un bac à sable,", "vos clés et dossiers restent cachés."]]
+      ],
+      "footer": "Gratuit · Android · Linux"
+    },
+    "en": {
+      "tagline": "What's new", "date": "October 13, 2026",
+      "hero": ["Tontolo now sees", "your videos"],
+      "sub": "And your chats export to PDF.",
+      "steps": [
+        ["Attach a lesson video", "(+ › Photo or file)"],
+        ["Ask: “what does this video", "show, and what example", "is given?”"],
+        ["An answer from the sound", "and the images: formulas,", "board, slides"]
+      ],
+      "also": "Also in this version",
+      "items": [
+        ["Chats as PDF", ["Menu ⋮ › “Export as PDF”: made on the", "device, nothing is sent."]],
+        ["Ready even offline", ["On first launch without Internet,", "40 free models are already there."]],
+        ["Isolated local tools", ["Linux: MCP servers in a sandbox, your", "keys and folders stay hidden."]]
+      ],
+      "footer": "Free · Android · Linux"
+    },
+    "mg": {
+      "tagline": "Vaovao", "date": "13 Oktobra 2026",
+      "hero": ["Hitan'i Tontolo koa", "ny horonan-tsarinao"],
+      "sub": "Ary avoaka PDF ny resakao.",
+      "steps": [
+        ["Ampiarahonao horonan-tsary", "lesona (+ › Sary na rakitra)"],
+        ["Angataho: « inona no asehon'ity", "horonan-tsary ity, ary inona", "no ohatra omena? »"],
+        ["Valiny avy amin'ny feo sy", "ny sary: raikipohy,", "solaitrabe, takelaka"]
+      ],
+      "also": "Ao amin'ity dikan-teny ity koa",
+      "items": [
+        ["Resaka ho PDF", ["Menu ⋮ › « Avoahy PDF »: atao eo amin'ny", "fitaovana, tsy misy alefa."]],
+        ["Vonona na tsy misy Internet", ["Amin'ny fampandehanana voalohany, efa", "eo ny modely maimaim-poana 40."]],
+        ["Fitaovana eo an-toerana voaaro", ["Linux: mpizara MCP ao anaty fefy, miafina", "ny fanalahidinao sy ny laha-tahirinao."]]
+      ],
+      "footer": "Maimaim-poana · Android · Linux"
+    }
+  }
+}

@@ -102,7 +102,7 @@ def test_jpeg_size() -> None:
     "Crée une vidéo d'un chat qui danse", "fais-moi une courte vidéo de la mer",
     "génère un clip d'une fusée", "une vidéo de dauphins au coucher du soleil",
     "make a video of a dragon", "Mamorona horonan-tsary",
-    "Montre-moi une vidéo d'un chat qui danse",
+    "Montre-moi une vidéo d'un chat qui danse", "Manaova horonan-tsary fohy momba ny ranomasina",
 ])
 def test_video_requests(text: str) -> None:
     assert classify([{"role": "user", "content": text}]).category == Category.VIDEO_GEN
@@ -113,6 +113,7 @@ def test_video_requests(text: str) -> None:
     "comment monter une vidéo sur YouTube", "résume la vidéo d'hier",
     "Que montre la vidéo jointe, et quel exemple y est donné ?",
     "fais un résumé de cette vidéo", "explique ma vidéo",
+    "Inona no asehon'ity horonan-tsary ity, ary inona no ohatra omena?",
 ])
 def test_video_mentions_are_not_generation(text: str) -> None:
     assert classify([{"role": "user", "content": text}]).category != Category.VIDEO_GEN
@@ -234,3 +235,15 @@ async def test_photo_edit_with_flux_kontext(monkeypatch: pytest.MonkeyPatch) -> 
     assert calls["data"][1] == "put it in a public square"
     with pytest.raises(ProviderError):
         await mp.generate_image(model, {}, "x", {})  # pas de photo
+
+
+@pytest.mark.parametrize(("text", "music"), [
+    ("Compose une musique de fond calme", True), ("Crée une chanson sur la pluie", True),
+    ("une musique de fond pour une vidéo", True), ("make a song about cats", True),
+    ("Mamorona hira momba ny ranomasina", True), ("Fais-moi un bruitage de porte", True),
+    ("Que raconte cette musique ?", False), ("Hazavao ny hira", False),
+    ("Quelle est ta chanson préférée ?", False),
+])
+def test_music_needs_a_creation_request(text: str, music: bool) -> None:
+    got = classify([{"role": "user", "content": text}]).category
+    assert (got == Category.MUSIC_SFX) is music

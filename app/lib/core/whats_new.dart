@@ -14,6 +14,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.6.1': [
+    NewsItem(Icons.movie_outlined, 'Tontolo voit aussi vos vidéos',
+        'Joignez une vidéo de cours et demandez « que montre la vidéo ? » : Tontolo écoute le son et regarde les images clés (diapositives, tableau, formules), même dans une vidéo muette.',
+        'Tontolo now sees your videos', 'Attach a lesson video and ask “what does the video show?”: Tontolo listens to the sound and looks at the key frames (slides, board, formulas), even in a silent video.',
+        mg: 'Hitan\'i Tontolo koa ny horonan-tsarinao', mgText: 'Ampiarahonao horonan-tsary lesona ary angataho hoe « inona no asehon\'ny horonan-tsary? »: henoin\'i Tontolo ny feo ary jereny ny sary manan-danja (takelaka, solaitrabe, raikipohy), na horonan-tsary tsy misy feo aza.'),
+    NewsItem(Icons.picture_as_pdf_outlined, 'Vos discussions en PDF',
+        'Menu ⋮ › « Exporter en PDF » : la discussion devient un PDF à partager, fabriqué sur l\'appareil. Et au tout premier lancement sans Internet, des modèles gratuits sont déjà prêts.',
+        'Your chats as PDF', 'Menu ⋮ › “Export as PDF”: the chat becomes a PDF to share, made on the device. And on the very first launch without Internet, free models are already ready.',
+        mg: 'PDF ny resakao', mgText: 'Menu ⋮ › « Avoahy PDF »: lasa PDF azo zaraina ny resaka, atao eo amin\'ny fitaovana. Ary amin\'ny fampandehanana voalohany tsy misy Internet, efa vonona ny modely maimaim-poana.'),
+  ],
   '0.6.0': [
     NewsItem(Icons.quiz_outlined, 'Votre cours devient un quiz interactif',
         'En mode Apprendre, joignez votre cours (PDF, Word…) et demandez « crée un quiz de 5 questions sur ce fichier » : vous répondez en touchant, avec le score et les explications à la fin.',

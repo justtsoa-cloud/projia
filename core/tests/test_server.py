@@ -1190,6 +1190,42 @@ def test_video_keyframes_described_even_without_sound(client: TestClient, tmp_pa
     assert r.json()["pages"] == 1  # pas de transcription : seulement les images clés
 
 
+def test_video_frames_from_the_app_are_used(client: TestClient,
+                                            monkeypatch: pytest.MonkeyPatch) -> None:
+    """Android (sans ffmpeg) : les images clés extraites par l'application sont décrites ;
+    une pièce qui n'est pas un JPEG est ignorée."""
+    import shutil
+
+    from tontolo.creator.service import CreatorService
+    from tontolo.media.service import MediaService
+
+    seen: list[Any] = []
+
+    async def ask(self: Any, messages: Any, **kw: Any) -> tuple[str, str, str]:
+        seen.append(messages[-1]["content"])
+        return "[0:02] Un tableau noir avec a² + b² = c².", "v:x", "V"
+
+    async def submit(self: Any, kind: str, prompt: str = "", **kw: Any) -> dict[str, Any]:
+        return {"id": "j1"}
+
+    async def heard(self: Any, job_id: str, *a: Any, **k: Any) -> dict[str, Any]:
+        return {"status": "done", "params": {"text": "Aujourd'hui, Pythagore."}}
+
+    monkeypatch.setattr(CreatorService, "ask", ask)
+    monkeypatch.setattr(MediaService, "submit", submit)
+    monkeypatch.setattr(MediaService, "wait", heard)
+    monkeypatch.setattr(shutil, "which", lambda exe: None)
+    jpg = b"\xff\xd8\xff\xe0" + b"\x00" * 64
+    r = client.post("/tontolo/documents", data={"frame_times": "2.5,7.5,9"},
+                    files=[("file", ("cours.mp4", b"\x00\x01video")),
+                           ("frames", ("f0.jpg", jpg)), ("frames", ("f1.jpg", jpg)),
+                           ("frames", ("x.png", b"\x89PNG\r\n"))])
+    assert r.status_code == 200, r.text
+    assert r.json()["pages"] == 2  # transcription + images clés
+    images = [p for p in seen[0] if p["type"] == "image_url"]
+    assert len(images) == 2 and "0:02, 0:07" in seen[0][0]["text"]
+
+
 def test_event_websocket_connection_cap(client: TestClient) -> None:
     from starlette.websockets import WebSocketDisconnect
 

@@ -50,7 +50,10 @@ _KEYWORDS: dict[Category, tuple[tuple[str, float], ...]] = {
         (r"\b(generate|create|make|produce)( me)?(\s+\S{1,10}){0,3}?\s+"
          r"(videos?|clips?|animations?)\b", 5),
         (r"\b(animate|bring to life)\b.{0,30}\b(photo|image|picture|drawing)s?\b", 5),
-        (r"\bhoronan-?tsary\b", 4),
+        # Malgache : verbe de création requis (« inona no asehon'ity horonan-tsary ity » est
+        # une question sur une vidéo jointe, pas une demande de vidéo).
+        (r"\b(mamorona|manaova|ataovy|amboary|vokary|mamokara|omeo)\b(\s+\S{1,12}){0,3}?"
+         r"\s+horonan-?tsary\b", 5),
         (r"\b(ampihetsiho|ampihetseho|hampihetsika)\b.{0,30}\bsary\b", 5),
     ),
     Category.TTS: (
@@ -65,9 +68,20 @@ _KEYWORDS: dict[Category, tuple[tuple[str, float], ...]] = {
         (r"\bsoraty ny feo\b", 4),
     ),
     Category.MUSIC_SFX: (
-        (r"\b(musique|chanson|m[ée]lodie|bruitage|effet sonore|jingle)\b", 3),
-        (r"\b(music|song|melody|sound effect|sfx|jingle)\b", 3),
-        (r"\bhira\b", 3),
+        # Demande de création, comme pour la vidéo : « que raconte cette musique » ou
+        # « hazavao ny hira » parlent d'un morceau existant.
+        (r"\b(compose[rz]?|cr[ée]e[rz]?|g[ée]n[èe]re[rz]?|fai[st]|faire|produi[st])(-moi)?"
+         r"(\s+\S{1,12}){0,3}?(?<!\bla)(?<!\bcette)(?<!\bles)(?<!\bces)(?<!\bma)(?<!\bta)"
+         r"(?<!\bsa)\s+(musiques?|chansons?|m[ée]lodies?|bruitages?|effets? sonores?|"
+         r"jingles?)\b", 5),
+        (r"^\s*(une?\s+)?(petite?\s+|courte?\s+)?(musique|chanson|m[ée]lodie|bruitage|"
+         r"effet sonore|jingle)\s+(d'|de |du |des |pour |o[ùu] )", 4),
+        (r"\b(generate|create|make|produce|compose)( me)?(\s+\S{1,10}){0,3}?\s+"
+         r"(music|songs?|melod(y|ies)|sound effects?|sfx|jingles?)\b", 5),
+        (r"^\s*(an?\s+)?(short\s+)?(music|song|melody|sound effect|jingle)\s+"
+         r"(of|for|about|with)\b", 4),
+        (r"\b(mamorona|manaova|ataovy|amboary|vokary|mamokara)\b(\s+\S{1,12}){0,3}?"
+         r"\s+(hira|mozika)\b", 5),
     ),
     Category.CODE: (
         (r"```", 3),

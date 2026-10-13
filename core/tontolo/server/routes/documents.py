@@ -21,6 +21,7 @@ from tontolo.server.common import (
     RateLimiter,
     _audio_track,
     _describe_keyframes,
+    _given_frames,
     _read_limited,
     core_of,
 )
@@ -31,7 +32,9 @@ def register(app: FastAPI, hub: Hub, ws_connects: RateLimiter) -> None:
 
     @app.post("/tontolo/documents")
     async def upload_document(request: Request, file: UploadFile = File(...),
-                              conversation_id: str | None = Form(None)) -> dict[str, Any]:
+                              conversation_id: str | None = Form(None),
+                              frames: list[UploadFile] | None = File(None),
+                              frame_times: str = Form("")) -> dict[str, Any]:
         """Joint une pièce (PDF, bureautique, texte, code, archive, son, vidéo…) à une
         conversation (créée si besoin) : son texte sert à répondre en citant les pages."""
         import shutil
@@ -40,22 +43,27 @@ def register(app: FastAPI, hub: Hub, ws_connects: RateLimiter) -> None:
         name = Path(file.filename or "document").name[:120] or "document"
         kind = attachments.media_kind(name)
         big = kind == "video" and shutil.which("ffmpeg") is not None
+        given = await _given_frames(frames, frame_times) if kind == "video" else []
+        big = big or bool(given)  # images extraites par l'appareil : son seul transcrit
         data = await _read_limited(file, MAX_VIDEO_BYTES if big else 0)
         if kind is not None:
             # Son ou vidéo : transcription par le service vocal (modèle gratuit routé).
             audio_name, audio = await _audio_track(name, data) if kind == "video" else (name, data)
-            if len(audio) > MAX_UPLOAD_BYTES:
+            too_long = len(audio) > MAX_UPLOAD_BYTES
+            if too_long and not given:
                 raise HTTPException(413, "Vidéo trop longue à transcrire sur cet appareil "
                                          "(25 Mo maximum sans ffmpeg).")
 
             async def transcript() -> tuple[str, dict[str, Any] | None]:
+                if too_long:  # son trop lourd sans ffmpeg : les images clés seules
+                    return "", {"status": "failed", "error": "vidéo trop longue à transcrire"}
                 job = await core.media.submit("stt", input_bytes=audio, input_name=audio_name)
                 done = await core.media.wait(job["id"])
                 return str(((done or {}).get("params") or {}).get("text") or "").strip(), done
 
             # Vidéo : ce qu'on voit (images clés) en même temps que ce qu'on entend.
             (text, done), seen = await asyncio.gather(
-                transcript(), _describe_keyframes(core, name, data) if kind == "video"
+                transcript(), _describe_keyframes(core, name, data, given) if kind == "video"
                 else asyncio.sleep(0, ""))
             heard = bool(done) and done["status"] == "done" and bool(text)
             if not heard and not seen:

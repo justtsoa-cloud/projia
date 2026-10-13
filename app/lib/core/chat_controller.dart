@@ -2,9 +2,11 @@
 
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
 import '../l10n/strings.dart';
@@ -219,6 +221,28 @@ class ChatController extends ChangeNotifier {
   /// Documents joints à la conversation (noms et pages), affichés au-dessus de la saisie.
   final List<Map<String, dynamic>> documents = [];
 
+  static const _video = MethodChannel('tontolo/video');
+
+  /// Android (sans ffmpeg) : images clés de la vidéo jointe, extraites par le système ; le
+  /// cœur les fait décrire par un modèle à vision. Liste vide ailleurs ou en cas d'échec.
+  static Future<List<(double, Uint8List)>> videoKeyframes(String name, Uint8List bytes) async {
+    if (!Platform.isAndroid || !RegExp(r'\.(mp4|m4v|mov|webm|mkv|3gp|avi)$', caseSensitive: false).hasMatch(name)) {
+      return const [];
+    }
+    final tmp = File('${Directory.systemTemp.path}/tontolo-video-${DateTime.now().microsecondsSinceEpoch}');
+    try {
+      await tmp.writeAsBytes(bytes, flush: true);
+      final list = await _video.invokeListMethod<Map<Object?, Object?>>('keyframes', {'path': tmp.path, 'count': 4}) ?? const [];
+      return [for (final f in list) ((f['t'] as num).toDouble(), f['jpg'] as Uint8List)];
+    } catch (_) {
+      return const [];
+    } finally {
+      try {
+        await tmp.delete();
+      } catch (_) {}
+    }
+  }
+
   /// Joint un document (PDF, texte…) : le cœur en extrait le texte et s'en sert pour répondre
   /// en citant les pages. Renvoie un message d'erreur (traduit) ou null.
   Future<String?> attachDocument(String name, Uint8List bytes) async {
@@ -227,6 +251,11 @@ class ChatController extends ChangeNotifier {
       ..headers.addAll(backend.headers)
       ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: name));
     if (conversationId != null) req.fields['conversation_id'] = conversationId!;
+    final frames = await videoKeyframes(name, bytes);
+    for (final (i, (t, jpg)) in frames.indexed) {
+      req.files.add(http.MultipartFile.fromBytes('frames', jpg, filename: 'frame$i.jpg'));
+      req.fields['frame_times'] = [...?req.fields['frame_times']?.split(','), t.toStringAsFixed(2)].join(',');
+    }
     try {
       // Son et vidéo : transcription (plus longue qu'une simple lecture).
       final resp = await http.Response.fromStream(await req.send()).timeout(const Duration(minutes: 10));

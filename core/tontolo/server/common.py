@@ -136,10 +136,33 @@ def _clock(seconds: float) -> str:
         f"{s // 60}:{s % 60:02d}"
 
 
-async def _describe_keyframes(core: Core, name: str, data: bytes) -> str:
+MAX_FRAME_BYTES = 1_500_000
+
+
+async def _given_frames(files: list[UploadFile] | None, times: str
+                        ) -> list[tuple[float, bytes]]:
+    """Images clés extraites par l'application (Android, sans ffmpeg) : JPEG seulement,
+    6 au plus, 1,5 Mo chacune ; les autres sont ignorées."""
+    stamps = [t for t in (times or "").split(",") if t.strip()][:6]
+    out: list[tuple[float, bytes]] = []
+    for i, f in enumerate((files or [])[:6]):
+        data = await f.read(MAX_FRAME_BYTES + 1)
+        if len(data) > MAX_FRAME_BYTES or not data.startswith(b"\xff\xd8\xff"):
+            continue
+        try:
+            at = max(0.0, min(float(stamps[i]), 86_400.0))
+        except (IndexError, ValueError):
+            at = 0.0
+        out.append((at, data))
+    return out
+
+
+async def _describe_keyframes(core: Core, name: str, data: bytes,
+                              given: list[tuple[float, bytes]] | None = None) -> str:
     """Ce qu'on voit dans la vidéo (diapositives, tableau, schémas, gestes…), image clé par
-    image clé, par un modèle à vision. Chaîne vide si impossible : la transcription suffit."""
-    frames = await _keyframes(data)
+    image clé, par un modèle à vision. Images fournies par l'application, sinon ffmpeg.
+    Chaîne vide si impossible : la transcription suffit."""
+    frames = given or await _keyframes(data)
     if not frames:
         return ""
     content: list[dict[str, Any]] = [{"type": "text", "text": (

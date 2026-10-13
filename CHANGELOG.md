@@ -5,6 +5,39 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.6.1] - 2026-10-13
+
+### Ajouté
+- Vidéos jointes : en plus de la transcription du son, quatre images clés (extraites sur
+  l’appareil : lecteur vidéo du système sous Android, ffmpeg sous Linux) sont décrites par un
+  modèle à vision : diapositives, tableau, formules, schémas à l’écran. Une vidéo muette, ou
+  trop lourde pour être transcrite, est désormais comprise.
+- Export PDF d’une discussion (menu ⋮ › « Exporter en PDF »), produit sur l’appareil, sans
+  dépendance ni service en ligne : la discussion reste privée.
+- Premier lancement hors ligne : un catalogue de secours embarqué (40 modèles gratuits sans
+  clé) évite un écran sans modèle ; il est remplacé dès le premier téléchargement.
+- Métriques locales `/tontolo/metrics` (format Prometheus : tours, appels par modèle, durées,
+  erreurs, cache) ; rien n’est envoyé.
+- Documentation de l’API (`docs/API.md`, générée et vérifiée par un test).
+
+### Modifié
+- Serveur découpé en dix routeurs thématiques ; API strictement identique (schéma OpenAPI
+  vérifié à l’octet près).
+- Garde-fou de performance en CI (30 utilisateurs simultanés, fil de 1 500 messages).
+- Tests Flutter des écrans : réglages, questions à choix, notes, fiches.
+
+### Corrigé
+- Une question sur une vidéo ou une musique existante lançait une génération (« que montre
+  la vidéo ? », « inona no asehon’ity horonan-tsary ity ? », « que raconte cette musique ? »,
+  « hazavao ny hira ») : un verbe de création est désormais requis, et « la / cette / ma
+  vidéo » désigne une vidéo existante.
+
+### Sécurité
+- Linux : serveurs MCP locaux (stdio) lancés dans un bac à sable bubblewrap s’il est
+  installé : système en lecture seule, dossier personnel, trousseau et D-Bus masqués ; seuls
+  les dossiers confiés au serveur restent accessibles.
+- `/docs` et `/redoc` retirés (scripts chargés depuis un CDN externe).
+
 ## [0.6.0] - 2026-10-12
 
 ### Ajouté

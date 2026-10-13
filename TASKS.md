@@ -337,7 +337,7 @@ Outils gratuits, locaux d'abord ; rien n'est exécuté depuis une pièce jointe.
 - [x] Essai émulateur : zip choisi dans le sélecteur (tous types), lu (3 pages), contenu juste dans la réponse
 - [x] B17. (essai émulateur) Le relecteur (équipe de modèles) ne voyait pas les documents joints et accusait la réponse d'inventer leur contenu → il reçoit documents et fin du fil
 - [x] B18. (essai émulateur) Carte de questions pour « résume ce fichier » → jamais pour une demande de résumé
-- [x] P7. Vidéo : 4 images clés (ffmpeg/ffprobe, sur l'appareil, 640 px) décrites par un modèle à vision en même temps que la transcription ; une vidéo muette reste exploitable. Essai réel : vidéo muette « Pythagore » → formule et exemple 3-4-5 cités (envoi 6,8 s). Corrigé au passage : « que montre la vidéo » lançait une génération de vidéo (article défini = vidéo existante)
+- [x] P7. Vidéo : 4 images clés (Android : MediaMetadataRetriever côté application, envoyées avec la vidéo ; Linux : ffmpeg/ffprobe ; 640 px) décrites par un modèle à vision en même temps que la transcription ; une vidéo muette reste exploitable. Essai réel : vidéo muette « Pythagore » → formule et exemple 3-4-5 cités (envoi 6,8 s). Corrigé au passage : « que montre la vidéo » lançait une génération de vidéo (article défini = vidéo existante)
 - [x] P6. App : sélecteur de fichiers élargi, aperçu par type (icône, nom, taille), limites claires ; tests de chaque type et des fichiers piégés
 
 ## Orchestration multi-modèles et durcissement (demande du 2026-10-12)
