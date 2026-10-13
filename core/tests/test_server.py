@@ -1168,3 +1168,15 @@ def test_api_docs_are_up_to_date_and_docs_pages_are_off(client: TestClient) -> N
         "docs/API.md est à régénérer : cd core && uv run python ../scripts/api_docs.py")
     assert client.get("/docs").status_code == 404 and client.get("/redoc").status_code == 404
     assert "/tontolo/chat" in client.get("/openapi.json").json()["paths"]
+
+
+def test_local_metrics(client: TestClient) -> None:
+    from tontolo import metrics
+
+    metrics.reset()
+    _events(client, "/tontolo/chat", {"content": "Bonjour"})
+    text = client.get("/tontolo/metrics").text
+    assert "tontolo_turns_total 1" in text
+    assert 'tontolo_model_calls_total{model="fake:' in text and 'result="ok"' in text
+    assert "tontolo_uptime_seconds" in text and "tontolo_models_usable" in text
+    assert "Bonjour" not in text  # aucun contenu de discussion

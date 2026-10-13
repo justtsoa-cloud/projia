@@ -177,6 +177,12 @@ Serveur local (127.0.0.1, jeton `Authorization: Bearer …` hors boucle locale).
 | `POST` | `/tontolo/memory/compact` | Memory Compact |
 | `DELETE` | `/tontolo/memory/{mem_id}` | Memory Delete |
 
+## Metrics
+
+| Méthode | Chemin | Rôle |
+|---|---|---|
+| `GET` | `/tontolo/metrics` | Métriques locales au format Prometheus (rien n'est envoyé ailleurs). |
+
 ## Online
 
 | Méthode | Chemin | Rôle |

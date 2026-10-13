@@ -22,7 +22,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from tontolo import documents
+from tontolo import documents, metrics
 from tontolo.agent import browser, planner
 from tontolo.agent.mcp_client import McpManager
 from tontolo.agent.taskstore import TOOL_INLINE, TaskStore
@@ -369,6 +369,7 @@ class ChatService:
                 and not await self.db.get_mode(conversation_id)):
             hit = await self.answers.reusable(content)
             if hit is not None:  # même question, déjà répondue : aucun appel de modèle
+                metrics.inc("tontolo_answer_cache_hits_total")
                 msg = {"role": "assistant", "content": hit["answer"]}
                 saved = await self.db.add_message(conversation_id, msg, model=hit["model"])
                 yield {"type": "cached", "created_at": hit["created_at"],

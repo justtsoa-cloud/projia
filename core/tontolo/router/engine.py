@@ -26,7 +26,7 @@ from collections.abc import AsyncIterator
 from datetime import UTC, datetime
 from typing import Any
 
-from tontolo import http, secrets
+from tontolo import http, metrics, secrets
 from tontolo.catalog.models import MEDIA_CATEGORIES, Category, ModelInfo
 from tontolo.catalog.service import CatalogService
 from tontolo.config import PaidFallback, Settings
@@ -414,6 +414,8 @@ class Router:
                 if err.kind in (ErrorKind.SERVER, ErrorKind.NETWORK, ErrorKind.UNAVAILABLE,
                                 ErrorKind.BAD_REQUEST):
                     self.reliability.record(m.key, False)
+                metrics.inc("tontolo_model_calls_total", model=m.key, result="error")
+                metrics.inc("tontolo_errors_total", kind=err.kind.value)
                 last_reason, last_until = human_reason(err), until or None
                 last_code = err.kind.value
                 log.info("Échec %s : %s", m.key, secrets.redact(str(err)))
@@ -429,6 +431,9 @@ class Router:
             self.offline_since = None
             self.quota.on_success(m)
             self.reliability.record(m.key, True)
+            metrics.inc("tontolo_model_calls_total", model=m.key, result="ok")
+            metrics.inc("tontolo_model_seconds_sum", time.monotonic() - attempt_started,
+                        model=m.key)
             self.reliability.record_speed(
                 m.key, len(str(result.message.get("content") or ""))
                 + len(str(result.message.get("tool_calls") or "")),

@@ -17,6 +17,8 @@ from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import Any
 
+from tontolo import metrics
+
 log = logging.getLogger(__name__)
 
 KEEP_FINISHED = 120.0  # secondes de conservation d'un tour terminé (rattachement tardif)
@@ -110,6 +112,7 @@ class TurnManager:
 
     def start(self, conversation_id: str, events: AsyncIterator[dict[str, Any]]) -> Turn:
         """Lance un tour (un seul actif par conversation)."""
+        metrics.inc("tontolo_turns_total")
         current = self.active(conversation_id)
         if current is not None:
             return current

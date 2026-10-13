@@ -375,7 +375,7 @@ Inexact : pièces jointes envoyées en multipart (pas en base64), historique du 
 - [x] Trouvé en route (R3) : une conversation synchronisée à moitié invalide effaçait les messages existants avant d'échouer → tout est vérifié avant d'écrire
 - [ ] R4 (P1). Mises à jour Linux signées (ed25519) : la CI signe SHA256SUMS, l'application vérifie avec la clé publique intégrée (Android : déjà protégé par la signature APK vérifiée par le système)
 - [x] R5 (P1). OpenAPI local (/openapi.json avec jeton) + docs/API.md généré
-- [ ] R6 (P1). Métriques locales /tontolo/metrics (format Prometheus : tours, erreurs, latences par modèle), rien n'est envoyé
+- [x] R6 (P1). Métriques locales /tontolo/metrics (format Prometheus : tours, erreurs, latences par modèle), rien n'est envoyé
 - [ ] R7 (P1). Banc rapide en CI (régression de performance du cœur)
 - [ ] R8 (P1). server/app.py découpé en routeurs (chat, fichiers, réglages, sync, MCP…) sans changer l'API
 - [ ] R9 (P1). Tests Flutter des écrans (réglages, carte de questions, notes, quiz)

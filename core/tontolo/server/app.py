@@ -27,7 +27,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, Web
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from tontolo import __version__, attachments, documents, importer, secrets, security
+from tontolo import __version__, attachments, documents, importer, metrics, secrets, security
 from tontolo.agent import planner
 from tontolo.agent.loop import dumps
 from tontolo.agent.mcp_client import MAX_SERVERS as MCP_MAX_SERVERS
@@ -1587,6 +1587,17 @@ def create_app(
             [{"model": m, "category": c, "score": v, "devices": 999}
              for (m, c), v in core.router.reliability.global_scores.items()]))
         return {"kept": kept}
+
+    @app.get("/tontolo/metrics")
+    async def metrics_text(request: Request) -> Response:
+        """Métriques locales au format Prometheus (rien n'est envoyé ailleurs)."""
+        core = core_of(request)
+        gauges = {"tontolo_turns_running": float(len(core.turns.running())),
+                  "tontolo_models_usable": float(sum(
+                      1 for m in core.catalog.catalog.models.values()
+                      if m.provider in core.catalog.usable_providers())),
+                  "tontolo_ws_clients": float(len(hub.queues))}
+        return Response(metrics.render(gauges), media_type="text/plain; version=0.0.4")
 
     @app.get("/tontolo/answers")
     async def answers_info(request: Request) -> dict[str, Any]:
