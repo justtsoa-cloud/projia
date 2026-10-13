@@ -5,6 +5,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.6.3] - 2026-10-14
+
 ### Corrigé
 - Export PDF : tableaux Markdown lisibles (plus de lignes |---|), liens `<…>` nettoyés, trait
   d'union insécable (« ci‑dessus » s'affichait « ci?dessus »).

@@ -1,6 +1,8 @@
 // Lecture à voix haute (voix du système) : une seule lecture à la fois,
 // arrêt à tout moment, vitesse réglable. Gratuit et sans quota.
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
@@ -66,6 +68,22 @@ class Speech extends ChangeNotifier {
       lastError ??= 'speak';
       _set(false);
     }
+  }
+
+  /// Lit le texte et ne rend la main qu'une fois la lecture terminée (ou arrêtée) : sert à la
+  /// conversation vocale, qui réécoute juste après.
+  Future<void> speakAndWait(String id, String text, {String locale = 'fr', double rate = 0.5}) async {
+    if (_active) await stop();
+    await toggle(id, text, locale: locale, rate: rate);
+    final done = Completer<void>();
+    void check() {
+      if (!_active && !done.isCompleted) done.complete();
+    }
+
+    addListener(check);
+    check();
+    await done.future.timeout(const Duration(minutes: 5), onTimeout: () {});
+    removeListener(check);
   }
 
   Future<void> stop() async {

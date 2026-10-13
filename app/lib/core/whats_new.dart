@@ -14,6 +14,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.6.3': [
+    NewsItem(Icons.graphic_eq, 'Parlez à Tontolo, il vous répond',
+        'Menu + › « Conversation vocale » : Tontolo vous écoute, comprend, répond à voix haute puis réécoute, mains libres. Sous chaque réponse, des raccourcis : plus de détails, un exemple, plus court, traduire.',
+        'Talk to Tontolo, it talks back', 'Menu + › “Voice conversation”: Tontolo listens, understands, answers out loud and listens again, hands-free. Under each answer, shortcuts: more detail, an example, shorter, translate.',
+        mg: 'Resaho i Tontolo, hamaly anao izy', mgText: 'Menu + › « Resaka an-peo »: mihaino, mahafantatra, mamaly amin\'ny feo ary mihaino indray i Tontolo, tsy mila tanana. Eo ambanin\'ny valiny tsirairay: antsipiriany bebe kokoa, ohatra, fohy kokoa, adikao.'),
+    NewsItem(Icons.public, 'Un nouveau logo, des sites en un toucher',
+        'Le nouveau logo met l\'Afrique et Madagascar à l\'honneur. « Ouvre un site… » donne un lien direct et un bouton « Ouvrir ». Appui long sur l\'icône ou widget : « Demander à Tontolo ».',
+        'A new logo, sites in one tap', 'The new logo puts Africa and Madagascar first. “Open a site…” gives a direct link and an “Open” button. Long-press the icon or use the widget: “Ask Tontolo”.',
+        mg: 'Logo vaovao, tranonkala amin\'ny tsindry iray', mgText: 'Ny logo vaovao dia manasongadina an\'i Afrika sy Madagasikara. « Sokafy tranonkala… » dia manome rohy mivantana sy bokotra « Sokafy ». Tsindrio ela ny sary na ampiasao ny widget: « Anontanio i Tontolo ».'),
+  ],
   '0.6.2': [
     NewsItem(Icons.speed_outlined, 'Voyez où en est votre réponse',
         'Pendant qu\'une réponse se prépare, une ligne indique le modèle au travail, ce qu\'il fait et l\'avancement en pourcentage. Touchez-la pour le détail : modèle choisi, bascules, outils, parties confiées à plusieurs modèles.',

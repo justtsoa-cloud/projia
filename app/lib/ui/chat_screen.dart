@@ -16,7 +16,9 @@ import '../core/cloud_sync.dart' show RemoteTask;
 import '../core/export_html.dart';
 import '../core/image_prep.dart';
 import '../core/retouch.dart';
+import '../core/speech.dart';
 import '../core/updater.dart';
+import '../core/voice_loop.dart';
 import 'update_sheet.dart';
 import '../core/storage_dirs.dart';
 import '../main.dart';
@@ -90,6 +92,7 @@ class _ChatScreenState extends State<ChatScreen> {
     BrowserBridge.instance.removeListener(_onBridge);
     input.dispose();
     scroll.dispose();
+    voice?.stop();
     focus.dispose();
     recorder.dispose();
     super.dispose();
@@ -211,25 +214,32 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  /// Dictée : enregistrement local puis transcription (même bascule que le texte).
+  /// Transcription d'un enregistrement (même bascule de modèles que le texte).
+  Future<String> _transcribeFile(Backend backend, String path, String locale) async {
+    final req = http.MultipartRequest('POST', backend.uri('/v1/audio/transcriptions'))
+      ..headers.addAll(backend.headers)
+      ..fields['model'] = 'auto'
+      ..fields['language'] = locale
+      ..files.add(await http.MultipartFile.fromPath('file', path));
+    final resp = await http.Response.fromStream(await req.send());
+    if (resp.statusCode != 200) throw StateError('transcription ${resp.statusCode}');
+    final text = RegExp(r'"text"\s*:\s*"((?:[^"\\]|\\.)*)"').firstMatch(resp.body)?.group(1) ?? '';
+    return text.replaceAll(r'\n', '\n').replaceAll(r'\"', '"').trim();
+  }
+
+  /// Dictée : enregistrement local puis transcription.
   Future<void> _toggleMic(Backend backend) async {
     final locale = AppScope.of(context).prefs.locale;
     if (recording) {
       final path = await recorder.stop();
       setState(() => recording = false);
       if (path == null) return;
-      final req = http.MultipartRequest('POST', backend.uri('/v1/audio/transcriptions'))
-        ..headers.addAll(backend.headers)
-        ..fields['model'] = 'auto'
-        ..fields['language'] = locale
-        ..files.add(await http.MultipartFile.fromPath('file', path));
-      final resp = await http.Response.fromStream(await req.send());
-      if (!mounted) return;
-      if (resp.statusCode == 200) {
-        final text = RegExp(r'"text"\s*:\s*"((?:[^"\\]|\\.)*)"').firstMatch(resp.body)?.group(1) ?? '';
-        input.text = '${input.text} ${text.replaceAll(r'\n', '\n')}'.trim();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('error_generic'))));
+      try {
+        final text = await _transcribeFile(backend, path, locale);
+        if (!mounted) return;
+        input.text = '${input.text} $text'.trim();
+      } catch (_) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(context.t('error_generic'))));
       }
       return;
     }
@@ -238,6 +248,75 @@ class _ChatScreenState extends State<ChatScreen> {
     await recorder.start(const RecordConfig(encoder: AudioEncoder.wav, sampleRate: 16000, numChannels: 1),
         path: '${dir.path}/dictee.wav');
     setState(() => recording = true);
+  }
+
+  // --- Conversation vocale mains libres ------------------------------------------------------
+  VoiceLoop? voice;
+
+  Future<void> _untilIdle(ChatController chat) async {
+    if (!chat.busy) return;
+    final done = Completer<void>();
+    void check() {
+      if (!chat.busy && !done.isCompleted) done.complete();
+    }
+
+    chat.addListener(check);
+    await done.future;
+    chat.removeListener(check);
+  }
+
+  /// Texte de la dernière réponse si le dernier message est bien une réponse terminée.
+  String? _lastAnswer(ChatController chat) {
+    for (final m in chat.messages.reversed) {
+      if (m.role == 'notice') return null;
+      if (m.role == 'assistant') return m.streaming || m.text.trim().isEmpty ? null : m.text;
+      return null;
+    }
+    return null;
+  }
+
+  Future<void> _toggleVoice(ChatController chat, Backend backend) async {
+    if (voice?.active == true) {
+      await voice!.stop();
+      return;
+    }
+    final prefs = AppScope.of(context).prefs;
+    final messenger = ScaffoldMessenger.of(context);
+    final denied = context.t('voice_denied');
+    final idle = context.t('voice_idle');
+    if (recording) await _toggleMic(backend);
+    final loop = VoiceLoop(
+      begin: () async {
+        if (!await recorder.hasPermission()) return null;
+        final dir = await tmpDir();
+        await recorder.start(const RecordConfig(encoder: AudioEncoder.wav, sampleRate: 16000, numChannels: 1),
+            path: '${dir.path}/conversation.wav');
+        return recorder.onAmplitudeChanged(const Duration(milliseconds: 100)).map((a) => a.current);
+      },
+      finish: () async => await recorder.isRecording() ? recorder.stop() : null,
+      transcribe: (path) => _transcribeFile(backend, path, prefs.locale),
+      ask: (text) async {
+        await _untilIdle(chat);
+        stickToBottom = true;
+        await chat.send(text);
+        await _untilIdle(chat);
+      },
+      answer: () => _lastAnswer(chat),
+      speak: (text) => Speech.instance.speakAndWait('voice', text, locale: prefs.locale, rate: prefs.speechRate),
+      stopSpeaking: Speech.instance.stop,
+    )..addListener(() {
+        if (mounted) setState(() {});
+      });
+    voice = loop;
+    final wasEmpty = chat.messages.isEmpty;
+    await loop.start();
+    if (!mounted) return;
+    setState(() {});
+    if (loop.lastError == 'mic_denied') {
+      messenger.showSnackBar(SnackBar(content: Text(denied)));
+    } else if (loop.lastError == null && (wasEmpty || chat.messages.isEmpty || loop.heard == null)) {
+      messenger.showSnackBar(SnackBar(content: Text(idle)));
+    }
   }
 
   /// 👍 / 👎 ; après un 👎, raisons rapides et « Réessayer avec un autre modèle ».
@@ -587,6 +666,18 @@ class _ChatScreenState extends State<ChatScreen> {
                                 ? (r) => _rate(chat, m, r, isLast && chat.canRegenerate)
                                 : null,
                           );
+                          // Dernière vraie réponse (les bandeaux « vérifié par… » qui la suivent ne comptent pas).
+                          if (i == chat.messages.lastIndexWhere((x) => x.role != 'notice') && !chat.learn &&
+                              m.role == 'assistant' && !chat.busy && !m.streaming &&
+                              m.text.length > 280 && m.job == null && chat.asked.isEmpty && chat.pending == null) {
+                            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              view,
+                              FollowUps(onSend: (t) {
+                                stickToBottom = true;
+                                chat.send(t);
+                              }),
+                            ]);
+                          }
                           if (!(isLast && chat.learn && m.role == 'assistant' && !chat.busy && m.text.isNotEmpty)) return view;
                           return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             view,
@@ -697,6 +788,7 @@ class _InputBar extends StatelessWidget {
                 ),
             ]),
           ),
+        if (state.voice?.active == true) _VoiceBanner(state.voice!, onStop: () => state.voice!.stop()),
         Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
           PopupMenuButton<String>(
             icon: const Icon(Icons.add_circle_outline),
@@ -707,6 +799,8 @@ class _InputBar extends StatelessWidget {
                   state._pickFile();
                 case 'mic':
                   state._toggleMic(backend);
+                case 'voice':
+                  state._toggleVoice(chat, backend);
                 default:
                   state.update(() => state.forcedCategory = v);
               }
@@ -714,6 +808,7 @@ class _InputBar extends StatelessWidget {
             itemBuilder: (context) => [
               PopupMenuItem(value: 'file', child: ListTile(leading: const Icon(Icons.image_outlined), title: Text(context.t('photo')))),
               PopupMenuItem(value: 'mic', child: ListTile(leading: const Icon(Icons.mic_none), title: Text(context.t('mic')))),
+              PopupMenuItem(value: 'voice', child: ListTile(leading: const Icon(Icons.graphic_eq), title: Text(context.t('voice_loop')))),
               PopupMenuItem(value: 'image_gen', child: ListTile(leading: const Icon(Icons.brush_outlined), title: Text(context.t('force_image')))),
               PopupMenuItem(value: 'tts', child: ListTile(leading: const Icon(Icons.record_voice_over_outlined), title: Text(context.t('force_voice')))),
             ],
@@ -882,6 +977,44 @@ class _Notice extends StatelessWidget {
             onPressed: () => AppScope.of(context).chat.cancelOfflineQueue(),
             child: Text(context.t('cancel')),
           ),
+      ]),
+    );
+  }
+}
+
+/// Bandeau de la conversation vocale : ce que Tontolo fait (écoute, comprend, répond) + arrêt.
+class _VoiceBanner extends StatelessWidget {
+  const _VoiceBanner(this.voice, {required this.onStop});
+  final VoiceLoop voice;
+  final VoidCallback onStop;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final (icon, key) = switch (voice.state) {
+      VoiceState.listening => (Icons.mic, 'voice_listening'),
+      VoiceState.hearing => (Icons.graphic_eq, 'voice_hearing'),
+      VoiceState.transcribing => (Icons.hearing, 'voice_transcribing'),
+      VoiceState.thinking => (Icons.psychology_outlined, 'voice_thinking'),
+      VoiceState.speaking => (Icons.volume_up, 'voice_speaking'),
+      VoiceState.off => (Icons.mic_off, 'voice_listening'),
+    };
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.fromLTRB(14, 6, 6, 6),
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer.withValues(alpha: 0.7),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(children: [
+        Icon(icon, color: scheme.primary),
+        const SizedBox(width: 10),
+        Expanded(child: Text(context.t(key), style: Theme.of(context).textTheme.bodyMedium)),
+        TextButton.icon(
+          onPressed: onStop,
+          icon: const Icon(Icons.stop_circle_outlined),
+          label: Text(context.t('voice_stop')),
+        ),
       ]),
     );
   }

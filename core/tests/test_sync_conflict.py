@@ -91,3 +91,26 @@ async def test_older_remote_never_overwrites_newer_local() -> None:
     assert "Plus récent" in await _texts(b, cid)
     await a.close()
     await b.close()
+
+
+async def test_large_volume_syncs_completely_and_quickly() -> None:
+    """E5 : 150 discussions de 40 messages (6 000 messages) passent d'un appareil à l'autre."""
+    import time
+
+    a, b = await Database(":memory:").open(), await Database(":memory:").open()
+    for i in range(150):
+        cid = await a.create_conversation(f"Discussion {i}")
+        for j in range(40):
+            await a.add_message(cid, {"role": "user" if j % 2 == 0 else "assistant",
+                                      "content": f"message {i}-{j} " + "x" * 200})
+    started = time.monotonic()
+    batch = await a.export_conversations(0)
+    applied = [await b.replace_conversation(c) for c in batch]
+    elapsed = time.monotonic() - started
+    assert len(batch) == 150 and all(applied)
+    assert sum([await b.count_messages(c["id"]) for c in batch]) == 6000
+    assert elapsed < 20, f"synchro de 6 000 messages : {elapsed:.1f} s"
+    assert not any(await _sync(a, b))        # deuxième passage : rien à refaire, aucun doublon
+    assert len(await b.list_conversations(limit=500)) == 150
+    await a.close()
+    await b.close()

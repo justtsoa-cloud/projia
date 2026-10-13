@@ -143,7 +143,7 @@ Règle : chaque étape est livrée seule (tests verts, rien de cassé), puis pub
 - [x] 12. Android : raccourci d'appui long « Demander à Tontolo » + widget d'écran d'accueil (barre « Demander à Tontolo… », 4×1) : nouvelle discussion, curseur dans la saisie, application fermée ou ouverte. Vérifié sur l'émulateur : raccourci et widget enregistrés par le système, l'action ouvre bien l'application prête à écrire ; l'ajout du widget sur l'écran d'accueil reste à voir sur un vrai téléphone
 - [x] 13. Tablette / bureau : rail de navigation (≥ 840 px), plan de travail en deuxième colonne (déjà là) et, depuis le 2026-10-13, liste des discussions permanente à gauche à partir de 1180 px (test `chat_layout_test.dart`)
 - [x] U. Mises à jour : repli sans API GitHub (limite de débit), résultat toujours affiché, notes et nouveautés cumulées des versions sautées, CI de compatibilité depuis 0.2.0, test de base 0.2.0
-- [ ] Transversal : plus d'interactivité (suggestions de relance après chaque réponse, actions rapides sur les messages, retours haptiques, animations)
+- [x] Transversal : plus d'interactivité — raccourcis sous la dernière réponse (plus de détails, exemple, plus court, traduire ; sans appel de modèle), retours haptiques (envoi, réponse reçue, raccourcis), actions rapides sur les messages (copier, écouter, partager, noter, régénérer, modifier) déjà là, ligne d'avancement animée
 
 ## v0.3.0 — demandes du 2026-10-11 (3e lot, version majeure)
 Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cassé, saut de mise à jour vérifié.
@@ -265,8 +265,8 @@ Règle : tout test, bug trouvé et optimisation est noté ici au fur et à mesur
 - [x] E2. Essais réels avec modèles gratuits : livre long, projet multi-fichiers, plan complexe en parallèle, chaîne de corrections, agent avec outils
 - [x] E3. Robustesse : entrées extrêmes (énormes, Unicode, injections), pannes de fournisseurs, coupures réseau, base verrouillée, disque plein (fuzz, bancs, `test_resilience.py` : stockage plein ou occupé = erreur lisible traduite, le serveur reste vivant et reprend sans redémarrage)
 - [x] E4. Fuites et croissance : terminaux, onglets, résultats de tâches, caches, tâches de fond, connexions
-- [ ] E5. Application : longue discussion à l'écran (défilement, mémoire), arrière-plan Android, synchro de gros volumes
-- [ ] E6. Correctifs et optimisations issus de E1–E5 (liste ci-dessous, au fil de l'eau)
+- [x] E5. Application : longue discussion à l'écran (liste paresseuse, pages de messages ; test 240 messages ; constaté : sauter d'un coup en bas d'une liste de milliers de messages en mémoire est lent, sans objet car le cœur livre une page à la fois), arrière-plan Android (service de premier plan `TurnService`, déjà livré), synchro de gros volumes (6 000 messages en moins de 2 s, aucun doublon : `test_sync_conflict.py`)
+- [x] E6. Correctifs et optimisations issus de E1–E5 (liste ci-dessous, au fil de l'eau) : B1…, perte de messages à la synchro, erreurs de stockage lisibles
 
 ### Bugs trouvés et corrigés pendant les tests d'endurance
 - [x] B1. Un fournisseur qui plante avec une exception inattendue (JSON, KeyError…) faisait échouer tout le tour au lieu de basculer sur un autre modèle → bascule sur toute exception

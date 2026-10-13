@@ -1,0 +1,56 @@
+{
+  "shot": "voice",
+  "lang": {
+    "fr": {
+      "tagline": "Nouveautés", "date": "14 octobre 2026",
+      "hero": ["Parlez à Tontolo,", "il vous répond"],
+      "sub": "Nouveau logo : l'Afrique et Madagascar.",
+      "steps": [
+        ["Menu + puis", "« Conversation vocale »"],
+        ["Parlez : Tontolo vous écoute,", "comprend et réfléchit,", "sans toucher l'écran"],
+        ["Il répond à voix haute", "puis réécoute :", "mains libres"]
+      ],
+      "also": "Aussi dans cette version",
+      "items": [
+        ["Sites en un toucher", ["« Ouvre un site… » donne un lien", "direct et un bouton Ouvrir."]],
+        ["Raccourcis sous la réponse", ["Plus de détails, un exemple,", "plus court, traduire."]],
+        ["« Demander à Tontolo »", ["Appui long sur l'icône ou widget", "d'écran d'accueil (Android)."]]
+      ],
+      "footer": "Gratuit · Android · Linux"
+    },
+    "en": {
+      "tagline": "What's new", "date": "October 14, 2026",
+      "hero": ["Talk to Tontolo,", "it talks back"],
+      "sub": "New logo: Africa and Madagascar.",
+      "steps": [
+        ["Menu + then", "“Voice conversation”"],
+        ["Speak: Tontolo listens,", "understands and thinks,", "no touching the screen"],
+        ["It answers out loud", "then listens again:", "hands-free"]
+      ],
+      "also": "Also in this version",
+      "items": [
+        ["Sites in one tap", ["“Open a site…” gives a direct", "link and an Open button."]],
+        ["Shortcuts under the answer", ["More detail, an example,", "shorter, translate."]],
+        ["“Ask Tontolo”", ["Long-press the icon or use the", "home-screen widget (Android)."]]
+      ],
+      "footer": "Free · Android · Linux"
+    },
+    "mg": {
+      "tagline": "Vaovao", "date": "14 Oktobra 2026",
+      "hero": ["Resaho i Tontolo,", "hamaly anao izy"],
+      "sub": "Logo vaovao: Afrika sy Madagasikara.",
+      "steps": [
+        ["Menu + avy eo", "« Resaka an-peo »"],
+        ["Mitenena: mihaino i Tontolo,", "mahatakatra ary mieritreritra,", "tsy mikasika ny efijery"],
+        ["Mamaly amin'ny feo izy", "ary mihaino indray:", "tsy mila tanana"]
+      ],
+      "also": "Ao amin'ity dikan-teny ity koa",
+      "items": [
+        ["Tranonkala amin'ny tsindry iray", ["« Sokafy tranonkala… » dia manome", "rohy sy bokotra Sokafy."]],
+        ["Fanamorana eo ambanin'ny valiny", ["Antsipiriany, ohatra,", "fohy kokoa, adikao."]],
+        ["« Anontanio i Tontolo »", ["Tsindrio ela ny sary na widget", "eo amin'ny efijery (Android)."]]
+      ],
+      "footer": "Maimaim-poana · Android · Linux"
+    }
+  }
+}

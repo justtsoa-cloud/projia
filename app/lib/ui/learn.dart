@@ -752,3 +752,37 @@ class _FlashcardsDeckState extends State<FlashcardsDeck> {
     );
   }
 }
+
+/// Raccourcis sous la dernière réponse (hors mode Apprendre) : approfondir, illustrer, abréger,
+/// traduire. Aucun appel de modèle pour les proposer ; un toucher envoie la demande toute faite.
+class FollowUps extends StatelessWidget {
+  const FollowUps({super.key, required this.onSend});
+  final ValueChanged<String> onSend;
+
+  static const keys = ['fu_more', 'fu_example', 'fu_short', 'fu_translate'];
+
+  @override
+  Widget build(BuildContext context) {
+    const icons = {
+      'fu_more': Icons.unfold_more,
+      'fu_example': Icons.lightbulb_outline,
+      'fu_short': Icons.short_text,
+      'fu_translate': Icons.translate,
+    };
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 12, 6),
+      child: Wrap(spacing: 6, runSpacing: 4, children: [
+        for (final k in keys)
+          ActionChip(
+            avatar: Icon(icons[k], size: 18),
+            label: Text(context.t(k)),
+            visualDensity: VisualDensity.compact,
+            onPressed: () {
+              HapticFeedback.selectionClick();
+              onSend(context.t('${k}_p'));
+            },
+          ),
+      ]),
+    );
+  }
+}

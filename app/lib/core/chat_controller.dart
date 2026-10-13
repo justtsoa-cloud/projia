@@ -471,6 +471,7 @@ class ChatController extends ChangeNotifier {
     if (busy || (text.trim().isEmpty && images.isEmpty)) return;
     cancelOfflineQueue(notify: false);
     asked = [];
+    HapticFeedback.lightImpact(); // l'envoi se sent sous le doigt
     Stats.countMessage(backend.prefs);
     _lastText = text;
     final user = ChatMessage(role: 'user', text: text)..images = List.of(images);
@@ -794,6 +795,7 @@ class ChatController extends ChangeNotifier {
           c.streaming = false;
           current = null;
           terminal = true;
+          if (c.text.isNotEmpty) HapticFeedback.selectionClick(); // la réponse est arrivée
         case 'question':
           terminal = true;
           asked = AskedQuestion.parse(ev['questions']);
