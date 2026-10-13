@@ -23,7 +23,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 W, H = 1080, 1920
-WHITE, MUTED, MINT, GOLD, DARK = "#f7f7fb", "#b9c4df", "#67e5be", "#ffcf6e", "#0f0e2a"
+WHITE, MUTED, MINT, GOLD, DARK = "#f7f7fb", "#b9c4df", "#67e5be", "#c9c6ff", "#0f0e2a"
 FONT = "Noto Sans, DejaVu Sans"
 
 

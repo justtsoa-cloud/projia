@@ -12,7 +12,7 @@ Lecture du logo
 - « O » : l'anneau ouvert, aux extrémités effilées, dont le trait se prolonge en pointillés
   dans l'ouverture (ce qui reste à tracer).
 - « T » : une ligne fine posée sur l'Afrique, avec sa boucle (le petit « o » de Tontolo).
-- Madagascar, en orange : le point de départ ; l'Afrique s'estompe vers le nord, comme si
+- Madagascar, en blanc lumineux : le point de départ ; l'Afrique s'estompe vers le nord, comme si
   elle était encore en train d'être dessinée."""
 
 from __future__ import annotations
@@ -87,11 +87,11 @@ def defs() -> str:
     return f"""<defs>
 <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="{NAVY0}"/><stop offset="1" stop-color="{NAVY1}"/></linearGradient>
 <linearGradient id="land" x1="260" y1="230" x2="760" y2="830" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#33D6E8"/><stop offset="0.55" stop-color="#34D3B4"/><stop offset="1" stop-color="#3FD28A"/></linearGradient>
-<linearGradient id="mada" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFB05C"/><stop offset="1" stop-color="#FF7A3D"/></linearGradient>
+<linearGradient id="mada" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#B8F7EA"/></linearGradient>
 <linearGradient id="ring" x1="150" y1="200" x2="880" y2="840" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#22E3F5"/><stop offset="0.6" stop-color="#34D3B4"/><stop offset="1" stop-color="#3FD28A"/></linearGradient>
 <linearGradient id="fadeg" x1="0" y1="200" x2="0" y2="520" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#000"/><stop offset="0.45" stop-color="#555"/><stop offset="1" stop-color="#fff"/></linearGradient>
 <mask id="fade" maskUnits="userSpaceOnUse" x="0" y="0" width="1024" height="1024"><rect x="0" y="0" width="1024" height="1024" fill="url(#fadeg)"/></mask>
-<radialGradient id="glow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#FF9A4D" stop-opacity="0.55"/><stop offset="1" stop-color="#FF9A4D" stop-opacity="0"/></radialGradient>
+<radialGradient id="glow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#9FF8FF" stop-opacity="0.6"/><stop offset="1" stop-color="#9FF8FF" stop-opacity="0"/></radialGradient>
 </defs>"""
 
 

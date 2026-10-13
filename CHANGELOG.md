@@ -15,7 +15,7 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
   interne », et reprise sans redémarrage.
 
 ### Modifié
-- Nouveau logo : l'Afrique et Madagascar (en orange), un anneau ouvert aux extrémités effilées
+- Nouveau logo : l'Afrique et Madagascar (en blanc lumineux), un anneau ouvert aux extrémités effilées
   et un « T » fin à boucle posé sur le continent ; l'Afrique s'estompe vers le nord et le cercle
   se poursuit en pointillés, comme un logo encore en train d'être tracé. Icône Android
   adaptative et monochrome, icône Linux et pages de présentation mises à jour.
