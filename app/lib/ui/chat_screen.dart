@@ -450,6 +450,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final scope = AppScope.of(context);
     final chat = scope.chat;
     final backend = scope.backend;
+    final permanentList = MediaQuery.sizeOf(context).width >= 1180;
     return ListenableBuilder(
       listenable: Listenable.merge([chat, backend, scope.updater, scope.cloud, scope.activity]),
       builder: (context, _) {
@@ -457,7 +458,8 @@ class _ChatScreenState extends State<ChatScreen> {
         return Scaffold(
           appBar: AppBar(
             titleSpacing: 8,
-            leading: Builder(
+            automaticallyImplyLeading: false,
+            leading: permanentList ? null : Builder(
               builder: (context) {
                 final dot = scope.activity.elsewhere;
                 return IconButton(
@@ -503,9 +505,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
             ],
           ),
-          drawer: const HistoryDrawer(),
+          drawer: permanentList ? null : const HistoryDrawer(),
           body: SafeArea(
-            child: _withBench(context, Column(children: [
+            child: _withList(permanentList, _withBench(context, Column(children: [
               _UpdateBanner(),
               for (final t in scope.cloud.liveTasks) _RemoteTaskBar(t, current: t.conversationId == chat.conversationId),
               if (backend.state == BackendState.starting) const LinearProgressIndicator(minHeight: 2),
@@ -612,12 +614,22 @@ class _ChatScreenState extends State<ChatScreen> {
               if (chat.busy || chat.status != null) _ProgressLine(chat),
               if (chat.pending != null) _PendingBar(chat),
               _InputBar(this, chat, backend),
-            ])),
+            ]))),
           ),
         );
       },
     );
   }
+
+  /// Écran très large (bureau, tablette à l'horizontale) : la liste des discussions reste
+  /// affichée à gauche, comme dans un client de messagerie.
+  Widget _withList(bool permanent, Widget content) => permanent
+      ? Row(children: [
+          const SizedBox(width: 304, child: HistoryDrawer(permanent: true)),
+          const VerticalDivider(width: 1),
+          Expanded(child: content),
+        ])
+      : content;
 }
 
 class _InputBar extends StatelessWidget {
@@ -1164,13 +1176,19 @@ class _UpdateBanner extends StatelessWidget {
 
 /// Tiroir d'historique : conversations récentes, renommer, supprimer.
 class HistoryDrawer extends StatefulWidget {
-  const HistoryDrawer({super.key});
+  /// `permanent` : volet fixe à gauche sur grand écran (rien à refermer).
+  const HistoryDrawer({super.key, this.permanent = false});
+  final bool permanent;
 
   @override
   State<HistoryDrawer> createState() => _HistoryDrawerState();
 }
 
 class _HistoryDrawerState extends State<HistoryDrawer> {
+  void _closeDrawer(BuildContext context) {
+    if (!widget.permanent) Navigator.pop(context);
+  }
+
   List<Map<String, dynamic>> items = [];
   List<Map<String, dynamic>> folders = [];
   String? folder; // null = toutes les discussions
@@ -1247,14 +1265,14 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
           title: Text(context.t('new_chat')),
           onTap: () {
             scope.chat.newChat();
-            Navigator.pop(context);
+            _closeDrawer(context);
           },
         ),
         ListTile(
           leading: const Icon(Icons.photo_library_outlined),
           title: Text(context.t('creations')),
           onTap: () {
-            Navigator.pop(context);
+            _closeDrawer(context);
             ShellNav.maybeOf(context)?.go(1);
           },
         ),
@@ -1262,7 +1280,7 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
           leading: const Icon(Icons.settings_outlined),
           title: Text(context.t('settings')),
           onTap: () {
-            Navigator.pop(context);
+            _closeDrawer(context);
             ShellNav.maybeOf(context)?.go(2);
           },
         ),
@@ -1271,7 +1289,7 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
           title: Text(context.t('import_title')),
           subtitle: Text(context.t('import_sub'), maxLines: 1, overflow: TextOverflow.ellipsis),
           onTap: () {
-            Navigator.pop(context);
+            _closeDrawer(context);
             showImportDialog(context);
           },
         ),
@@ -1338,7 +1356,7 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
             selected: c['id'] == scope.chat.conversationId,
             onTap: () {
               scope.chat.open('${c['id']}');
-              Navigator.pop(context);
+              _closeDrawer(context);
             },
             trailing: PopupMenuButton<String>(
               onSelected: (v) async {
