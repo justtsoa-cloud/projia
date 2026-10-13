@@ -53,6 +53,23 @@ void main() {
     expect(find.textContaining('Géométriquement', findRichText: true), findsOneWidget);
   });
 
+  testWidgets('formule dans une phrase : la phrase reste un seul bloc de texte', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(body: SingleChildScrollView(child: RichMarkdown(
+        'La formule \$\$a^2 + b^2 = c^2\$\$, puis le triplet \$3^2+4^2=5^2\$ suit.\n\n\$\$\\frac{a}{b}\$\$',
+      ))),
+    ));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    // Texte avant et après les formules dans le même paragraphe (plus de retour à la ligne).
+    final para = find.byWidgetPredicate((w) => w is SelectableText &&
+        (w.textSpan?.toPlainText(includePlaceholders: false) ?? '').contains('La formule') &&
+        w.textSpan!.toPlainText(includePlaceholders: false).contains(', puis le triplet'));
+    expect(para, findsOneWidget);
+    // « \$\$…\$\$ » seul dans son paragraphe : formule centrée, défilable.
+    expect(find.byType(SingleChildScrollView), findsNWidgets(2));
+  });
+
   testWidgets('formules dans un tableau : aucune erreur de rendu', (tester) async {
     await tester.pumpWidget(const MaterialApp(
       home: Scaffold(body: SingleChildScrollView(child: RichMarkdown(

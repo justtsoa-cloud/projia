@@ -5,6 +5,11 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+### Corrigé
+- Formules dans une phrase : le texte qui suit n’est plus rejeté à la ligne suivante
+  (« … en gras a²+b²=c², puis … » reste sur la même ligne) ; une formule `$$…$$` seule sur
+  sa ligne reste centrée.
+
 ## [0.6.1] - 2026-10-13
 
 ### Ajouté

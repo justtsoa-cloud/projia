@@ -389,7 +389,9 @@ class _MathInlineSyntax extends md.InlineSyntax {
 
   @override
   bool onMatch(md.InlineParser parser, Match match) {
-    final display = match.group(1) != null;
+    // « $$…$$ » seul dans son paragraphe : formule centrée ; au milieu d'une phrase, elle
+    // reste dans la ligne (sinon le texte qui suit est rejeté à la ligne suivante).
+    final display = match.group(1) != null && parser.source.trim() == match[0]!.trim();
     final tex = match.group(1) ?? match.group(2) ?? match.group(3) ?? '';
     // Un « $ » oublié par le modèle ne doit pas relier deux formules à travers une phrase :
     // du gras ou une fin de phrase dans la formule = ce n'est pas du TeX, on garde le texte.
@@ -445,15 +447,14 @@ class _MathBuilder extends MarkdownElementBuilder {
       textStyle: style,
       onErrorFallback: (e) => Text(element.textContent, style: style),
     );
-    return display
-        ? SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: math,
-            ),
-          )
-        : math;
+    if (display) {
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: math),
+      );
+    }
+    // Dans la phrase : un Text est fusionné par le rendu Markdown avec le texte voisin.
+    return Text.rich(WidgetSpan(alignment: PlaceholderAlignment.middle, child: math));
   }
 }
 
