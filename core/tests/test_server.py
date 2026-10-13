@@ -1154,3 +1154,17 @@ async def test_long_document_material_uses_the_compact_digest(client: TestClient
     assert "concept37" in material and len(material) <= 36000
     listed = client.get(f"/tontolo/conversations/{up['conversation_id']}/documents").json()
     assert "digest" not in listed[0]  # liste légère pour l'application
+
+
+def test_api_docs_are_up_to_date_and_docs_pages_are_off(client: TestClient) -> None:
+    """docs/API.md reflète toutes les routes (régénérer : scripts/api_docs.py) ; pas de /docs
+    (page chargée depuis un CDN externe)."""
+    import runpy
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[2]
+    render = runpy.run_path(str(root / "scripts" / "api_docs.py"))["render"]
+    assert (root / "docs" / "API.md").read_text(encoding="utf-8") == render(), (
+        "docs/API.md est à régénérer : cd core && uv run python ../scripts/api_docs.py")
+    assert client.get("/docs").status_code == 404 and client.get("/redoc").status_code == 404
+    assert "/tontolo/chat" in client.get("/openapi.json").json()["paths"]

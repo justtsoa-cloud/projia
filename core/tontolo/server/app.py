@@ -564,7 +564,10 @@ def create_app(
         yield
         await core.stop()
 
-    app = FastAPI(title="Tontolo", version=__version__, lifespan=lifespan)
+    # Schéma OpenAPI servi (jeton requis) ; pas de /docs ni /redoc : leurs pages chargent des
+    # scripts depuis un CDN externe. Documentation lisible : docs/API.md (scripts/api_docs.py).
+    app = FastAPI(title="Tontolo", version=__version__, lifespan=lifespan, docs_url=None,
+                  redoc_url=None)
     app.state.hub = hub
 
     def core_of(request: Request | WebSocket) -> Core:
