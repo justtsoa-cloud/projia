@@ -88,7 +88,11 @@ def test_a_long_thread_keeps_files_facts_and_style_whatever_the_model(
     with client.stream("POST", "/tontolo/chat", json={
             "conversation_id": cid, "content": "et la suite ?"}) as r:
         assert any('"done"' in line for line in r.iter_lines())
-    sent = seen[-1]
+    def answer_to(text: str) -> list[dict[str, Any]]:
+        # La compaction du début de discussion tourne en tâche de fond et peut passer en dernier.
+        return next(m for m in reversed(seen) if m and m[-1]["content"] == text)
+
+    sent = answer_to("et la suite ?")
     system = "\n".join(str(m["content"]) for m in sent if m["role"] == "system")
     assert "devis-cuisine.txt" in system                 # le fichier joint est rappelé
     assert "Continuité" in system                        # même ton, aucun changement annoncé
@@ -97,5 +101,6 @@ def test_a_long_thread_keeps_files_facts_and_style_whatever_the_model(
     with client.stream("POST", "/tontolo/chat", json={
             "conversation_id": cid, "content": "rappelle-moi mon budget pour la cuisine"}) as r:
         assert any('"done"' in line for line in r.iter_lines())
-    system = "\n".join(str(m["content"]) for m in seen[-1] if m["role"] == "system")
-    assert "4500 euros" in system or any("4500 euros" in str(m["content"]) for m in seen[-1])
+    sent = answer_to("rappelle-moi mon budget pour la cuisine")
+    system = "\n".join(str(m["content"]) for m in sent if m["role"] == "system")
+    assert "4500 euros" in system or any("4500 euros" in str(m["content"]) for m in sent)
