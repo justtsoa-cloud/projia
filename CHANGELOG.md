@@ -5,6 +5,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.6.4] - 2026-10-14
+
 ### Ajouté
 - Mémoire d'une longue discussion : même après une heure d'échanges, Tontolo retrouve ce qui a été
   dit au début du fil (rappel des passages anciens pertinents), garde en tête les fichiers

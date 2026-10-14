@@ -1,0 +1,56 @@
+{
+  "shot": "memory",
+  "lang": {
+    "fr": {
+      "tagline": "Nouveautés", "date": "14 octobre 2026",
+      "hero": ["Une discussion sans", "trou de mémoire"],
+      "sub": "Même après une heure, tout est retenu.",
+      "steps": [
+        ["Donnez un détail au début", "(un budget, une consigne)"],
+        ["Discutez longtemps,", "changez de modèle,", "joignez des fichiers"],
+        ["Tontolo s'en souvient :", "même ton, même fil,", "rien d'oublié"]
+      ],
+      "also": "Aussi dans cette version",
+      "items": [
+        ["Langue dès l'accueil", ["Français, English ou Malagasy,", "confirmée au premier écran."]],
+        ["Fichiers toujours présents", ["« Et la suite ? » retrouve", "le bon passage du document."]],
+        ["Compactage plus fidèle", ["Faits, style et fichiers du fil", "gardés dans la fiche."]]
+      ],
+      "footer": "Gratuit · Android · Linux"
+    },
+    "en": {
+      "tagline": "What's new", "date": "October 14, 2026",
+      "hero": ["A conversation with", "no memory gaps"],
+      "sub": "Even after an hour, everything is kept.",
+      "steps": [
+        ["Give a detail at the start", "(a budget, an instruction)"],
+        ["Chat for a long time,", "switch models,", "attach files"],
+        ["Tontolo remembers:", "same tone, same thread,", "nothing forgotten"]
+      ],
+      "also": "Also in this version",
+      "items": [
+        ["Language from the start", ["Français, English or Malagasy,", "confirmed on the first screen."]],
+        ["Files always present", ["“And what next?” finds the", "right passage of the document."]],
+        ["More faithful compaction", ["Facts, style and files of the thread", "kept in the summary."]]
+      ],
+      "footer": "Free · Android · Linux"
+    },
+    "mg": {
+      "tagline": "Vaovao", "date": "14 Oktobra 2026",
+      "hero": ["Resaka tsy misy", "fadiranovana"],
+      "sub": "Na dia ora iray aza, voatahiry daholo.",
+      "steps": [
+        ["Omeo antsipiriany iray", "hatrany am-boalohany"],
+        ["Mirésaka ela, ovay ny modely,", "ampiarao ny rakitra"],
+        ["Tsarovan'i Tontolo:", "fomba mitovy, kofehy mitovy,", "tsy misy adino"]
+      ],
+      "also": "Ao amin'ity dikan-teny ity koa",
+      "items": [
+        ["Fiteny hatrany am-boalohany", ["Français, English na Malagasy,", "ekena amin'ny efijery voalohany."]],
+        ["Rakitra hita foana", ["« Ary manaraka? » dia mahita ny", "ampahany mety amin'ny rakitra."]],
+        ["Fanafohezana marina kokoa", ["Zava-misy, fomba ary rakitra", "voatahiry ao amin'ny fintina."]]
+      ],
+      "footer": "Maimaim-poana · Android · Linux"
+    }
+  }
+}

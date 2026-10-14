@@ -14,6 +14,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.6.4': [
+    NewsItem(Icons.psychology_outlined, 'Une discussion sans trou de mémoire',
+        'Même après une heure d\'échanges, Tontolo retrouve ce que vous avez dit au début, garde en tête vos fichiers joints (même pour « et la suite ? ») et conserve le même ton, quel que soit le modèle qui répond.',
+        'A conversation with no memory gaps', 'Even after an hour of chatting, Tontolo remembers what you said at the start, keeps your attached files in mind (even for “and what next?”) and keeps the same tone, whichever model answers.',
+        mg: 'Resaka tsy misy fadiranovana', mgText: 'Na dia ampahefany iray aza ny resaka, tsarovan\'i Tontolo ny voalazanao tamin\'ny voalohany, tsy adinony ny rakitra nampiarahinao (na amin\'ny « ary manaraka? ») ary tsy miova ny fombany, na modely inona na inona no mamaly.'),
+    NewsItem(Icons.language, 'Votre langue dès l\'accueil',
+        'Tontolo démarre dans la langue de votre téléphone (français, English, Malagasy) et vous laisse la confirmer dès l\'accueil.',
+        'Your language from the start', 'Tontolo starts in your phone\'s language (français, English, Malagasy) and lets you confirm it on the welcome screen.',
+        mg: 'Ny fiteninao hatrany am-boalohany', mgText: 'Manomboka amin\'ny fiteny ao amin\'ny findainao i Tontolo (français, English, Malagasy) ary ahafahanao manamafy izany any amin\'ny fandraisana.'),
+  ],
   '0.6.3': [
     NewsItem(Icons.graphic_eq, 'Parlez à Tontolo, il vous répond',
         'Menu + › « Conversation vocale » : Tontolo vous écoute, comprend, répond à voix haute puis réécoute, mains libres. Sous chaque réponse, des raccourcis : plus de détails, un exemple, plus court, traduire.',
