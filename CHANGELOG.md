@@ -5,6 +5,22 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.6.6] - 2026-10-14
+
+### Sécurité
+- Clés API : masquage central dans les erreurs des fournisseurs (message et métadonnées, avant
+  troncature), dans les journaux (messages, arguments, traces) et pour les clés personnelles de
+  format libre ; test qu'aucune lecture ni export HTTP du cœur ne renvoie une clé.
+- Exécutions isolées : LaTeX, export Manim et commandes de l'agent exigent bubblewrap
+  (capacités désactivées, refus HTTP 501 fr/en/mg sinon) ; racine vide, réseau coupé, limites.
+- Mises à jour : refus testé des signatures invalides, des versions plus anciennes et des
+  fichiers absents, avant tout téléchargement de la charge.
+- Statistiques réduites à la version, la langue et le pays approximatif (plus d'identifiant,
+  de compteur ni de notes) ; l'écran « Voir ce qui est envoyé » montre exactement cela.
+- Dépendances : audit des vulnérabilités (pip-audit) et des licences Flutter dans la CI
+  (Apache-2.0, MIT, BSD ; seule exception documentée : `dbus`, MPL-2.0 non modifié).
+- Entrées non fiables : corpus de fuzz reproductible (import, LaTeX, courbes, liens, intentions).
+
 ## [0.6.5] - 2026-10-14
 
 ### Ajouté

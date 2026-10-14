@@ -3,6 +3,8 @@
 
 const Map<String, Map<String, String>> _t = {
   'fr': {
+    'upd_downgrade': 'Mise à jour refusée : version ancienne ou fichier non vérifié.',
+    'sandbox_unavailable': 'Exécution indisponible : bubblewrap est nécessaire pour le bac à sable.',
     'app': 'Tontolo',
     'chat': 'Chat',
     'creations': 'Créations',
@@ -36,7 +38,7 @@ const Map<String, Map<String, String>> _t = {
     'doc_remove': 'Retirer le document',
     'why_offline': 'hors ligne : modèle sur l\'appareil',
     'share_stats': 'Statistiques anonymes',
-    'share_stats_help': 'Aide l\'auteur à améliorer Tontolo : version, système, langue, pays et nombre de messages, une fois par jour. Jamais vos messages ni vos images.',
+    'share_stats_help': 'Aide l\'auteur à améliorer Tontolo : version, langue et pays approximatif, une fois par jour. Jamais vos messages ni vos images.',
     'stats_see': 'Voir ce qui est envoyé',
     'stats_notice': 'Tontolo envoie des statistiques anonymes (jamais vos messages) pour aider son auteur. Désactivable dans Réglages.',
     'author': 'Auteur',
@@ -681,6 +683,8 @@ const Map<String, Map<String, String>> _t = {
     'open': 'Ouvrir',
   },
   'en': {
+    'upd_downgrade': 'Update refused: older version or unverified file.',
+    'sandbox_unavailable': 'Execution unavailable: bubblewrap is required for the sandbox.',
     'app': 'Tontolo', 'chat': 'Chat', 'creations': 'Creations', 'settings': 'Settings',
     'news': 'What\'s new', 'about': 'About', 'history': 'History', 'new_chat': 'New chat',
     'search': 'Search', 'write': 'Write a message…', 'send': 'Send', 'auto': 'Auto',
@@ -699,7 +703,7 @@ const Map<String, Map<String, String>> _t = {
     'doc_remove': 'Remove the document',
     'why_offline': 'offline: on-device model',
     'share_stats': 'Anonymous statistics',
-    'share_stats_help': 'Helps the author improve Tontolo: version, system, language, country and message count, once a day. Never your messages or images.',
+    'share_stats_help': 'Helps the author improve Tontolo: version, language and approximate country, once a day. Never your messages or images.',
     'stats_see': 'See what is sent',
     'stats_notice': 'Tontolo sends anonymous statistics (never your messages) to help its author. You can turn this off in Settings.',
     'author': 'Author',
@@ -1232,6 +1236,8 @@ const Map<String, Map<String, String>> _t = {
     'open': 'Open',
   },
   'mg': {
+    'upd_downgrade': 'Tsy ekena ny fanavaozana: dikan-teny taloha na rakitra tsy voamarina.',
+    'sandbox_unavailable': 'Tsy azo atao: mila bubblewrap ny fefy.',
     'app': 'Tontolo', 'chat': 'Resaka', 'creations': 'Famoronana', 'settings': 'Kirakira',
     'news': 'Vaovao', 'about': 'Momba', 'history': 'Tantara', 'new_chat': 'Resaka vaovao',
     'search': 'Hikaroka', 'write': 'Soraty ny hafatra…', 'send': 'Alefa', 'auto': 'Mandeha ho azy',
@@ -1265,7 +1271,7 @@ const Map<String, Map<String, String>> _t = {
     'doc_remove': 'Esory ny rakitra',
     'why_offline': 'tsy misy tambajotra: modely ao amin\'ny fitaovana',
     'share_stats': 'Antontan\'isa tsy mitonona anarana',
-    'share_stats_help': 'Manampy ny mpamorona hanatsara an\'i Tontolo: dikan-teny, rafitra, fiteny, firenena ary isan\'ny hafatra, indray mandeha isan\'andro. Tsy alefa mihitsy ny hafatrao na ny sarinao.',
+    'share_stats_help': 'Manampy ny mpamorona hanatsara an\'i Tontolo: dikan-teny, fiteny ary firenena, indray mandeha isan\'andro. Tsy alefa mihitsy ny hafatrao na ny sarinao.',
     'stats_see': 'Jereo izay alefa',
     'stats_notice': 'Mandefa antontan\'isa tsy mitonona anarana i Tontolo (tsy alefa mihitsy ny hafatrao) hanampiana ny mpamorona azy. Azo atsahatra ao amin\'ny Kirakira.',
     'author': 'Mpamorona',

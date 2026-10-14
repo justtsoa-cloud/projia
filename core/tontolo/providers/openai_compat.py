@@ -30,7 +30,7 @@ def classify_error(status: int | None, body: str, headers: dict[str, str]) -> Pr
             retry_after = float(ra)
         except ValueError:
             retry_after = None
-    msg = secrets.redact(body[:500])
+    msg = secrets.redact(body)[:500]
     try:
         data = json.loads(body)
         err = data.get("error", data)
@@ -38,7 +38,7 @@ def classify_error(status: int | None, body: str, headers: dict[str, str]) -> Pr
             msg = str(err.get("message") or msg)
             meta = err.get("metadata") or {}
             if isinstance(meta, dict) and meta.get("raw"):
-                msg += f" ({str(meta['raw'])[:200]})"
+                msg += f" ({secrets.redact(str(meta['raw']))[:200]})"
     except (ValueError, AttributeError):
         pass
     scope = Scope.MODEL
@@ -58,8 +58,8 @@ def classify_error(status: int | None, body: str, headers: dict[str, str]) -> Pr
         kind = ErrorKind.SERVER
     else:
         kind = ErrorKind.SERVER
-    return ProviderError(msg, kind, status=status, retry_after=retry_after, scope=scope,
-                         headers=headers)
+    return ProviderError(secrets.redact(msg), kind, status=status, retry_after=retry_after,
+                         scope=scope, headers=headers)
 
 
 class OpenAICompatClient:

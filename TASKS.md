@@ -423,3 +423,25 @@ Pourquoi pas du code Manim écrit par un modèle : du code arbitraire exécuté 
 - [x] X8. Tests (intention, complétion, validation, sécurité des gabarits et du LaTeX, évaluateur de courbes, route, lecteur) + essai réel (scénario par modèles gratuits en 74 s, rendu Manim 0.22 de 49 s en 18 s) + doc `docs/EXPLAINER.md`.
 - [ ] X10. Relecture des calculs et des faits du scénario par un modèle d'une autre famille.
 - [ ] X9. Plus tard : voix du MP4 (synthèse locale), exports, partage de la vidéo, bibliothèque de scénarios.
+
+## Priorités Codex après v0.6.5 — reprise du 2026-10-14
+- [x] Essais sur appareils réels : déjà effectués, bugs déjà signalés, confirmation directe de l'utilisateur le 2026-10-14. Ne pas redemander cette campagne.
+- [x] Phase A / A1 : non-fuite des clés. Fuite reproduite dans les erreurs JSON fournisseur (message et metadata.raw) et avec une clé personnelle de format arbitraire ; correction et tests de régression ajoutés. Masquage central des journaux, arguments et traces ajouté. Vérification exports/sauvegardes/HTTP/télémétrie encore à faire.
+- [x] Phase A / A2 : export Manim refusé sans bubblewrap (capacité MP4 fausse, HTTP 501 fr/en/mg, garde dans le lanceur). Tests ajoutés. LaTeX et commandes agent restent à traiter.
+- [x] Phase A / A3 : audits dépendances/licences dans la CI.
+- [x] Phase A / A4 : limiter la télémétrie à langue/pays/version (le code actuel transmet aussi des identifiants, compteurs et notes).
+- [x] Phase A / A5 : tests négatifs des mises à jour signées.
+- [x] Phase A / A6 : entrées non fiables et bornes.
+- [~] Livraison phase A (v0.6.6) : suite complète, version groupée, affiches fr/en/mg, CI, release et signatures.
+- [ ] Phase B : fiabilité, premier lancement, économie et charge.
+- [ ] Phase C : relecture des scénarios, langue, variantes, bibliothèque et progression Apprendre.
+- [ ] Phase D : design, accessibilité, F-Droid et étude Flatpak.
+- [ ] Phase E : réconciliation des tâches et documentation finale.
+
+Note de reprise : `CLAUDE.md` demandé par le prompt est absent du dépôt local ; les transmissions de `docs/collaboration/` ont été consultées.
+
+Vérification du premier lot de sécurité (2026-10-14) : ruff vert ; mypy vert
+(107 fichiers) ; pytest **518 réussis, 2 ignorés, 47,65 s** ; Flutter analyze
+sans erreur ; Flutter test **87 réussis**. Les essais Python nécessitant des sockets
+locales ont été exécutés hors des restrictions du bac à sable après blocage dans
+celui-ci. Aucun tag, aucune publication ; phase A encore incomplète.

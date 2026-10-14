@@ -1,6 +1,10 @@
 // Statistiques : données anonymes uniquement, rien n'est envoyé sans configuration.
 
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tontolo/core/prefs.dart';
 import 'package:tontolo/core/stats.dart';
@@ -11,7 +15,7 @@ void main() {
     final prefs = await Prefs.load();
     final p = Stats.payload(prefs);
     expect(p.keys.toSet(),
-        {'install_id', 'app_version', 'platform', 'os_version', 'abi', 'app_locale', 'country', 'messages'});
+        {'app_version', 'app_locale', 'country'});
     expect(Stats.configured, isFalse); // aucune adresse fournie à la compilation des tests
   });
 
@@ -20,6 +24,47 @@ void main() {
     final prefs = await Prefs.load();
     Stats.countMessage(prefs);
     Stats.countMessage(prefs);
-    expect(Stats.payload(prefs)['messages'], 2);
+    expect(prefs.usageCount, 2);
+    expect(Stats.payload(prefs).containsKey('messages'), isFalse);
+  });
+  test('envoi exact, anciennes notes jamais transmises, une tentative par jour', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await Prefs.load();
+    prefs.shareStats = true;
+    prefs.installId = 'FAUSSE_CLE_IDENTIFIANT';
+    prefs.pendingRatings = '[{"answer_id":"FAUSSE_CLE_NOTE","rating":1}]';
+    prefs.usageCount = 42;
+    var requests = 0;
+    final client = MockClient((request) async {
+      requests++;
+      expect(request.url.path, '/rest/v1/pings_minimal');
+      final body = jsonDecode(request.body) as Map<String, dynamic>;
+      expect(body.keys.toSet(), {'app_version', 'app_locale', 'country'});
+      expect(request.body, isNot(contains('FAUSSE_CLE')));
+      expect(request.body, isNot(contains('42')));
+      return http.Response('', 503); // même en échec, pas de boucle d'envoi
+    });
+    for (var i = 0; i < 2; i++) {
+      await Stats.maybeSend(prefs, client: client,
+          statsUrl: 'https://stats.example', statsKey: 'public-anon');
+    }
+    expect(requests, 1);
+    expect(prefs.pendingRatings, '[]');
+    client.close();
+  });
+
+  test('aucun envoi si les statistiques sont désactivées', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await Prefs.load();
+    prefs.shareStats = false;
+    var requests = 0;
+    final client = MockClient((_) async {
+      requests++;
+      return http.Response('', 200);
+    });
+    await Stats.maybeSend(prefs, client: client,
+        statsUrl: 'https://stats.example', statsKey: 'public-anon');
+    expect(requests, 0);
+    client.close();
   });
 }

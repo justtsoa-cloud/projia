@@ -9,7 +9,6 @@ pour corriger son source (boucle « vérifier puis corriger » du pipeline)."""
 
 from __future__ import annotations
 
-import asyncio
 import re
 import shutil
 import tempfile
@@ -17,7 +16,7 @@ from pathlib import Path
 
 import httpx
 
-from tontolo import http
+from tontolo import http, sandbox
 
 MAX_PDF = 30 * 1024 * 1024
 YTOTECH = "https://latex.ytotech.com/builds/sync"
@@ -65,7 +64,9 @@ def engine_for(source: str) -> str:
 
 
 async def _local(source: str, engine: str) -> tuple[bytes, str]:
-    exe = shutil.which("tectonic") or shutil.which(engine)
+    if not sandbox.available():
+        raise LatexError(sandbox.unavailable_message())
+    exe = shutil.which(engine) or shutil.which("tectonic")
     if exe is None:
         raise LatexError("aucun moteur local", retryable=True)
     with tempfile.TemporaryDirectory() as tmp:
@@ -77,21 +78,20 @@ async def _local(source: str, engine: str) -> tuple[bytes, str]:
         runs = 1 if exe.endswith("tectonic") else 2  # 2 passes : table des matières, renvois
         log = ""
         for _ in range(runs):
-            proc = await asyncio.create_subprocess_exec(
-                *args, cwd=tmp, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
             try:
-                out, _ = await asyncio.wait_for(proc.communicate(), 90)
-            except TimeoutError as exc:
-                proc.kill()
-                raise LatexError("compilation trop longue") from exc
+                code, out = await sandbox.run(args, Path(tmp), time_limit=90)
+            except (TimeoutError, RuntimeError, OSError) as exc:
+                raise LatexError("compilation isolée impossible", str(exc)) from exc
             log_file = Path(tmp) / "document.log"
             log = log_file.read_text("utf-8", "replace") if log_file.exists() else out.decode(
                 "utf-8", "replace")
-            if proc.returncode != 0:
+            if code != 0:
                 raise LatexError("erreur de compilation", errors_from_log(log))
         pdf = Path(tmp) / "document.pdf"
         if not pdf.exists():
             raise LatexError("aucun PDF produit", errors_from_log(log))
+        if pdf.stat().st_size > MAX_PDF:
+            raise LatexError("PDF trop volumineux")
         return pdf.read_bytes(), log
 
 
@@ -129,20 +129,9 @@ async def _latexonline(source: str, engine: str) -> tuple[bytes, str]:
 
 async def compile_pdf(source: str) -> tuple[bytes, str, str]:
     """(pdf, journal, service utilisé). Lève LatexError (non relançable = erreur du source)."""
-    engine = engine_for(source)
-    last: LatexError | None = None
-    backends = [("local", _local), ("latex.ytotech.com", _ytotech),
-                ("latexonline.cc", _latexonline)]
-    for name, fn in backends:
-        if name == "latexonline.cc" and len(source) > 6000:
-            continue  # source passé dans l'URL : limité aux petits documents
-        try:
-            pdf, log = await fn(source, engine)
-            if not pdf.startswith(b"%PDF"):
-                raise LatexError("fichier produit invalide", retryable=True)
-            return pdf, log, name
-        except LatexError as exc:
-            if not exc.retryable:
-                raise  # erreur dans le document : inutile d'essayer un autre service
-            last = exc
-    raise last or LatexError("aucun service LaTeX disponible", retryable=True)
+    if not sandbox.available():
+        raise LatexError(sandbox.unavailable_message())
+    pdf, log = await _local(source, engine_for(source))
+    if not pdf.startswith(b"%PDF"):
+        raise LatexError("fichier produit invalide")
+    return pdf, log, "local"

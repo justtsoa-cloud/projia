@@ -70,13 +70,34 @@ _LATEX_BAD = re.compile(
     r"directlua|special|jobname|string|detokenize|verb|url|href|includegraphics)(?![A-Za-z])")
 
 
+_LATEX_COMMANDS = frozenset([
+    "frac", "dfrac", "tfrac", "sqrt", "text", "textbf", "textrm", "textit", "mathrm", "mathbf",
+    "mathit", "mathbb", "mathcal", "mathsf", "mathtt", "operatorname", "left", "right", "big",
+    "Big", "bigg", "Bigg", "cdot", "times", "div", "pm", "mp", "le", "leq", "ge", "geq", "neq",
+    "ne", "approx", "sim", "simeq", "equiv", "propto", "in", "notin", "subset", "subseteq",
+    "supset", "supseteq", "cup", "cap", "emptyset", "forall", "exists", "neg", "land", "lor",
+    "to", "rightarrow", "leftarrow", "Rightarrow", "Leftrightarrow", "mapsto", "infty",
+    "partial", "nabla", "sum", "prod", "int", "iint", "oint", "lim", "min", "max", "sin", "cos",
+    "tan", "cot", "log", "ln", "exp", "det", "gcd", "alpha", "beta", "gamma", "delta",
+    "epsilon", "varepsilon", "zeta", "eta", "theta", "vartheta", "iota", "kappa", "lambda",
+    "mu", "nu", "xi", "pi", "varpi", "rho", "varrho", "sigma", "varsigma", "tau", "upsilon",
+    "phi", "varphi", "chi", "psi", "omega", "Gamma", "Delta", "Theta", "Lambda", "Xi", "Pi",
+    "Sigma", "Upsilon", "Phi", "Psi", "Omega", "vec", "hat", "bar", "overline", "underline",
+    "dot", "ddot", "angle", "degree", "circ", "perp", "parallel", "vert", "Vert", "lvert",
+    "rvert", "lVert", "rVert", "ldots", "cdots", "vdots", "ddots", "quad", "qquad", "hspace",
+    "color", "underbrace", "overbrace", "binom", "dbinom", "tbinom", "substack",
+])
+
+
 def latex(value: Any) -> str:
     """LaTeX d'une formule : jeu de caractères restreint, aucune commande système ou de
     définition (le même texte part chez Manim, qui l'envoie à `latex`)."""
     s = _text(value, 1000).replace("$", "")
     if len(s) > MAX_LATEX:
         raise StoryboardError(f"formule trop longue ({len(s)} caractères, {MAX_LATEX} au plus)")
-    if not s or not _LATEX_OK.match(s) or _LATEX_BAD.search(s):
+    commands = re.findall(r"\\([A-Za-z]+)", s)
+    if (not s or not _LATEX_OK.match(s) or _LATEX_BAD.search(s) or "^^" in s
+            or any(command not in _LATEX_COMMANDS for command in commands)):
         raise StoryboardError(
             f"formule LaTeX refusée : {s[:60]!r} (caractères ou commande interdits)")
     if s.count("{") != s.count("}"):
@@ -150,6 +171,8 @@ def parse_expr(expr: str) -> ast.Expression:
 def plot_points(expr: str, xmin: float, xmax: float, n: int = POINTS
                 ) -> list[tuple[float, float]]:
     """Points (x, y) de la courbe, finis seulement (les trous : asymptotes, racines négatives)."""
+    if isinstance(n, bool) or not isinstance(n, int) or not 8 <= n <= 256:
+        raise StoryboardError("nombre de points invalide (8 à 256)")
     tree = parse_expr(expr)
     if not (math.isfinite(xmin) and math.isfinite(xmax)) or xmax <= xmin or xmax - xmin > 1e4:
         raise StoryboardError("intervalle de courbe invalide")
@@ -157,8 +180,8 @@ def plot_points(expr: str, xmin: float, xmax: float, n: int = POINTS
     for i in range(n + 1):
         x = xmin + (xmax - xmin) * i / n
         try:
-            y = _eval(tree, x)
-        except (ArithmeticError, ValueError):
+            y = float(_eval(tree, x))
+        except (ArithmeticError, ValueError, TypeError):
             continue
         if math.isfinite(y) and abs(y) < 1e6:
             out.append((round(x, 4), round(y, 4)))
@@ -222,7 +245,7 @@ def _scene(raw: Any, index: int) -> dict[str, Any]:
         out["expr"] = _text(raw.get("expr"), 80)
         try:
             xmin, xmax = float(raw.get("xmin", -5)), float(raw.get("xmax", 5))
-        except (TypeError, ValueError) as exc:
+        except (TypeError, ValueError, OverflowError) as exc:
             raise StoryboardError(f"scène {index + 1} (plot) : xmin et xmax numériques") from exc
         out["xmin"], out["xmax"] = xmin, xmax
         out["points"] = plot_points(out["expr"], xmin, xmax)
@@ -233,7 +256,7 @@ def _scene(raw: Any, index: int) -> dict[str, Any]:
         for v in (raw.get("values") or [])[:6] if isinstance(raw.get("values"), list) else []:
             try:
                 f = float(v)
-            except (TypeError, ValueError):
+            except (TypeError, ValueError, OverflowError):
                 continue
             if math.isfinite(f) and abs(f) < 1e9:
                 values.append(f)

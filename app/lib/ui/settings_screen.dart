@@ -163,7 +163,7 @@ class _Simple extends StatelessWidget {
             context: context,
             builder: (context) => AlertDialog(
               title: Text(context.t('stats_see')),
-              content: SelectableText(const JsonEncoder.withIndent('  ').convert({...Stats.payload(prefs), 'ratings': Stats.pendingRatings(prefs)}),
+              content: SelectableText(const JsonEncoder.withIndent('  ').convert(Stats.payload(prefs)),
                   style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
               actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(context.t('got_it')))],
             ),

@@ -12,7 +12,6 @@ l'utilisateur, avec garde-fous.
 
 from __future__ import annotations
 
-import asyncio
 import difflib
 import json
 import os
@@ -23,6 +22,7 @@ import time
 from pathlib import Path
 from typing import Any
 
+from tontolo import sandbox
 from tontolo.agent.tools import Tool
 
 MAX_READ = 60_000
@@ -274,22 +274,27 @@ class Workspace:
             return "Commande vide."
         if DANGEROUS.search(cmd) or any(d in cmd for d in SENSITIVE_DIRS):
             return "Commande refusée par les garde-fous de Tontolo (destructrice ou sensible)."
-        env = {k: v for k, v in os.environ.items()
-               if not re.search(r"KEY|TOKEN|SECRET|PASSWORD", k, re.I)}
-        proc = await asyncio.create_subprocess_exec(
-            "/bin/bash", "-c", cmd, cwd=self.root, env=env, stdin=asyncio.subprocess.DEVNULL,
-            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT,
-            start_new_session=True)
+        if not sandbox.available():
+            return sandbox.unavailable_message()
+        hidden: list[Path] = []
+        for directory, dirs, files in os.walk(self.root, followlinks=False):
+            for name in [*dirs, *files]:
+                path = Path(directory) / name
+                if not path.is_symlink() and (_sensitive(path) or name == ".git"):
+                    hidden.append(path)
+                    if name in dirs:
+                        dirs.remove(name)
         try:
-            out, _ = await asyncio.wait_for(proc.communicate(), COMMAND_TIMEOUT)
+            code, out = await sandbox.run(["/bin/bash", "-c", cmd], self.root,
+                                          time_limit=COMMAND_TIMEOUT, hidden=hidden)
         except TimeoutError:
-            proc.kill()
-            await proc.wait()
             return f"Délai dépassé ({int(COMMAND_TIMEOUT)} s) : commande arrêtée."
+        except (RuntimeError, OSError) as exc:
+            return f"Commande refusée : {exc}"
         text = out.decode("utf-8", errors="replace")
         if len(text) > MAX_OUTPUT:
             text = text[:MAX_OUTPUT // 2] + "\n… (sortie tronquée) …\n" + text[-MAX_OUTPUT // 2:]
-        return f"Code de sortie : {proc.returncode}\n{redact(text)}"
+        return f"Code de sortie : {code}\n{redact(text)}"
 
     def tools(self, commands: bool) -> list[Tool]:
         path = {"type": "string", "description": "chemin relatif au dossier de travail"}
@@ -322,7 +327,7 @@ class Workspace:
             Tool("undo_last_change", "Annule la dernière création ou modification de fichier.",
                  {"type": "object", "properties": {}}, self.undo_last_change, side_effect=True),
         ]
-        if commands:
+        if commands and sandbox.available():
             out.append(Tool(
                 "run_command", "Lance UNE commande bash dans le dossier de travail (après "
                 "confirmation de l'utilisateur ; 120 s maximum ; pas de sudo).",

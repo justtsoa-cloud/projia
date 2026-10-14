@@ -104,6 +104,12 @@ Serveur local (127.0.0.1, jeton `Authorization: Bearer …` hors boucle locale).
 |---|---|---|
 | `POST` | `/tontolo/documents` | Joint une pièce (PDF, bureautique, texte, code, archive, son, vidéo…) à une |
 
+## Execution
+
+| Méthode | Chemin | Rôle |
+|---|---|---|
+| `GET` | `/tontolo/execution/capabilities` | Execution Capabilities |
+
 ## Explainer
 
 | Méthode | Chemin | Rôle |

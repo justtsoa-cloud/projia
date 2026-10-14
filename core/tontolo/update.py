@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+import base64
 import hashlib
 import platform
 import re
@@ -23,6 +24,24 @@ from tontolo import __version__, http
 
 REPO = "raantss18/tontolo"
 LATEST_URL = f"https://api.github.com/repos/{REPO}/releases/latest"
+
+
+UPDATE_SIGNING_KEY = "TSKSgNkywCdAM9bJ4EN+qew8/5ME75uuAlO+a+ZBvDs="
+
+
+def verify_sums(data: bytes, signature: bytes, public_key: str = UPDATE_SIGNING_KEY) -> bool:
+    """Échec fermé si le moteur Ed25519 manque (l'application a son propre vérificateur)."""
+    try:
+        from cryptography.exceptions import InvalidSignature
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+    except ImportError:
+        return False
+    try:
+        Ed25519PublicKey.from_public_bytes(base64.b64decode(public_key, validate=True)).verify(
+            signature, data)
+        return True
+    except (InvalidSignature, ValueError):
+        return False
 
 
 def parse_version(v: str) -> tuple[int, ...]:
@@ -58,7 +77,7 @@ def pick_asset(assets: list[dict[str, Any]], target: str, arch: str | None = Non
     for n, a in names.items():
         if n.endswith(".AppImage") and machine in n:
             return a
-    return next((a for n, a in names.items() if n.endswith(".AppImage")), None)
+    return None
 
 
 def parse_sums(text: str) -> dict[str, str]:
@@ -87,7 +106,7 @@ async def check_update(current: str = __version__, target: str | None = None,
     }
 
 
-async def download_update(dest_dir: Path, target: str, arch: str | None = None,
+async def _download_update(dest_dir: Path, target: str, arch: str | None = None,
                           current: str = __version__) -> dict[str, Any]:
     """Télécharge et vérifie la mise à jour. Renvoie le chemin du fichier vérifié."""
     data = await latest_release()
@@ -101,12 +120,24 @@ async def download_update(dest_dir: Path, target: str, arch: str | None = None,
     sums_asset = next((a for a in assets if a["name"] == "SHA256SUMS"), None)
     if asset is None or sums_asset is None:
         return {"ok": False, "error": "Fichier ou SHA256SUMS absent de la release"}
-    for a in (asset, sums_asset):
+    sig_asset = next((a for a in assets if a["name"] == "SHA256SUMS.sig"), None)
+    if sig_asset is None:
+        return {"ok": False, "error": "Signature absente : mise à jour rejetée"}
+    name = str(asset["name"])
+    if Path(name).name != name or "\\" in name or f"-{latest}-" not in name:
+        return {"ok": False, "error": "Nom ou version du fichier invalide"}
+    for a in (asset, sums_asset, sig_asset):
         host = urlsplit(a["browser_download_url"]).hostname or ""
-        if not (host == "github.com" or host.endswith(".githubusercontent.com")):
+        if urlsplit(a["browser_download_url"]).scheme != "https" or not (
+                host == "github.com" or host.endswith(".githubusercontent.com")):
             return {"ok": False, "error": "Origine du téléchargement non reconnue"}
     client = http.client()
-    sums = parse_sums((await client.get(sums_asset["browser_download_url"], timeout=30)).text)
+    sums_response = await client.get(sums_asset["browser_download_url"], timeout=30)
+    sig_response = await client.get(sig_asset["browser_download_url"], timeout=30)
+    if (sums_response.status_code != 200 or sig_response.status_code != 200
+            or not verify_sums(sums_response.content, sig_response.content)):
+        return {"ok": False, "error": "Signature invalide : mise à jour rejetée"}
+    sums = parse_sums(sums_response.text)
     expected = sums.get(asset["name"])
     if not expected:
         return {"ok": False, "error": "Empreinte absente de SHA256SUMS"}
@@ -137,3 +168,14 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: fh.read(1 << 16), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+async def download_update(dest_dir: Path, target: str, arch: str | None = None,
+                          current: str = __version__, language: str = "fr") -> dict[str, Any]:
+    result = await _download_update(dest_dir, target, arch, current)
+    if not result.get("ok") and language in ("en", "mg"):
+        result["error"] = {
+            "en": "Update refused: version, file or signature could not be verified.",
+            "mg": "Tsy ekena ny fanavaozana: tsy voamarina ny dikan-teny na ny rakitra.",
+        }[language]
+    return result

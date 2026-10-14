@@ -23,7 +23,7 @@ import '../l10n/strings.dart';
 import 'prefs.dart';
 import 'update_key.dart';
 
-const appVersion = '0.6.5';
+const appVersion = '0.6.6';
 const repo = 'raantss18/tontolo';
 
 enum UpdateStatus { idle, checking, downloading, ready, failed, upToDate }
@@ -38,6 +38,9 @@ class Updater extends ChangeNotifier {
   String? message;
   String notesRaw = '';
   File? file;
+  String? _verifiedHash;
+  String? _verifiedPath;
+  String? _verifiedVersion;
 
   /// Notes de la release groupées par rubrique (Ajouté, Corrigé, Sécurité…).
   List<(String, List<String>)> get notes => parseNotes(notesRaw);
@@ -113,6 +116,8 @@ class Updater extends ChangeNotifier {
     if (status == UpdateStatus.downloading || status == UpdateStatus.checking) return;
     final t = target();
     if (t == null) return;
+    file = null;
+    _verifiedHash = _verifiedPath = _verifiedVersion = null;
     _set(UpdateStatus.checking);
     try {
       final rel = await _latestRelease();
@@ -129,32 +134,33 @@ class Updater extends ChangeNotifier {
         return _set(UpdateStatus.ready);
       }
       final assets = (rel['assets'] as List).cast<Map<String, dynamic>>();
-      final asset = _pick(assets, t.$1, t.$2);
+      final asset = pickAsset(assets, t.$1, t.$2, latest!);
       final sums = assets.where((a) => a['name'] == 'SHA256SUMS').firstOrNull;
       if (asset == null || sums == null) throw _UpdateError('upd_missing');
-      for (final a in [asset, sums]) {
+      final sig = assets.where((a) => a['name'] == 'SHA256SUMS.sig').firstOrNull;
+      if (sig == null) throw _UpdateError('upd_bad_signature');
+      for (final a in [asset, sums, sig]) {
         final host = Uri.parse('${a['browser_download_url']}').host;
-        if (host != 'github.com' && !host.endsWith('.githubusercontent.com')) {
+        if (Uri.parse('${a['browser_download_url']}').scheme != 'https' ||
+            (host != 'github.com' && !host.endsWith('.githubusercontent.com'))) {
           throw _UpdateError('upd_origin');
         }
       }
       final sumsResp = await http.get(Uri.parse(sums['browser_download_url'])).timeout(const Duration(seconds: 30));
       if (sumsResp.statusCode != 200) throw _UpdateError('upd_missing');
-      // Empreintes signées (Ed25519) : exigé pour l'AppImage, qui remplace l'application sans
-      // contrôle du système ; vérifié aussi sur Android quand la signature est publiée.
-      final sig = assets.where((a) => a['name'] == 'SHA256SUMS.sig').firstOrNull;
-      final sigResp = sig == null
-          ? null
-          : await http.get(Uri.parse('${sig['browser_download_url']}')).timeout(const Duration(seconds: 30));
-      final signature = sigResp?.statusCode == 200 ? sigResp!.bodyBytes : null;
-      if (signature == null && t.$1 == 'linux') throw _UpdateError('upd_bad_signature');
-      if (signature != null && !await verifySums(sumsResp.bodyBytes, signature)) {
+      // La signature est obligatoire sur toutes les plateformes.
+      final sigResp = await http.get(Uri.parse('${sig['browser_download_url']}'))
+          .timeout(const Duration(seconds: 30));
+      if (sigResp.statusCode != 200 || !await verifySums(sumsResp.bodyBytes, sigResp.bodyBytes)) {
         throw _UpdateError('upd_bad_signature');
       }
       final sumsText = sumsResp.body;
       final expected = _parseSums(sumsText)[asset['name']];
       if (expected == null) throw _UpdateError('upd_no_hash');
       file = await _download(asset, expected);
+      _verifiedHash = expected;
+      _verifiedPath = file!.path;
+      _verifiedVersion = latest;
       message = tr(prefs.locale, 'upd_ready_install', {'v': latest!});
       _set(UpdateStatus.ready); // l'installation est proposée par l'interface, jamais lancée d'office
     } on _UpdateError catch (e) {
@@ -258,13 +264,12 @@ class Updater extends ChangeNotifier {
     return buf.toString();
   }
 
-  Map<String, dynamic>? _pick(List<Map<String, dynamic>> assets, String os, String arch) {
-    bool ok(Map<String, dynamic> a) {
-      final n = a['name'] as String;
-      return os == 'android' ? n.endsWith('.apk') && n.contains(arch) : n.endsWith('.AppImage') && n.contains(arch);
-    }
-
-    return assets.where(ok).firstOrNull;
+  static Map<String, dynamic>? pickAsset(List<Map<String, dynamic>> assets,
+      String os, String arch, String version) {
+    if (!RegExp(r'^\d+\.\d+\.\d+$').hasMatch(version)) return null;
+    final expected = os == 'android'
+        ? 'tontolo-$version-$arch.apk' : 'Tontolo-$version-$arch.AppImage';
+    return assets.where((a) => a['name'] == expected).firstOrNull;
   }
 
   static Map<String, String> _parseSums(String text) {
@@ -322,16 +327,42 @@ class Updater extends ChangeNotifier {
     }
   }
 
+  Future<bool> _canInstall() async {
+    try {
+      if (_verifiedVersion == null || !isNewer(_verifiedVersion!, appVersion) ||
+          latest != _verifiedVersion) {
+        throw _UpdateError('upd_downgrade');
+      }
+      if (file == null || file!.path != _verifiedPath || !await file!.exists()) {
+        throw _UpdateError('upd_missing');
+      }
+      if ((await sha256.bind(file!.openRead()).first).toString() != _verifiedHash) {
+        throw _UpdateError('upd_bad_hash');
+      }
+      return true;
+    } catch (e) {
+      message = tr(prefs.locale, e is _UpdateError ? e.key : 'upd_missing');
+      _set(UpdateStatus.failed);
+      return false;
+    }
+  }
+
   Future<void> installAndroid() async {
-    if (file != null) await OpenFilex.open(file!.path, type: 'application/vnd.android.package-archive');
+    if (await _canInstall()) await OpenFilex.open(file!.path, type: 'application/vnd.android.package-archive');
   }
 
   /// Linux : remplace l'AppImage en cours d'utilisation puis relance.
   Future<void> installLinuxAndRestart() async {
     final appImage = Platform.environment['APPIMAGE'];
-    if (appImage == null || file == null) return;
+    if (appImage == null || !await _canInstall()) return;
     final tmp = File('$appImage.new');
     await file!.copy(tmp.path);
+    if ((await sha256.bind(tmp.openRead()).first).toString() != _verifiedHash) {
+      await tmp.delete();
+      message = tr(prefs.locale, 'upd_bad_hash');
+      _set(UpdateStatus.failed);
+      return;
+    }
     await Process.run('chmod', ['+x', tmp.path]);
     await tmp.rename(appImage);
     await Process.start(appImage, [], mode: ProcessStartMode.detached);

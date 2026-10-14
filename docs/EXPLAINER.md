@@ -39,7 +39,8 @@ demande ──► intention ──► demande COMPLÉTÉE ──► scénario (J
 Le script Manim est **toujours le même gabarit fixe** ; le scénario validé lui est transmis en
 base64 (`DATA = json.loads(base64…)`) : aucun texte libre ne se retrouve dans le code. Le rendu
 tourne dans un dossier temporaire, avec limites (temps 5 min, fichiers, descripteurs), sous
-bubblewrap sans réseau, dossier personnel et `/run` masqués, quand il est installé. Les formules
+bubblewrap obligatoire, sans réseau, dossier personnel et `/run` masqués. Sans bubblewrap
+utilisable (notamment sur Android), la capacité MP4 est fausse et l’export est refusé (HTTP 501). Les formules
 sont limitées à un jeu de caractères sûr, sans commande de lecture, d'écriture ni de définition.
 
 ## Installer Manim (facultatif, Linux)

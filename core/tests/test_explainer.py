@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import json
 import time
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -295,3 +296,20 @@ def test_latex_in_prose_is_made_plain() -> None:
         {"type": "recap", "title": "Fin", "items": ["a", "b", "c"], "narration": "Fin."}]})
     assert story["scenes"][0]["narration"] == "On a 1/2 + 1/2 = 1."
     assert story["scenes"][1]["items"][0] == "a/b avec b ≠ 0"
+
+
+def test_manim_requires_sandbox(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    from tontolo.agent import mcp_client
+
+    monkeypatch.setattr(mcp_client, 'bwrap_usable', lambda: None)
+    with pytest.raises(manim_render.RenderError, match='bubblewrap'):
+        manim_render._argv('/usr/bin/python', tmp_path, tmp_path / 'scene.py', 'l')
+
+
+def test_mp4_capability_requires_sandbox(client: TestClient,
+                                        monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(manim_render, 'status', lambda: {
+        'manim': True, 'ffmpeg': True, 'latex': True, 'sandbox': False})
+    assert client.get('/tontolo/explainer/capabilities').json()['mp4'] is False
+    response = client.post('/tontolo/explainer/render', json={'story': GOOD})
+    assert response.status_code == 501

@@ -2,7 +2,7 @@
 
 Aucun code n'est écrit par un modèle : le script est TOUJOURS le même (gabarit fixe) et le
 scénario validé lui est transmis en base64. Le rendu s'exécute dans un dossier temporaire, avec
-délai et limites de ressources, sous bubblewrap sans réseau quand il est installé. Sans Manim,
+délai et limites de ressources, sous bubblewrap obligatoire, sans réseau. Sans Manim,
 `status()` l'indique et le lecteur animé de l'application prend le relais."""
 
 from __future__ import annotations
@@ -17,6 +17,8 @@ import sys
 import tempfile
 from pathlib import Path
 from typing import Any
+
+from tontolo import sandbox
 
 RENDER_TIMEOUT = 300.0
 MAX_MP4 = 60 * 1024 * 1024
@@ -219,22 +221,14 @@ def _argv(py: str, workdir: Path, script: Path, quality: str) -> list[str]:
            "Explainer"]
     bwrap = bwrap_usable()
     if not bwrap:
-        return cmd
-    home = Path.home().resolve()
-    # L'environnement Python qui a Manim peut vivre sous /tmp ou le dossier personnel (masqués
-    # dans le bac à sable) : on le rouvre, en lecture seule.
-    reopen: list[str] = []
-    for root in dict.fromkeys(_python_roots(py)):
-        reopen += ["--ro-bind-try", str(root), str(root)]
-    return [bwrap, "--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc", "--tmpfs", "/tmp",  # nosec B108
-            "--tmpfs", "/run", "--tmpfs", str(home), *reopen, "--bind", str(workdir), str(workdir),
-            "--unshare-all", "--die-with-parent", "--new-session", "--chdir", str(workdir),
-            "--setenv", "HOME", str(workdir), "--", *cmd]
+        raise RenderError("bubblewrap indisponible : rendu isolé impossible")
+    return sandbox.argv(cmd, workdir, read_only=list(dict.fromkeys(_python_roots(py))))
 
 
 def _limits() -> None:  # exécuté dans le processus fils, avant Manim
     import resource
 
+    resource.setrlimit(resource.RLIMIT_AS, (2 * 1024**3,) * 2)
     resource.setrlimit(resource.RLIMIT_CPU, (int(RENDER_TIMEOUT) + 60,) * 2)
     resource.setrlimit(resource.RLIMIT_FSIZE, (MAX_MP4 * 4,) * 2)
     resource.setrlimit(resource.RLIMIT_NOFILE, (512, 512))
@@ -249,6 +243,8 @@ async def render(story: dict[str, Any], *, quality: str = "l") -> bytes:
     py = _manim_python()
     if py is None or not st["ffmpeg"]:
         raise RenderError("Manim ou ffmpeg n'est pas installé sur cette machine")
+    if not st["sandbox"]:
+        raise RenderError("bubblewrap indisponible : rendu isolé impossible")
     with tempfile.TemporaryDirectory(prefix="tontolo-manim-") as tmp:
         work = Path(tmp)
         script = work / "scene.py"
@@ -263,6 +259,7 @@ async def render(story: dict[str, Any], *, quality: str = "l") -> bytes:
             _, err = await asyncio.wait_for(proc.communicate(), RENDER_TIMEOUT)
         except TimeoutError:
             proc.kill()
+            await proc.wait()
             raise RenderError("rendu trop long : scénario abandonné") from None
         found = sorted((work / "media").rglob("explainer.mp4"))
         if proc.returncode != 0 or not found:

@@ -576,8 +576,7 @@ class ChatController extends ChangeNotifier {
   }
 
   /// Note 👍 (1) / 👎 (-1) d'une réponse, 0 pour l'annuler (même note touchée deux fois).
-  /// Récompense ou pénalise le modèle sur l'appareil ; partagée anonymement (modèle, type de
-  /// demande, note, raison — jamais le texte) si les statistiques anonymes sont activées.
+  /// Récompense ou pénalise le modèle sur l’appareil uniquement.
   Future<bool> rate(ChatMessage m, int rating, {String reason = ''}) async {
     final uid = m.uid;
     if (uid == null) return false;
@@ -585,13 +584,8 @@ class ChatController extends ChangeNotifier {
     m.rating = rating;
     notifyListeners();
     try {
-      final r = await backend.sendJson('POST', '/tontolo/feedback',
-          {'uid': uid, 'rating': rating, 'reason': reason}) as Map<String, dynamic>;
-      if (backend.prefs.shareStats) {
-        Stats.queueRating(backend.prefs, answerId: uid, model: '${r['model'] ?? ''}',
-            category: '${r['category'] ?? 'chat'}', rating: rating, reason: reason,
-            cached: m.cachedFrom != null);
-      }
+      await backend.sendJson('POST', '/tontolo/feedback',
+          {'uid': uid, 'rating': rating, 'reason': reason});
       return true;
     } catch (_) {
       m.rating = previous; // ancien cœur ou réponse introuvable : rien n'a changé

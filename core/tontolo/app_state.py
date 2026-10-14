@@ -6,7 +6,7 @@ import contextlib
 from dataclasses import dataclass, field
 from typing import Any
 
-from tontolo import __version__, http
+from tontolo import __version__, http, secrets
 from tontolo.agent.loop import ChatService
 from tontolo.agent.mcp_client import McpManager
 from tontolo.agent.turns import TurnManager
@@ -49,6 +49,7 @@ class Core:
         cls, settings: Settings | None = None, *, registry: ProviderRegistry | None = None,
         refresh: bool = True,
     ) -> Core:
+        secrets.install_log_redaction()
         settings = settings or load_settings()
         with contextlib.suppress(OSError):  # caches regroupés, anciens fichiers effacés
             space.tidy(settings.data_dir, __version__)

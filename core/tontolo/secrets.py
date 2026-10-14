@@ -166,6 +166,33 @@ _REDACT = [
 
 def redact(text: str) -> str:
     """Masque tout ce qui ressemble à une clé ou un secret dans un message de journal."""
+    known = set(_memory.values()) | {
+        value for name, value in os.environ.items() if name.endswith("_API_KEY")
+    }
+    for value in sorted(known, key=len, reverse=True):
+        if value:
+            text = text.replace(value, "[clé masquée]")
     for rx, repl in _REDACT:
         text = rx.sub(repl, text)
     return text
+
+
+def install_log_redaction() -> None:
+    """Protège aussi les arguments et traces des bibliothèques tierces."""
+    previous = logging.getLogRecordFactory()
+    if getattr(previous, "_tontolo_redacted", False):
+        return
+
+    def factory(*args: Any, **kwargs: Any) -> logging.LogRecord:
+        record = previous(*args, **kwargs)
+        record.msg = redact(record.getMessage())
+        record.args = ()
+        if record.exc_info:
+            record.exc_text = redact(logging.Formatter().formatException(record.exc_info))
+            record.exc_info = None
+        if record.stack_info:
+            record.stack_info = redact(record.stack_info)
+        return record
+
+    factory._tontolo_redacted = True  # type: ignore[attr-defined]
+    logging.setLogRecordFactory(factory)

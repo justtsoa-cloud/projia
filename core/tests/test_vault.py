@@ -14,6 +14,8 @@ from tontolo import secrets, vault
 def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     monkeypatch.setenv("TONTOLO_HOME", str(tmp_path))
     monkeypatch.setenv("TONTOLO_NO_KEYRING", "1")
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
     secrets._memory.clear()
     return tmp_path
 

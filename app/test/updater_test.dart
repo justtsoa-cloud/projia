@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tontolo/core/prefs.dart';
 import 'package:tontolo/core/update_key.dart';
 import 'package:tontolo/core/updater.dart';
 import 'package:tontolo/core/whats_new.dart';
@@ -63,5 +65,27 @@ void main() {
     expect(File('../.github/update-signing.pub').readAsStringSync(), contains('MCowBQYDK2VwAyEA'));
     expect(base64Decode(updateSigningKey), hasLength(32));
     expect(Updater.fallbackRelease('9.9.9')['assets'].map((a) => a['name']), contains('SHA256SUMS.sig'));
+  });
+  test('asset absent, mauvaise architecture ou version détournée refusés', () {
+    final assets = (Updater.fallbackRelease('9.9.9')['assets'] as List).cast<Map<String, dynamic>>();
+    expect(Updater.pickAsset(assets, 'linux', 'x86_64', '9.9.9'), isNotNull);
+    expect(Updater.pickAsset([], 'linux', 'x86_64', '9.9.9'), isNull);
+    expect(Updater.pickAsset(assets, 'linux', 'x86_64', '9.9.8'), isNull);
+    expect(Updater.pickAsset(assets, 'linux', 'unknown', '9.9.9'), isNull);
+    expect(Updater.isNewer('0.1.0', appVersion), isFalse);
+  });
+
+  test('installation refusée sans preuve de vérification, dans les trois langues', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await Prefs.load();
+    for (final lang in ['fr', 'en', 'mg']) {
+      prefs.locale = lang;
+      final updater = Updater(prefs)..latest = '0.1.0'..file = File('/tmp/unverified.apk');
+      await updater.installAndroid(); // aucun appel à l’installeur natif
+      expect(updater.status, UpdateStatus.failed);
+      expect(updater.message, isNotEmpty);
+      expect(updater.message, isNot('upd_downgrade'));
+      updater.dispose();
+    }
   });
 }

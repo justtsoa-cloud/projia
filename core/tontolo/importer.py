@@ -232,7 +232,11 @@ def parse_any(data: str) -> list[Imported]:
         except (ValueError, RecursionError):  # JSON invalide ou imbriqué à l'excès
             obj = None
         if obj is not None:
-            return _parse_json(obj)
+            try:
+                return _parse_json(obj)
+            except (TypeError, AttributeError, KeyError, OverflowError, RecursionError) as exc:
+                raise ConversationImportError(
+                    "import_empty", "Structure de discussion invalide.") from exc
     return [parse_text(data)]
 
 

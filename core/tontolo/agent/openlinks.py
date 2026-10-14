@@ -31,9 +31,14 @@ def wants_open(text: str) -> bool:
 
 def links_in(answer: str, limit: int = 3) -> list[str]:
     """Premiers liens distincts de la réponse (sans ponctuation finale)."""
+    if limit <= 0 or len(answer or "") > 100_000:
+        return []
+    limit = min(limit, 10)
     out: list[str] = []
     for m in _URL.finditer(answer or ""):
         url = m.group(0).rstrip(".,;:!?»'")
+        if len(url) > 2048:
+            continue
         if url not in out:
             out.append(url)
         if len(out) >= limit:

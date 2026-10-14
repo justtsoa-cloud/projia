@@ -33,6 +33,11 @@ jobs:
         run: .venv/bin/mypy
       - name: Tests (pytest, fournisseurs simulés)
         run: .venv/bin/pytest -q
+      - name: Vulnérabilités des dépendances verrouillées (aucune exception silencieuse)
+        if: matrix.python == '3.14'
+        run: |
+          uv export --frozen --extra linux --no-dev --no-emit-project --no-hashes --output-file /tmp/tontolo-requirements.txt
+          uvx pip-audit -r /tmp/tontolo-requirements.txt --disable-pip --no-deps
       - name: Budget de latence (sélection du modèle < 20 ms)
         run: .venv/bin/pytest -q tests/test_router.py -k selection_is_fast
 
@@ -64,5 +69,9 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
+      - name: Versions et avis des dépendances Flutter
+        run: flutter pub outdated
+      - name: Licences Flutter (Apache-2.0, MIT, BSD seulement)
+        run: python3 ../scripts/check_flutter_licenses.py .dart_tool/package_config.json
       - run: flutter analyze
       - run: flutter test

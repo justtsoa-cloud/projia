@@ -37,8 +37,6 @@ from tontolo.agent.tools import (
     untrusted,
 )
 from tontolo.agent.workspace import (
-    DANGEROUS,
-    SENSITIVE_DIRS,
     Workspace,
     check_workdir,
     is_desktop,
@@ -300,27 +298,11 @@ class ChatService:
                 return "Aucun terminal ouvert pour cette discussion."
             return untrusted(redact(s.text(int(args.get("lines") or 80))) or "(terminal vide)")
 
-        async def send(args: dict[str, Any]) -> str:
-            text = str(args.get("text", ""))
-            if DANGEROUS.search(text) or any(d in text for d in SENSITIVE_DIRS):
-                return "Refusé par les garde-fous de Tontolo (commande destructrice ou sensible)."
-            s = terms.get(CURRENT.get(), self.terminal_cwd())
-            s.write((text + ("\n" if args.get("enter", True) else "")).encode())
-            await asyncio.sleep(min(float(args.get("wait") or 2), 15))
-            return untrusted(redact(s.text(40)))
-
         return [
             Tool("terminal_read", "Lit les dernières lignes du terminal de cette discussion "
                  "(ce que l'utilisateur y a tapé et vu).",
                  {"type": "object", "properties": {"lines": {"type": "integer"}}}, read),
-            Tool("terminal_send", "Tape du texte dans le terminal de cette discussion (programme "
-                 "interactif, réponse à une question) puis renvoie l'écran. Confirmation de "
-                 "l'utilisateur. Pour une commande simple, préfère run_command.",
-                 {"type": "object", "properties": {"text": {"type": "string"},
-                                                   "enter": {"type": "boolean"},
-                                                   "wait": {"type": "number"}},
-                  "required": ["text"]}, send, side_effect=True,
-                 preview=lambda a: f"⌨ {a.get('text', '')}"),
+
         ]
 
     def _mirror_command(self, cid: str, fn: dict[str, Any], result: str) -> None:

@@ -14,6 +14,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.6.6': [
+    NewsItem(Icons.lock_outline, 'Ce qui sort de votre téléphone : presque rien',
+        'Les statistiques se limitent maintenant à la version, la langue et le pays approximatif. « Voir ce qui est envoyé » montre exactement cela. Vos clés ne sortent jamais, même dans les messages d\'erreur.',
+        'What leaves your phone: almost nothing', 'Statistics are now limited to the version, language and approximate country. “See what is sent” shows exactly that. Your keys never leak, not even in error messages.',
+        mg: 'Ny miala amin\'ny findainao: saika tsy misy', mgText: 'Ny antontan\'isa dia dikan-teny, fiteny ary firenena fotsiny ankehitriny. « Jereo izay alefa » no mampiseho izany. Tsy mivoaka mihitsy ny fanalahidinao, na dia ao amin\'ny hafatra diso aza.'),
+    NewsItem(Icons.shield_outlined, 'Des exécutions bien enfermées',
+        'LaTeX, vidéos MP4 et commandes de l\'agent ne tournent que dans un bac à sable sans réseau ; sans lui, ils sont refusés clairement. Les mises à jour douteuses (ancienne version, fichier non signé) sont refusées avant tout téléchargement.',
+        'Runs kept in a cage', 'LaTeX, MP4 videos and agent commands only run in a network-less sandbox; without it they are clearly refused. Doubtful updates (older version, unsigned file) are refused before any download.',
+        mg: 'Fanatanterahana voafefy tsara', mgText: 'Ny LaTeX, ny horonan-tsary MP4 ary ny baiko avy amin\'ny agent dia mandeha ao anaty fefy tsy misy tamba-jotra ihany; raha tsy misy dia lavina mazava. Ny fanavaozana mampisalasala dia lavina alohan\'ny fampidinana.'),
+  ],
   '0.6.5': [
     NewsItem(Icons.movie_creation_outlined, 'Des vidéos qui expliquent vos cours',
         'En mode Apprendre, demandez « fais-moi une vidéo qui explique les fractions » : Tontolo complète votre demande, écrit le scénario et joue une vidéo animée avec la voix, formules et courbes comprises. Sur Linux avec Manim, export en MP4.',

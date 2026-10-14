@@ -126,6 +126,10 @@ async def test_child_is_reaped(tmp_path: Path) -> None:
 
 def test_agent_reads_terminal_and_sees_its_commands(client: TestClient, fake: FakeProvider,
                                                     tmp_path: Path) -> None:
+    from tontolo import sandbox
+
+    if not sandbox.available():
+        pytest.skip("bubblewrap requis pour la commande de l'agent")
     core = client.app.state.core  # type: ignore[attr-defined]
     assert client.put("/tontolo/workspace", json={"path": str(tmp_path)}).status_code == 200
     (tmp_path / "notes.txt").write_text("x")

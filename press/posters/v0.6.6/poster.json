@@ -1,0 +1,155 @@
+{
+ "shot": "stats",
+ "lang": {
+  "fr": {
+   "tagline": "Nouveautés",
+   "date": "14 octobre 2026",
+   "hero": [
+    "Ce qui sort de",
+    "votre téléphone"
+   ],
+   "sub": "Presque rien : vous voyez tout ce qui est envoyé.",
+   "steps": [
+    [
+     "Réglages › Statistiques,",
+     "puis « Voir ce qui est",
+     "envoyé »"
+    ],
+    [
+     "Trois champs seulement :",
+     "version, langue, pays",
+     "approximatif"
+    ],
+    [
+     "Aucun message, aucune clé,",
+     "aucun identifiant ne part"
+    ]
+   ],
+   "also": "Aussi dans cette version",
+   "items": [
+    [
+     "Exécutions enfermées",
+     [
+      "LaTeX, MP4 et commandes :",
+      "bac à sable sans réseau."
+     ]
+    ],
+    [
+     "Mises à jour vérifiées",
+     [
+      "Ancienne version ou fichier",
+      "non signé : refusé d'emblée."
+     ]
+    ],
+    [
+     "Dépendances auditées",
+     [
+      "Failles et licences",
+      "contrôlées à chaque envoi."
+     ]
+    ]
+   ],
+   "footer": "Gratuit · Android · Linux"
+  },
+  "en": {
+   "tagline": "What's new",
+   "date": "October 14, 2026",
+   "hero": [
+    "What leaves",
+    "your phone"
+   ],
+   "sub": "Almost nothing: you see everything that is sent.",
+   "steps": [
+    [
+     "Settings › Statistics,",
+     "then “See what is",
+     "sent”"
+    ],
+    [
+     "Only three fields:",
+     "version, language,",
+     "approximate country"
+    ],
+    [
+     "No message, no key,",
+     "no identifier leaves"
+    ]
+   ],
+   "also": "Also in this version",
+   "items": [
+    [
+     "Runs kept in a cage",
+     [
+      "LaTeX, MP4 and commands:",
+      "sandbox with no network."
+     ]
+    ],
+    [
+     "Verified updates",
+     [
+      "Older version or unsigned",
+      "file: refused upfront."
+     ]
+    ],
+    [
+     "Audited dependencies",
+     [
+      "Flaws and licenses",
+      "checked on every push."
+     ]
+    ]
+   ],
+   "footer": "Free · Android · Linux"
+  },
+  "mg": {
+   "tagline": "Vaovao",
+   "date": "14 Oktobra 2026",
+   "hero": [
+    "Ny miala amin'ny",
+    "findainao"
+   ],
+   "sub": "Saika tsy misy: hitanao daholo izay alefa.",
+   "steps": [
+    [
+     "Kirakira › Antontan'isa,",
+     "avy eo « Jereo izay",
+     "alefa »"
+    ],
+    [
+     "Saha telo ihany:",
+     "dikan-teny, fiteny,",
+     "firenena"
+    ],
+    [
+     "Tsy misy hafatra, fanalahidy,",
+     "na laharana mivoaka"
+    ]
+   ],
+   "also": "Ao amin'ity dikan-teny ity koa",
+   "items": [
+    [
+     "Fefy voafehy",
+     [
+      "LaTeX, MP4 ary baiko:",
+      "tsy misy tamba-jotra."
+     ]
+    ],
+    [
+     "Fanavaozana voamarina",
+     [
+      "Dikan-teny taloha na rakitra",
+      "tsy voasonia: lavina."
+     ]
+    ],
+    [
+     "Rakitra miankina nojerena",
+     [
+      "Tsy fahampiana sy fahazoan-dalana",
+      "jerena isaky ny fandefasana."
+     ]
+    ]
+   ],
+   "footer": "Maimaim-poana · Android · Linux"
+  }
+ }
+}

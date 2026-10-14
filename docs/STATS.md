@@ -1,66 +1,50 @@
-# Statistiques d'utilisation (Supabase)
+# Statistiques minimales
 
-Tontolo peut envoyer, **une fois par jour au plus**, des statistiques **anonymes** à la base
-de l'auteur. Activées par défaut, annoncées dans l'accueil et désactivables dans
-*Réglages › Statistiques anonymes* (le bouton « Voir ce qui est envoyé » montre les données
-exactes).
+Depuis la phase A après v0.6.5, Tontolo peut envoyer **au plus une tentative par jour**
+à Supabase. L'envoi est annoncé à l'accueil et désactivable dans
+*Réglages › Statistiques anonymes*. Sans configuration à la compilation, aucun envoi.
 
-| Donnée | Exemple | Pourquoi |
-|---|---|---|
-| `install_id` | identifiant aléatoire de 32 caractères, créé sur l'appareil | compter les appareils sans les identifier |
-| `app_version`, `platform`, `os_version`, `abi` | `0.2.10`, `android`, `Android 14`, `arm64` | savoir quelles versions et quels appareils suivre |
-| `app_locale`, `country` | `mg`, `MG` (langue de l'application ; région de la langue du téléphone, **jamais une position**) | prioriser les langues |
-| `messages` | `12` (nombre de messages depuis le dernier envoi) | mesurer l'usage |
+La liste blanche est exacte :
+- `app_version` : version de l'application ;
+- `app_locale` : langue choisie (`fr`, `en`, `mg`) ;
+- `country` : région de la langue du téléphone, ou chaîne vide si inconnue.
 
-Jamais envoyés : messages, images, voix, clés, nom, adresse IP stockée par Tontolo, contacts,
-modèle exact de l'appareil.
+Le pays n'est **pas une position** : « Français (France) » donne FR, même si le téléphone
+est à Madagascar. Aucun GPS, aucune adresse IP collectée par le code de Tontolo.
+Comme tout service HTTP, l'hébergeur reçoit nécessairement l'adresse IP de connexion ;
+Tontolo ne l'ajoute pas aux statistiques ni ne contrôle les journaux de l'hébergeur.
 
-### Lire la langue et le pays sans se tromper (corrigé en 0.6.4)
+Ne sont plus envoyés : identifiant d'installation, système, ABI, compteur de messages,
+identifiant de réponse, modèle, catégorie, note et raison de la note. Les files de notes
+restantes des anciennes versions sont vidées sans envoi. Les 👍/👎 continuent d'améliorer
+le choix des modèles **localement**. Aucun texte de discussion, prénom, fichier ou clé
+personnelle n'est envoyé aux statistiques. La clé `anon` de Supabase est une clé publique
+d'insertion ; ce n'est pas une clé API personnelle de fournisseur.
 
-- **Avant la 0.6.4**, l'application était en français pour tout le monde tant qu'on n'avait pas
-  changé la langue à la main : `app_locale = 'fr'` surestimait donc fortement le français. Depuis
-  la 0.6.4, la langue suit celle du téléphone (fr, en, mg ; sinon anglais) et se confirme à
-  l'accueil.
-- **`country` n'est pas une localisation** : c'est la région de la langue du téléphone (« Français
-  (France) » donne FR). Un téléphone à Madagascar réglé ainsi apparaît en FR.
-- La vue `stats_langues` ([`docs/stats/supabase_langues.sql`](stats/supabase_langues.sql)) sépare
-  les appareils à langue fiable (≥ 0.6.4) des autres. Pour une vraie localisation, il faudrait
-  collecter davantage (fuseau horaire…) ; ce n'est pas fait, par choix de confidentialité.
+L'écran « Voir ce qui est envoyé » montre exactement le corps de la requête.
+Les tests `app/test/stats_test.dart` inspectent ce corps avec un transport simulé,
+injectent de fausses données sensibles dans les anciens champs et vérifient leur absence.
+Un échec réseau ne déclenche pas de boucle de tentatives dans la journée.
 
-## Notes 👍 / 👎 (depuis 0.5.8)
+## Migration côté Supabase
 
-Avec le même accord (*Statistiques anonymes*), chaque note donnée à une réponse est partagée,
-groupée avec l'envoi quotidien :
+Exécuter `docs/stats/supabase_minimal.sql` dans le SQL Editor du projet existant.
+Cette migration additive crée `pings_minimal`, avec insertion seule pour le rôle `anon`.
+Les lectures, modifications et suppressions publiques sont interdites. Aucun accès aux
+anciennes données n'est modifié. Avant cette migration, les nouveaux envois sont refusés
+par le serveur et l'application continue normalement, sans repli vers l'ancien format.
 
-| Donnée | Exemple | Pourquoi |
-|---|---|---|
-| `answer_id` | identifiant aléatoire de la réponse (32 caractères) | une seule note par réponse et par appareil |
-| `model`, `category` | `groq:llama-3.3-70b`, `code` | savoir quel modèle réussit quel type de demande |
-| `rating`, `reason` | `-1`, `too_long` | récompenser ou pénaliser le modèle |
-| `cached` | `false` | distinguer une réponse réutilisée |
+Les variables de compilation restent `STATS_URL` et `STATS_ANON_KEY` dans GitHub Actions.
+La nouvelle table ne permet **pas** de compter des appareils uniques, car aucun identifiant
+n'est transmis. Le propriétaire peut compter les envois et leur répartition, sans les
+présenter comme un nombre exact d'utilisateurs.
 
-Jamais envoyés : la question, la réponse, ni aucun texte.
+## Historique
 
-**Effet** : sur l'appareil, une note agit tout de suite (bonus ou malus borné du modèle pour ce
-type de demande ; une réponse 👎 n'est plus réutilisée). Chaque jour, l'application lit la
-fonction `model_scores()` : le solde des **appareils** (pas des votes) par modèle et type de
-demande, à partir de 5 appareils. Ce score collectif pèse moins que les notes de l'appareil.
-
-## Mise en place (une seule fois, par le propriétaire)
-
-1. Créez un projet gratuit sur [supabase.com](https://supabase.com).
-2. *SQL Editor* : collez et exécutez [`docs/stats/supabase.sql`](stats/supabase.sql), puis
-   [`docs/stats/supabase_ratings.sql`](stats/supabase_ratings.sql) (notes, depuis 0.5.8).
-3. *Project Settings › API* : copiez l'**URL du projet** et la clé **anon public**
-   (clé publique par conception : elle ne permet que d'ajouter des lignes).
-4. Sur GitHub, *Settings › Secrets and variables › Actions › Variables* du dépôt, créez :
-   - `STATS_URL` = l'URL du projet (`https://xxxx.supabase.co`)
-   - `STATS_ANON_KEY` = la clé anon public
-5. Publiez une nouvelle version : les applications construites ensuite enverront leurs
-   statistiques. Sans ces variables, l'envoi reste inactif.
-
-## Consulter les chiffres
-
-Dans Supabase › *Table editor* ou *SQL Editor* : vues `stats_daily` (appareils actifs et
-messages par jour), `stats_versions` (versions et plateformes sur 30 jours), `stats_pays`,
-`stats_ratings` (👍 / 👎 par modèle et type de demande sur 30 jours, raison la plus fréquente).
+Jusqu'à v0.6.5, `pings` recevait également un identifiant aléatoire d'installation,
+le système et un compteur ; `ratings` recevait des notes anonymisées. Les versions déjà
+installées peuvent continuer à utiliser ces tables tant qu'elles ne sont pas mises à jour.
+Les scripts SQL historiques sont conservés pour compatibilité et ne décrivent pas le
+nouveau format. Leur suppression éventuelle exige une décision séparée du propriétaire.
+Avant v0.6.4, la langue française par défaut faussait sa répartition : les vues historiques
+`stats_langues` distinguent les versions concernées.

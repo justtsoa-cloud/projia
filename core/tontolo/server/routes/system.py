@@ -11,6 +11,7 @@ from fastapi import FastAPI, HTTPException, Request
 
 from tontolo import (
     __version__,
+    sandbox,
     secrets,
     security,
 )
@@ -142,9 +143,17 @@ def register(app: FastAPI, hub: Hub, ws_connects: RateLimiter) -> None:
     def _workspace_json(core: Core) -> dict[str, Any]:
         ws = core.chat.workspace
         return {"path": str(ws.root) if ws else None, "desktop": is_desktop(),
-                "commands": bool(ws) and is_desktop(),
+                "commands": bool(ws) and is_desktop() and sandbox.available(),
                 "history": [{k: e.get(k) for k in ("rel", "action", "at")}
                             for e in (ws.journal() if ws else [])][-20:][::-1]}
+
+    @app.get("/tontolo/execution/capabilities")
+    async def execution_capabilities(request: Request) -> dict[str, Any]:
+        isolated = await asyncio.to_thread(sandbox.available)
+        return {"sandbox": isolated, "latex": isolated,
+                "commands": isolated and is_desktop(),
+                "reason": None if isolated else sandbox.unavailable_message(
+                    core_of(request).settings.language)}
 
     @app.get("/tontolo/workspace")
     async def workspace_get(request: Request) -> dict[str, Any]:
@@ -182,7 +191,7 @@ def register(app: FastAPI, hub: Hub, ws_connects: RateLimiter) -> None:
             raise HTTPException(400, "cible invalide")
         core = core_of(request)
         result = await download_update(space.cache_dir(core.settings.data_dir, "updates"),
-                                       target, arch)
+                                       target, arch, language=core.settings.language)
         if result.get("ok"):
             space.keep_only(Path(result["path"]).parent, Path(result["path"]))
         return result
