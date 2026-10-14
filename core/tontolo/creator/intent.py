@@ -7,6 +7,7 @@ from __future__ import annotations
 import re
 
 from tontolo.creator.textfile import SAFE_EXT
+from tontolo.router import imageintent
 
 _VERB = (r"(g[ée]n[èe]re|g[ée]n[ée]rer|cr[ée]e|cr[ée]er|fais|faire|fabrique|r[ée]dige|r[ée]diger|"
          r"pr[ée]pare|pr[ée]parer|exporte|exporter|convertis|convertir|compile|compiler|donne|"
@@ -52,6 +53,11 @@ def detect(text: str) -> str | None:
     if _BUNDLE.search(t) and has_verb:
         return "bundle"  # plusieurs fichiers : livrés ensemble dans une archive .zip
     from tontolo.creator.book import asks_for_book, wants_book
+
+    if imageintent.resolve(t).kind == "poster":
+        # « Transforme tout cela en poster détaillé, sans faute » : un modèle d'image ne sait
+        # pas écrire une formule ; un poster LaTeX d'une page, si.
+        return "poster"
 
     if (re.search(r"\bbeamer\b", t) or re.search(
             r"\b(slides?|diapos?|diapositives?|pr[ée]sentation)\b.{0,40}\b(latex|tex)\b|"

@@ -22,7 +22,7 @@ import hashlib
 import json
 import logging
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from datetime import UTC, datetime
 from typing import Any
 
@@ -123,6 +123,13 @@ def human_reason(err: ProviderError) -> str:
 
 def is_auto(model: str | None) -> bool:
     return not model or model.lower() in ("auto", "tontolo", "tontolo/auto", "tontolo-auto")
+
+
+QUICK_TIMEOUT = 30.0   # secondes par essai d'un appel court (modèles à réflexion : lents)
+QUICK_STAGGER = 3.0    # un nouveau candidat est lancé toutes les 3 s (ou dès qu'un échoue)
+QUICK_PARALLEL = 3     # candidats en course au plus
+QUICK_CANDIDATES = 8   # modèles essayés au plus (beaucoup de gratuits sont saturés ou fermés)
+QUICK_BUDGET = 50.0    # secondes au total
 
 
 class Router:
@@ -523,37 +530,86 @@ class Router:
 
     # --- Appels internes (résumé, classifieur) ---------------------------
 
-    def _small_free_model(self) -> ModelInfo | None:
+    def _small_free_models(self, limit: int = 4, quality: str = "chat") -> list[ModelInfo]:
+        """Modèles gratuits disponibles, du plus rapide et fiable au meilleur selon `quality`
+        (« chat » pour un appel court ; « writing » ou « reasoning » pour un vrai travail)."""
         usable = self.catalog.usable_providers()
-        best: tuple[float, ModelInfo] | None = None
+        ranked: list[tuple[float, ModelInfo]] = []
+        weight = 0.5 if quality == "chat" else 1.5
         for m in self.catalog.catalog.models.values():
             if not (m.is_free and m.is_text and m.provider in usable and self.quota.available(m)):
                 continue
             s = (m.speed if m.speed is not None else 0.5) + self.reliability.get(m.key) \
-                + 0.5 * m.quality.get("chat", 0)
-            if best is None or s > best[0]:
-                best = (s, m)
-        return best[1] if best else None
+                + weight * m.quality.get(quality, m.quality.get("chat", 0))
+            ranked.append((s, m))
+        ranked.sort(key=lambda x: x[0], reverse=True)
+        return [m for _, m in ranked[:limit]]
 
-    async def _quick(self, messages: list[dict[str, Any]]) -> str | None:
-        m = self._small_free_model()
-        if m is None:
+    def _small_free_model(self) -> ModelInfo | None:
+        models = self._small_free_models(1)
+        return models[0] if models else None
+
+    async def _quick(self, messages: list[dict[str, Any]], max_tokens: int = 600,
+                     accept: Callable[[str], bool] | None = None, *,
+                     per_try: float = QUICK_TIMEOUT, budget: float = QUICK_BUDGET,
+                     quality: str = "chat", stagger: float = QUICK_STAGGER) -> str | None:
+        """Appel court en COURSE : le meilleur petit modèle gratuit d'abord, puis un suivant
+        toutes les 3 s ou dès qu'un échoue (3 en parallèle au plus) ; la première réponse
+        non vide gagne, les autres sont annulées. Un modèle gratuit qui exige une connexion, qui
+        est saturé, retiré ou lent ne fait donc plus échouer le résumé du fil, la mémoire ni le
+        brief d'image ; un modèle en échec est mis de côté pour les appels suivants."""
+        candidates = iter(self._small_free_models(QUICK_CANDIDATES, quality))
+        started = time.monotonic()
+
+        async def attempt(m: ModelInfo) -> str | None:
+            try:
+                client = self.registry.get(self.catalog.catalog.providers[m.provider])
+                self.quota.record_request(m)
+                async with asyncio.timeout(per_try):
+                    res = await client.chat(m, messages, max_tokens=max_tokens, temperature=0)
+                content = res.message.get("content")
+                text = str(content) if content and str(content).strip() else None
+                return text if text and (accept is None or accept(text)) else None
+            except ProviderError as err:
+                self.quota.on_error(m, err)
+            except TimeoutError:
+                self.quota.on_error(m, ProviderError("délai dépassé", ErrorKind.NETWORK))
+            except Exception:
+                pass
             return None
+
+        running: set[asyncio.Task[str | None]] = set()
+
+        def launch() -> bool:
+            m = next(candidates, None)
+            if m is None:
+                return False
+            running.add(asyncio.create_task(attempt(m)))
+            return True
+
         try:
-            client = self.registry.get(self.catalog.catalog.providers[m.provider])
-            self.quota.record_request(m)
-            res = await client.chat(m, messages, max_tokens=600, temperature=0)
-            content = res.message.get("content")
-            return str(content) if content else None
-        except ProviderError as err:
-            self.quota.on_error(m, err)
+            launch()
+            while running and time.monotonic() - started < budget:
+                done, _ = await asyncio.wait(running, timeout=stagger,
+                                             return_when=asyncio.FIRST_COMPLETED)
+                running -= done
+                for task in done:
+                    if (answer := task.result()) is not None:
+                        return answer
+                if len(running) < QUICK_PARALLEL:
+                    launch()
+                if not running and not launch():
+                    break
             return None
-        except Exception:  # le résumé ne doit jamais casser une conversation
-            return None
+        finally:
+            for task in running:
+                task.cancel()
 
-    async def quick(self, messages: list[dict[str, Any]]) -> str | None:
-        """Appel court à un petit modèle gratuit (résumé, mémoire, classifieur)."""
-        return await self._quick(messages)
+    async def quick(self, messages: list[dict[str, Any]], max_tokens: int = 600,
+                    accept: Callable[[str], bool] | None = None, **options: Any) -> str | None:
+        """Appel court à un petit modèle gratuit (résumé, mémoire, classifieur, brief d'image) ;
+        `accept` écarte une réponse inutilisable (le candidat suivant prend alors le relais)."""
+        return await self._quick(messages, max_tokens, accept, **options)
 
     async def describe_image(self, data_url: str, prompt: str | None = None,
                              max_chars: int = 600) -> str | None:

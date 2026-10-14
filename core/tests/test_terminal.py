@@ -117,8 +117,10 @@ async def test_child_is_reaped(tmp_path: Path) -> None:
             return  # récolté : plus de zombie
         except PermissionError:
             return
-        if Path(f"/proc/{pid}/stat").read_text().split()[2] != "Z":
-            continue
+        try:
+            Path(f"/proc/{pid}/stat").read_text()
+        except OSError:
+            return  # récolté entre-temps (course entre kill et lecture)
     raise AssertionError("processus fils non récolté")
 
 

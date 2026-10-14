@@ -104,6 +104,13 @@ Serveur local (127.0.0.1, jeton `Authorization: Bearer …` hors boucle locale).
 |---|---|---|
 | `POST` | `/tontolo/documents` | Joint une pièce (PDF, bureautique, texte, code, archive, son, vidéo…) à une |
 
+## Explainer
+
+| Méthode | Chemin | Rôle |
+|---|---|---|
+| `GET` | `/tontolo/explainer/capabilities` | Ce que cette machine sait faire : le lecteur animé de l'application marche partout ; |
+| `POST` | `/tontolo/explainer/render` | MP4 d'un scénario (corps : {"story": {...}, "quality": "l"|"m"}). Le scénario est |
+
 ## Feedback
 
 | Méthode | Chemin | Rôle |

@@ -38,6 +38,7 @@ KINDS = {
     "xlsx": ("classeur Excel", Category.REASONING),
     "pptx": ("présentation PowerPoint", Category.WRITING),
     "beamer": ("présentation Beamer (LaTeX, rendue en PDF)", Category.CODE),
+    "poster": ("poster d'une page (LaTeX, rendu en PDF)", Category.CODE),
     "chart": ("graphique", Category.CODE),
     "diagram": ("schéma", Category.CODE),
     "bundle": ("projet de plusieurs fichiers (archive .zip)", Category.CODE),
@@ -78,6 +79,20 @@ formules en texte simple (a/b, x², √). Couvre l'essentiel du sujet pour révi
 définitions, méthodes, exemples, pièges.""",
 }
 WRITER_PROMPTS["latex"] = WRITER_PROMPTS["pdf"]
+WRITER_PROMPTS["poster"] = """Tu composes un POSTER scientifique d'UNE SEULE PAGE, beau, dense et \
+sans la moindre faute, en {language}, avec le contenu de la discussion fournie (rien d'inventé). \
+Réponds UNIQUEMENT avec le source LaTeX complet (de \\documentclass à \\end{{document}}), sans \
+bloc de code. \\documentclass{{article}} ; paquets autorisés : inputenc (utf8), fontenc (T1), \
+lmodern, babel ({babel}), geometry (a3paper, marges 1,2 cm), amsmath, amssymb, xcolor, \
+tcolorbox, tikz, multicol, enumitem. Mise en page : \\pagestyle{{empty}} ; bandeau de titre en \
+tcolorbox pleine largeur (fond bleu nuit 1E1B4B, texte blanc, titre en grand et sous-titre) ; \
+puis \\begin{{multicols}}{{3}} avec des blocs tcolorbox AVEC titre (title=…) de couleurs \
+sobres (bleu 2E3A87, vert 1F8A70, violet 5B3FA0) : définition centrale, exemples, théorèmes, \
+outil de calcul, applications ; formules exactes en $…$ ou \\[ … \\] ; listes compactes \
+(\\small, \\setlist{{nosep}}). Tout doit tenir sur UNE page : pas de \\newpage ; texte aéré mais \
+compact. REMPLIS toute la page : 6 à 8 blocs, texte en \\large, et au moins un schéma TikZ \\
+simple (flèches, cercles, rotations…) qui illustre l'idée centrale. Pas d'image externe ni \\
+de \\input."""
 WRITER_PROMPTS["beamer"] = """Tu écris une présentation LaTeX Beamer complète, compilable \
 directement avec pdflatex, en {language}. Réponds UNIQUEMENT avec le source (de \
 \\documentclass[aspectratio=169]{{beamer}} à \\end{{document}}), sans bloc de code autour. Thème \
@@ -181,6 +196,11 @@ def latex_problems(source: str) -> list[str]:
     if re.search(r"\\write18|\\immediate\\write|\\openout", source):
         problems.append("commandes d'écriture de fichiers interdites")
     return problems
+
+
+def pdf_page_count(data: bytes) -> int:
+    """Nombre de pages d'un PDF (objets /Type /Page, hors /Pages)."""
+    return len(re.findall(rb"/Type\s*/Page(?![a-zA-Z])", data))
 
 
 def beamer_problems(source: str) -> list[str]:
@@ -392,15 +412,18 @@ class Creator:
             return Output(data, "application/vnd.openxmlformats-officedocument."
                           "wordprocessingml.document", f"{slug(title)}.docx", title, source,
                           f"{slug(title)}.md"), docx.check(data)
-        if kind in ("pdf", "latex", "beamer"):
+        if kind in ("pdf", "latex", "beamer", "poster"):
             pre = latex_problems(source) + (beamer_problems(source) if kind == "beamer" else [])
             if pre:
                 return Output(b"", "", "", "", source, ""), pre
             pdf, log, _ = await latex.compile_pdf(source)
             title = latex_title(source)
+            extra = latex_design(source)
+            if kind == "poster" and pdf_page_count(pdf) > 1:
+                extra = ["le poster dépasse UNE page : réduis le texte, passe en 3 colonnes ou "
+                         "en \\footnotesize, sans rien retirer d'essentiel", *extra]
             return Output(pdf, "application/pdf", f"{slug(title)}.pdf", title, source,
-                          f"{slug(title)}.tex"), latex.warnings_from_log(log) + latex_design(
-                              source)
+                          f"{slug(title)}.tex"), latex.warnings_from_log(log) + extra
         if kind == "xlsx":
             try:
                 sheets = office.parse_sheets(source)
@@ -473,7 +496,7 @@ class Creator:
         """Relecture par un modèle d'une autre famille ; ([], "", "") si aucun disponible."""
         assert self.pick_reviewer is not None
         pages = (await pdf_pages(result.data)
-                 if result is not None and kind in ("pdf", "latex", "beamer") else [])
+                 if result is not None and kind in ("pdf", "latex", "beamer", "poster") else [])
         vision = (kind in ("mindmap", "chart", "diagram") and result is not None) or bool(pages)
         reviewer = await self.pick_reviewer(exclude=writer, vision=vision)
         if reviewer is None:

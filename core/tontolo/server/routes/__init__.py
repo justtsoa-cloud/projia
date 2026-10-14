@@ -7,6 +7,7 @@ from tontolo.server.routes import (
     chat,
     data,
     documents,
+    explainer,
     media,
     openai_compat,
     realtime,
@@ -15,4 +16,4 @@ from tontolo.server.routes import (
 )
 
 ROUTERS = (openai_compat, documents, chat, catalog, settings, media, data, browser, system,
-           realtime)
+           realtime, explainer)

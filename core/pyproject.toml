@@ -44,6 +44,7 @@ search = ["ddgs>=9.0"]
 extract = ["trafilatura>=2.0"]
 mcp = ["mcp>=1.10"]
 math = ["sympy>=1.13"]
+explainer = ["manim>=0.18"]
 # Routage LiteLLM optionnel côté Linux (lourd : non embarqué sur Android).
 litellm = ["litellm>=1.50"]
 keyring = ["keyring>=25"]
@@ -97,6 +98,9 @@ addopts = "-m 'not network'"
 # Gabarits XML Office Open : des lignes longues restent plus lisibles que découpées.
 "tontolo/creator/docx.py" = ["E501"]
 "tontolo/creator/office.py" = ["E501"]
+# Gabarit Manim et exemple JSON du rédacteur : du texte, pas du code à découper.
+"tontolo/explainer/manim_render.py" = ["E501"]
+"tontolo/explainer/writer.py" = ["E501"]
 # Bancs d'essai (endurance, charge, essais réels) : scripts jetables, pas du code livré.
 "bench/**" = ["E501", "ASYNC221", "RUF059", "SIM115", "B", "SIM"]
 

@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from tontolo.catalog.models import Category
+from tontolo.router import imageintent
 
 # Mots-clés pondérés par catégorie (fr / en / mg). Les expressions sont des regex.
 _KEYWORDS: dict[Category, tuple[tuple[str, float], ...]] = {
@@ -286,6 +287,9 @@ def classify(
         s = sum(w for rx, w in pats if rx.search(text))
         if s:
             scores[cat] = s
+    if not parts and imageintent.resolve(text).kind == "illustration":
+        # « Je veux ça en image », « fais-en une illustration » : image, sujet = la discussion.
+        scores[Category.IMAGE_GEN] = scores.get(Category.IMAGE_GEN, 0) + 6
     content_task = "image" in parts and bool(_CONTENT_TASK.search(text))
     if "image" in parts and _EDIT_VERBS.search(text) and not content_task:
         # Une photo jointe + un verbe de retouche = édition (et non une simple question).

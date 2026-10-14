@@ -7,7 +7,7 @@ import base64
 import contextlib
 import time
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
@@ -17,13 +17,16 @@ from tontolo import (
     importer,
     pdfexport,
 )
-from tontolo.agent import openlinks, planner
+from tontolo.agent import imagebrief, openlinks, planner
 from tontolo.agent.loop import dumps
 from tontolo.app_state import Core
 from tontolo.catalog.models import Category
 from tontolo.config import save_settings
 from tontolo.creator import clarify
 from tontolo.creator import intent as file_intent
+from tontolo.explainer import intent as explainer_intent
+from tontolo.explainer import service as explainer_service
+from tontolo.router import imageintent
 from tontolo.router.classifier import classify
 from tontolo.router.refusal import looks_like_image_refusal
 from tontolo.server import common
@@ -140,6 +143,15 @@ def register(app: FastAPI, hub: Hub, ws_connects: RateLimiter) -> None:
             await core.db.set_mode(cid, f"learn:{body.level or 'lycee'}" if body.mode == "learn"
                                    else f"agent:{body.agent or 'auto'}" if body.mode == "agent"
                                    else "")
+        if body.category is None and file_kind is None and not _first_image(body.content):
+            # « Fais-moi une vidéo qui explique… » (mode Apprendre) : vidéo explicative, pas un
+            # modèle de vidéo générative qui ne sait ni écrire une formule ni raisonner.
+            stored_mode = await core.db.get_mode(cid)
+            ex = explainer_intent.resolve(_text_of(body.content),
+                                          learn_mode=stored_mode.startswith("learn"))
+            if ex.active:
+                return _turn(core, cid, _explainer_turn(core, body, cid, ex, stored_mode),
+                             first)
         if file_kind is not None and completed is None and base_source is None and (
                 body.mode != "learn" and not _first_image(body.content)):
             questions = clarify.questions_for(file_kind, _text_of(body.content),
@@ -250,6 +262,26 @@ def register(app: FastAPI, hub: Hub, ws_connects: RateLimiter) -> None:
                "name": model.name if model else out["model"], "metrics": out["metrics"],
                "uid": saved["uid"], "conversation_id": cid}
 
+    async def _explainer_turn(core: Core, body: ChatBody, cid: str, ex: Any, mode: str
+                              ) -> AsyncIterator[dict[str, Any]]:
+        """Vidéo explicative : demande complétée → scénario validé → bloc lu par l'application."""
+        text = _text_of(body.content)
+        history = await core.db.get_messages(cid)
+        user = await core.db.add_message(cid, {"role": "user", "content": body.content})
+        yield {"type": "user_saved", "uid": user["uid"], "seq": user["seq"]}
+        yield {"type": "step", "step": "explainer_plan"}
+        story, brief, model, fallback = await explainer_service.produce(core, text, history, ex,
+                                                                        mode)
+        if story is None:
+            content = explainer_service.failure_message(core.settings.language)
+        else:
+            content = explainer_service.message_for(story, brief, fallback=fallback)
+        msg = {"role": "assistant", "content": content}
+        saved = await core.db.add_message(cid, msg, model=model or None)
+        yield {"type": "delta", "content": content}
+        yield {"type": "done", "message": msg, "model": model or None, "name": model or None,
+               "uid": saved["uid"], "conversation_id": cid}
+
     async def _ask_turn(core: Core, cid: str, body: ChatBody, kind: str,
                         questions: list[dict[str, Any]]) -> AsyncIterator[dict[str, Any]]:
         """Création longue mal précisée : questions à choix d'abord (aucun appel de modèle)."""
@@ -316,7 +348,22 @@ def register(app: FastAPI, hub: Hub, ws_connects: RateLimiter) -> None:
                                   "Joignez une image ou régénérez la création échouée."}
                 return
         prompt = await _media_prompt(core, cid, text)
-        if category in (Category.IMAGE_GEN, Category.VIDEO_GEN, Category.IMAGE_EDIT):
+        intent = imageintent.resolve(text)
+        if category == Category.IMAGE_GEN and image is None and intent.from_context \
+                and prompt == text:
+            # « Fais-en une image », « génère une image par rapport à la discussion » : le
+            # prompt vient de la discussion, pas de la phrase de la demande.
+            yield {"type": "step", "step": "image_brief"}
+            history = await core.db.get_messages(cid)
+            if history and history[-1].get("role") == "user":
+                history = history[:-1]  # la demande elle-même n'est pas le sujet
+            async def brief_model(messages: list[dict[str, Any]],
+                                  accept: Callable[[str], bool]) -> str | None:
+                return await core.router.quick(messages, 900, accept)
+
+            # Prompt anglais (modèle) ou repli sans modèle : jamais d'attente en plus.
+            prompt, _source = await imagebrief.build(history, text, brief_model)
+        elif category in (Category.IMAGE_GEN, Category.VIDEO_GEN, Category.IMAGE_EDIT):
             prompt = await common._english_prompt(core, prompt)
         job = await core.media.submit(category.value, prompt, conversation_id=cid,
                                       model=body.model, input_bytes=image,

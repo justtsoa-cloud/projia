@@ -5,6 +5,28 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+### Ajouté
+- Vidéos explicatives dans le mode Apprendre : « fais-moi une vidéo qui explique les fractions »
+  devient une vidéo animée, avec la voix, lue dans l'application (accroche, idée, exemple chiffré,
+  erreur fréquente, récapitulation ; formules, courbes, barres). Tontolo complète les demandes
+  vagues à la place de l'utilisateur (niveau, durée, plan, notion centrale) et le dit. Sur Linux
+  avec Manim, export en vidéo MP4 (gabarits fixes, bac à sable : aucun code écrit par un
+  modèle n'est exécuté). Voir docs/EXPLAINER.md.
+
+### Ajouté
+- « Je veux ça en image », « génère une image par rapport à la discussion », « mets cela en
+  infographie » : l'image est maintenant tirée de la discussion (jusque-là, c'était la phrase de
+  la demande qui servait de prompt). Un petit modèle rédige un prompt visuel sans texte (un
+  générateur d'images ne sait pas écrire) ; sans modèle disponible, un prompt de repli est
+  composé à partir du sujet.
+- « Transforme tout cela en poster détaillé, sans faute » : poster LaTeX d'une page A3 (texte et
+  formules exacts, 3 colonnes, schéma), livré en PDF.
+
+### Corrigé
+- Les appels courts internes (résumé du fil, mémoire, brief d'image) n'essayaient qu'un modèle
+  gratuit ; si celui-ci exigeait une connexion ou était saturé, ils échouaient en silence. Ils
+  essaient maintenant plusieurs modèles en parallèle.
+
 ## [0.6.4] - 2026-10-14
 
 ### Ajouté

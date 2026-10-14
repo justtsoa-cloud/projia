@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import '../core/chat_controller.dart';
 import '../main.dart';
 import 'theme.dart';
+import 'explainer_player.dart';
 import 'message_view.dart' show RichMarkdown;
 
 const learnLevels = ['primaire', 'college', 'lycee', 'universite', 'adulte'];
@@ -217,6 +218,7 @@ const _mainShortcuts = [
   _LearnShortcut(Icons.account_tree_outlined, 'ls_mindmap'),
 ];
 const _moreShortcuts = [
+  _LearnShortcut(Icons.movie_creation_outlined, 'ls_video'),
   _LearnShortcut(Icons.style_outlined, 'ls_cards'),
   _LearnShortcut(Icons.event_note_outlined, 'ls_plan'),
   _LearnShortcut(Icons.fact_check_outlined, 'ls_check'),
@@ -335,7 +337,7 @@ class LearnActions extends StatelessWidget {
   final ValueChanged<String> onSend;
   final ValueChanged<String> onPrefill;
 
-  static const _send = ['la_hint', 'la_lost', 'la_next', 'la_quiz'];
+  static const _send = ['la_hint', 'la_lost', 'la_next', 'la_quiz', 'la_video'];
 
   @override
   Widget build(BuildContext context) {
@@ -344,6 +346,7 @@ class LearnActions extends StatelessWidget {
       'la_lost': Icons.help_outline,
       'la_quiz': Icons.quiz_outlined,
       'la_next': Icons.arrow_forward,
+      'la_video': Icons.movie_creation_outlined,
     };
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 12, 6),
@@ -387,6 +390,11 @@ class CardsSegment extends LearnSegment {
   final List<(String, String)> cards;
 }
 
+class ExplainerSegment extends LearnSegment {
+  ExplainerSegment(this.story);
+  final ExplainerStory story;
+}
+
 class PendingSegment extends LearnSegment {
   PendingSegment(this.kind);
   final String kind;
@@ -400,13 +408,15 @@ class QuizQuestion {
   final String explain;
 }
 
-final _block = RegExp(r'```(quiz|flashcards)[ \t]*\n([\s\S]*?)```');
-final _open = RegExp(r'```(quiz|flashcards)[ \t]*\n[\s\S]*$');
+final _block = RegExp(r'```(quiz|flashcards|explainer)[ \t]*\n([\s\S]*?)```');
+final _open = RegExp(r'```(quiz|flashcards|explainer)[ \t]*\n[\s\S]*$');
 
 /// Découpe une réponse en Markdown et blocs interactifs. Un bloc illisible reste affiché tel
 /// quel (Markdown) ; un bloc pas encore terminé (réponse en cours) devient « en préparation ».
 List<LearnSegment> splitLearnBlocks(String text) {
-  if (!text.contains('```quiz') && !text.contains('```flashcards')) return [MarkdownSegment(text)];
+  if (!text.contains('```quiz') && !text.contains('```flashcards') && !text.contains('```explainer')) {
+    return [MarkdownSegment(text)];
+  }
   final out = <LearnSegment>[];
   var pos = 0;
   for (final m in _block.allMatches(text)) {
@@ -428,6 +438,10 @@ List<LearnSegment> splitLearnBlocks(String text) {
 LearnSegment? _parseBlock(String kind, String body) {
   try {
     final data = jsonDecode(body.trim());
+    if (kind == 'explainer') {
+      final story = ExplainerStory.parse(body);
+      return story == null ? null : ExplainerSegment(story);
+    }
     if (kind == 'quiz') {
       final map = data is Map ? data : {'questions': data};
       final qs = <QuizQuestion>[];
@@ -465,12 +479,13 @@ class LearnBody extends StatelessWidget {
           MarkdownSegment(:final text) => RichMarkdown(text),
           QuizSegment() => Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: QuizCard(quiz: s)),
           CardsSegment() => Padding(padding: const EdgeInsets.symmetric(vertical: 6), child: FlashcardsDeck(cards: s.cards)),
+          ExplainerSegment() => ExplainerPlayer(story: s.story),
           PendingSegment(:final kind) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Row(children: [
                 const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
                 const SizedBox(width: 10),
-                Text(context.t(kind == 'quiz' ? 'quiz_preparing' : 'cards_preparing')),
+                Text(context.t(kind == 'quiz' ? 'quiz_preparing' : kind == 'explainer' ? 'explainer_preparing' : 'cards_preparing')),
               ]),
             ),
         },
