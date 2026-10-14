@@ -38,7 +38,7 @@ jobs:
         run: |
           uv export --frozen --extra linux --no-dev --no-emit-project --no-hashes --output-file /tmp/tontolo-requirements.txt
           uvx pip-audit -r /tmp/tontolo-requirements.txt --disable-pip --no-deps
-      - name: Tests de concurrence répétés (3 fois : un test instable est un bug)
+      - name: Tests de concurrence répétés 3 fois (un test instable est un bug)
         if: matrix.python == '3.14'
         run: |
           for i in 1 2 3; do
