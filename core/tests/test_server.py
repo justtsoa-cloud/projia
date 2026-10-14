@@ -846,6 +846,8 @@ def test_tool_loop_ends_with_an_answer_not_an_error(client: TestClient,
 
 def test_photo_plus_pdf_request_reads_the_photo_first(client: TestClient,
                                                       monkeypatch: pytest.MonkeyPatch) -> None:
+    from tontolo import sandbox
+    monkeypatch.setattr(sandbox, "available", lambda: True)  # CI sans bubblewrap
     from tontolo.creator import latex
     from tontolo.creator.service import CreatorService
 
@@ -896,6 +898,8 @@ def test_invalid_attached_image_rejected_before_detached_turn(client: TestClient
 def test_html_document_converted_to_pdf_uses_its_content(
         client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     """Bug mobile 0.5.0 : « convertis ce HTML en PDF » ne transmettait pas le HTML joint."""
+    from tontolo import sandbox
+    monkeypatch.setattr(sandbox, "available", lambda: True)  # CI sans bubblewrap
     from tontolo.creator import latex
     from tontolo.creator.service import CreatorService
 
