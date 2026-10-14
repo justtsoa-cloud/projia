@@ -5,6 +5,8 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.6.5] - 2026-10-14
+
 ### Ajouté
 - Vidéos explicatives dans le mode Apprendre : « fais-moi une vidéo qui explique les fractions »
   devient une vidéo animée, avec la voix, lue dans l'application (accroche, idée, exemple chiffré,
@@ -12,6 +14,10 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
   vagues à la place de l'utilisateur (niveau, durée, plan, notion centrale) et le dit. Sur Linux
   avec Manim, export en vidéo MP4 (gabarits fixes, bac à sable : aucun code écrit par un
   modèle n'est exécuté). Voir docs/EXPLAINER.md.
+- Vidéos testées hors mathématiques (histoire, langues, littérature, économie, biologie) :
+  l'exemple s'adapte au domaine (un cas réel, une date, une réplique, jamais un calcul
+  artificiel), pas de chiffres inventés, LaTeX égaré dans la voix mis en clair, « une vidéo sur … »
+  compris sans verbe (fr/en/mg), nouvelle tentative plus courte avant d'abandonner.
 
 ### Ajouté
 - « Je veux ça en image », « génère une image par rapport à la discussion », « mets cela en

@@ -33,6 +33,10 @@ _MAKE_VIDEO = re.compile(
     rf"\b(?:fais|faire|cr[ée]e\w*|g[ée]n[èe]re\w*|produis\w*|r[ée]alise\w*|pr[ée]pare\w*|"
     rf"montre-moi|donne-moi|make|create|generate|produce|manaova|mamorona|ataovy)\b"
     rf"(?:-moi|-nous)?(?:\s+\S{{1,14}}){{0,4}}?\s+{_VIDEO}\b", re.I)
+# « une vidéo sur la guerre froide », « vidéo : les temps du passé » (sans verbe)
+_BARE_VIDEO = re.compile(
+    rf"^\s*(?:(?:une?|a|an)\s+)?(?:(?:courte?|petite?|short|quick)\s+)?{_VIDEO}\s*"
+    rf"(?::|sur|[àa] propos de|about|on|momba)", re.I)
 _ABOUT_EXISTING = re.compile(
     rf"\b(?:cette|cet|la|ma|ta|sa|this|the|ity)\s+{_VIDEO}\s+(?:jointe|que|est|dit|montre|"
     rf"attached)\b|\b(?:que (?:montre|dit)|what (?:does|is)|r[ée]sume|d[ée]cris)\b", re.I)
@@ -44,11 +48,16 @@ _LEAD = re.compile(
     rf"^\s*(?:(?:peux|pouvez|pourrais|pourriez)[- ](?:tu|vous)\s+|je (?:veux|voudrais|souhaite|"
     rf"aimerais)\s+|(?:s'il (?:te|vous) pla[iî]t[, ]*)|(?:fais|faire|cr[ée]e\w*|g[ée]n[èe]re\w*|"
     rf"produis\w*|r[ée]alise\w*|pr[ée]pare\w*|montre|donne|make|create|can you|please|"
+    rf"ataovy|manaova|mamorona|"
     rf"{_EXPLAIN_VERB})"
     rf"(?:-moi|[- ]nous)?\s+|(?:une?|des|a|an)\s+|(?:courte?|petite?|longue?|belle|simple|"
-    rf"short|quick|nice)\s+|{_VIDEO}\s+|{_KIND}\s+|(?:qui|pour|that|to)\s+(?:m'|nous\s+)?"
+    rf"short|quick|nice|ny|ireo)\s+|{_VIDEO}(?:\s*:\s*|\s+)|{_KIND}\s+|(?:qui|pour|that|to)\s+(?:m'|nous\s+)?"
     rf"{_EXPLAIN_VERB}\s+|(?:sur|[àa] propos de|about|on|momba)\s+|(?:comment|how)\s+)+", re.I)
 _TAIL = re.compile(rf"\s+(?:en|avec une|with an?|in an?|as an?)\s+{_VIDEO}(?:\s+\S+)?\s*$", re.I)
+_TRAIL = re.compile(
+    r"(?:\s+(?:(?:tr[èe]s|plus)\s+)?(?:courte?|rapide|express|longue?|d[ée]taill\w*|short|quick|"
+    r"long|detailed|simple)|\s+(?:de|en|d'environ|of)\s+\d{1,3}\s*(?:min(?:ute)?s?|mn|s|"
+    r"sec(?:ondes?|onds?)?))+\s*$", re.I)
 _BROAD = re.compile(
     r"^(?:les?\s+|la\s+|l')?(?:maths?|math[ée]matiques|physique|chimie|biologie|svt|histoire|"
     r"g[ée]ographie|fran[çc]ais|anglais|informatique|sciences?|économie|philosophie|"
@@ -76,11 +85,12 @@ def resolve(text: str, *, learn_mode: bool = False) -> ExplainerIntent:
     if not t:
         return ExplainerIntent()
     explicit = _EXPLICIT.search(t) is not None
-    if not explicit and not (learn_mode and _MAKE_VIDEO.search(t)):
+    if not explicit and not (learn_mode and (_MAKE_VIDEO.search(t) or _BARE_VIDEO.search(t))):
         return ExplainerIntent()
     if _ABOUT_EXISTING.search(t) and not _MAKE_VIDEO.search(t) and not explicit:
         return ExplainerIntent()
     topic = _TAIL.sub("", _LEAD.sub("", t)).strip(" .,;:?!")
+    topic = _TRAIL.sub("", topic).strip(" .,;:?!")
     words = [w for w in re.findall(r"[a-z0-9]{3,}", _norm(topic))]
     deictic = _DEICTIC.search(t) is not None
     return ExplainerIntent(True, deictic or len(words) < 1, topic[:200])
@@ -114,8 +124,11 @@ class Brief:
             f"Public : {who}. Langue des textes : {self.language}. Durée visée : "
             f"{self.duration_s} secondes, {self.scenes} scènes.",
             "Plan imposé : 1) accroche (une question ou une situation concrète), 2) l'idée "
-            "centrale en une phrase simple, 3) UN exemple chiffré résolu pas à pas, 4) l'erreur "
-            "fréquente à éviter, 5) récapitulation en 3 points.",
+            "centrale en une phrase simple, 3) UN exemple concret déroulé pas à pas (un calcul "
+            "chiffré pour les maths et les sciences ; pour l'histoire, les langues, la "
+            "littérature, la géographie ou l'économie : un cas réel, une date clé, une phrase "
+            "ou un document analysé, JAMAIS une opération artificielle), 4) l'erreur fréquente "
+            "ou l'idée reçue à corriger, 5) récapitulation en 3 points.",
             "Pas de jargon sans l'expliquer ; une idée par scène ; phrases courtes ; vérifie "
             "chaque calcul et chaque affirmation (rien d'inventé).",
         ]

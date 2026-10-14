@@ -4289,7 +4289,7 @@ wheels = [
 
 [[package]]
 name = "tontolo"
-version = "0.6.4"
+version = "0.6.5"
 source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },

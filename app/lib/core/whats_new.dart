@@ -14,6 +14,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.6.5': [
+    NewsItem(Icons.movie_creation_outlined, 'Des vidéos qui expliquent vos cours',
+        'En mode Apprendre, demandez « fais-moi une vidéo qui explique les fractions » : Tontolo complète votre demande, écrit le scénario et joue une vidéo animée avec la voix, formules et courbes comprises. Sur Linux avec Manim, export en MP4.',
+        'Videos that explain your lessons', 'In Learn mode, ask “make me a video that explains fractions”: Tontolo completes your request, writes the script and plays an animated video with a voice, formulas and graphs included. On Linux with Manim, export to MP4.',
+        mg: 'Horonan-tsary manazava ny lesonao', mgText: 'Amin\'ny Mianatra, angataho hoe « manaova horonan-tsary manazava ny fraction »: ampitambaran\'i Tontolo ny fangatahanao, manoratra ny tantara ary mampiseho horonan-tsary miaraka amin\'ny feo, raikipohy ary fakan-tsary. Amin\'ny Linux misy Manim, azo avoaka MP4.'),
+    NewsItem(Icons.image_outlined, 'Une image tirée de la discussion',
+        '« Je veux ça en image » : l\'image vient maintenant de votre discussion (avant, c\'est la phrase de la demande qui servait de prompt). « Transforme tout cela en poster détaillé » livre un poster A3 en PDF, au texte exact.',
+        'An image drawn from the conversation', '“I want that as an image”: the image now comes from your conversation (before, the request sentence itself was the prompt). “Turn all this into a detailed poster” delivers an A3 PDF poster with exact text.',
+        mg: 'Sary avy amin\'ny resaka', mgText: '« Tiako ho sary izany »: avy amin\'ny resakao ankehitriny ny sary (taloha dia ny fehezanteny nangatahana no nampiasaina). « Ataovy poster feno izany rehetra izany » dia manome poster A3 PDF misy lahatsoratra marina.'),
+  ],
   '0.6.4': [
     NewsItem(Icons.psychology_outlined, 'Une discussion sans trou de mémoire',
         'Même après une heure d\'échanges, Tontolo retrouve ce que vous avez dit au début, garde en tête vos fichiers joints (même pour « et la suite ? ») et conserve le même ton, quel que soit le modèle qui répond.',

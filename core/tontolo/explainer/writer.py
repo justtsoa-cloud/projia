@@ -30,15 +30,19 @@ SCENE is one of:
 Rules:
 - Follow the plan and the audience given by the user. First scene: type "title". Last scene: \
 "recap". 4 to 8 scenes.
-- "narration" is what a friendly voice says over the scene: 1 or 2 short, natural sentences, in \
-the requested language. On-screen texts are even shorter (under 70 characters).
+- "narration" is what a friendly voice says over the scene: 2 or 3 short, natural sentences (about \
+25 to 40 words, so the video reaches the requested length), in the requested language. On-screen texts are even shorter (under 70 characters).
 - Fill the screen: a "bullets" scene has 2 to 4 items (never one); put a key formula in an "equation" scene; prefer "steps" for the worked example.
-- Include ONE worked example with real numbers, shown with "steps" or "equation" (and a "plot" \
-when a function helps). Check every calculation twice. Never invent facts.
+- Include ONE worked example, shown with "steps" or "equation". Maths and sciences: real numbers \
+(and a "plot" when a function helps); check every calculation twice. History, languages, \
+literature, geography, economy: a real case, a key date, a sentence or a quoted extract analysed \
+step by step, never a made-up calculation. Use "bars" ONLY for real, well-known figures; never \
+invent numbers or a ranking. Never invent facts.
 - LaTeX: plain ASCII only (\\\\frac, \\\\sqrt, ^, _, \\\\cdot, \\\\times, \\\\pi, \\\\text{words}); no \\\\def, \\\\input, \\\\usepackage, no \
 accented letters inside LaTeX.
 - "expr" for plots: x, numbers, + - * / **, sin cos tan exp log sqrt abs, pi.
-- Write all on-screen text and narration in the language requested."""
+- Write all on-screen text and narration in the language requested. For language lessons, use the real grammar terms of the language taught (e.g. \
+"simple past", never a French term for an English tense) and keep the examples in that language."""
 
 _LANG = {"fr": "French", "en": "English", "mg": "Malagasy"}
 

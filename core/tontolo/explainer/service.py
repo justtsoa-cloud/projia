@@ -58,7 +58,10 @@ def message_for(story: dict[str, Any], brief: Brief, *, fallback: bool = False) 
     parts = [t["intro"].format(s=round(story["seconds"]), t=story["title"])]
     if fallback:
         parts.append(t["fallback"])
-    notes = [_NOTES[lang].get(n, n) for n in brief.notes]
+    # La durée « choisie » n'est annoncée que si la vidéo s'en approche (le modèle écrit court).
+    near = abs(story["seconds"] - brief.duration_s) <= 0.4 * brief.duration_s
+    notes = [_NOTES[lang].get(n, n) for n in brief.notes
+             if near or not n.startswith("durée d'environ")]
     if notes:
         parts.append(t["choices"].format(c=", ".join(notes)))
     return "\n\n".join(parts) + "\n\n```explainer\n" + json.dumps(
@@ -92,6 +95,22 @@ async def produce(core: Any, text: str, history: list[dict[str, Any]], intent: E
     try:
         return await writer.write(brief, ask, context=summary), brief, model["name"], False
     except Exception:  # modèle absent, délai, JSON invalide deux fois
+        pass
+    # Dernière chance avant le repli : une vidéo plus courte (4 scènes), tous modèles gratuits
+    # confondus, c'est plus facile à écrire pour un petit modèle.
+    light = Brief(brief.topic or context_topic, brief.level, brief.language, 45, brief.broad,
+                  [n for n in brief.notes if not n.startswith("durée d'environ")])
+
+    async def ask_light(messages: list[dict[str, Any]], accept: Callable[[str], bool]) -> str:
+        out = await core.router.quick(messages, 2500, accept, per_try=60, budget=100,
+                                      stagger=4.0)
+        if not out:
+            raise TimeoutError("aucun modèle n'a fourni de scénario valide")
+        return out
+
+    try:
+        return await writer.write(light, ask_light, context=summary), light, "", False
+    except Exception:
         simple = storyboard.fallback_from_text(brief.topic or context_topic, summary,
                                                brief.language)
         return simple, brief, "", simple is not None

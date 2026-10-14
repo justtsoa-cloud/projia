@@ -41,6 +41,28 @@ def _text(value: Any, limit: int = MAX_TEXT) -> str:
     return s[:limit]
 
 
+_FRAC = re.compile(r"\\d?frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}")
+_SYMBOLS = (("\\times", "×"), ("\\cdot", "·"), ("\\div", "÷"), ("\\pi", "π"),
+            ("\\leq", "≤"), ("\\geq", "≥"), ("\\neq", "≠"), ("\\approx", "≈"),
+            ("\\rightarrow", "→"), ("\\to", "→"))
+
+
+def _plain(value: Any, limit: int = MAX_TEXT) -> str:
+    """Texte à lire ou à afficher tel quel : un modèle y laisse parfois du LaTeX
+    (« \\frac{1}{2} »), que la voix épellerait. On le met en clair."""
+    s = _text(value, 4 * limit)
+    if "\\" in s or "$" in s:
+        s = s.replace("$", "")
+        s = _FRAC.sub(r"\1/\2", s)
+        s = re.sub(r"\\sqrt\s*\{([^{}]*)\}", r"√\1", s)
+        s = re.sub(r"\\text\{([^{}]*)\}", r"\1", s)
+        for tex, sym in _SYMBOLS:
+            s = s.replace(tex, sym)
+        s = re.sub(r"\\[A-Za-z]+", "", s).replace("{", "").replace("}", "")
+        s = re.sub(r"\s+", " ", s).strip()
+    return s[:limit]
+
+
 _LATEX_OK = re.compile(r"^[\\A-Za-z0-9{}\[\]()_^=+\-*/.,:;<>|!&' ~%]+$")
 _LATEX_BAD = re.compile(
     r"\\(?:input|include|write|openin|openout|read|def|edef|gdef|xdef|let|catcode|newcommand|"
@@ -150,7 +172,7 @@ def plot_points(expr: str, xmin: float, xmax: float, n: int = POINTS
 def _items(raw: Any, limit: int = MAX_ITEMS) -> list[str]:
     if not isinstance(raw, list):
         return []
-    return [t for t in (_text(i) for i in raw[:limit]) if t]
+    return [t for t in (_plain(i) for i in raw[:limit]) if t]
 
 
 def _scene(raw: Any, index: int) -> dict[str, Any]:
@@ -160,14 +182,14 @@ def _scene(raw: Any, index: int) -> dict[str, Any]:
     if kind not in TYPES:
         raise StoryboardError(f"scène {index + 1} : type inconnu « {kind} » (types : "
                               + ", ".join(TYPES) + ")")
-    out: dict[str, Any] = {"type": kind, "narration": _text(raw.get("narration"), MAX_NARRATION)}
+    out: dict[str, Any] = {"type": kind, "narration": _plain(raw.get("narration"), MAX_NARRATION)}
     if kind == "title":
-        out["text"] = _text(raw.get("text") or raw.get("title"))
-        out["subtitle"] = _text(raw.get("subtitle"))
+        out["text"] = _plain(raw.get("text") or raw.get("title"))
+        out["subtitle"] = _plain(raw.get("subtitle"))
         if not out["text"]:
             raise StoryboardError(f"scène {index + 1} (title) : « text » manquant")
     elif kind in ("bullets", "recap"):
-        out["title"] = _text(raw.get("title"))
+        out["title"] = _plain(raw.get("title"))
         out["items"] = _items(raw.get("items"), 4)
         if not out["items"]:
             raise StoryboardError(f"scène {index + 1} ({kind}) : « items » manquant")
@@ -177,16 +199,16 @@ def _scene(raw: Any, index: int) -> dict[str, Any]:
                     "narration": out["narration"]}
     elif kind == "equation":
         out["latex"] = latex(raw.get("latex"))
-        out["caption"] = _text(raw.get("caption"))
+        out["caption"] = _plain(raw.get("caption"))
     elif kind == "steps":
-        out["title"] = _text(raw.get("title"))
+        out["title"] = _plain(raw.get("title"))
         steps = []
         for s in (raw.get("steps") or [])[:MAX_ITEMS] if isinstance(raw.get("steps"), list) else []:
             if isinstance(s, str):
                 s = {"text": s}
             if not isinstance(s, dict):
                 continue
-            step = {"text": _text(s.get("text"))}
+            step = {"text": _plain(s.get("text"))}
             if s.get("latex"):
                 step["latex"] = latex(s.get("latex"))
             if step["text"] or step.get("latex"):
@@ -195,8 +217,8 @@ def _scene(raw: Any, index: int) -> dict[str, Any]:
             raise StoryboardError(f"scène {index + 1} (steps) : au moins 2 étapes")
         out["steps"] = steps
     elif kind == "plot":
-        out["title"] = _text(raw.get("title"))
-        out["caption"] = _text(raw.get("caption"))
+        out["title"] = _plain(raw.get("title"))
+        out["caption"] = _plain(raw.get("caption"))
         out["expr"] = _text(raw.get("expr"), 80)
         try:
             xmin, xmax = float(raw.get("xmin", -5)), float(raw.get("xmax", 5))
@@ -205,7 +227,7 @@ def _scene(raw: Any, index: int) -> dict[str, Any]:
         out["xmin"], out["xmax"] = xmin, xmax
         out["points"] = plot_points(out["expr"], xmin, xmax)
     elif kind == "bars":
-        out["title"] = _text(raw.get("title"))
+        out["title"] = _plain(raw.get("title"))
         labels = _items(raw.get("labels"), 6)
         values: list[float] = []
         for v in (raw.get("values") or [])[:6] if isinstance(raw.get("values"), list) else []:

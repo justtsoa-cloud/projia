@@ -64,6 +64,18 @@ def test_naive_requests_are_completed() -> None:
     assert "accroche" in complete("une vidéo sur Ohm").directive()
 
 
+def test_the_chosen_length_is_only_announced_when_the_video_is_close_to_it() -> None:
+    from tontolo.explainer import service
+
+    brief = complete("fais-moi une vidéo sur les fractions")  # durée choisie : 75 s
+    short = storyboard.validate(GOOD)
+    assert short["seconds"] < 45
+    assert "J'ai choisi pour vous" not in service.message_for(short, brief)
+    longer = dict(short, seconds=70)
+    assert "durée d'environ 1 min 15" in service.message_for(longer, brief) \
+        or "une durée d'environ 1 min 15" in service.message_for(longer, brief)
+
+
 def test_the_storyboard_is_validated_and_bounded() -> None:
     story = storyboard.validate(GOOD)
     assert story["seconds"] > 10 and len(story["scenes"]) == 5
@@ -253,3 +265,33 @@ def test_real_manim_render() -> None:
 
     mp4 = asyncio.run(manim_render.render(storyboard.validate(GOOD)))
     assert mp4[4:8] == b"ftyp" and len(mp4) > 10_000
+
+
+def test_bare_video_request_in_learn_mode() -> None:
+    """« une vidéo sur … » sans verbe : en mode Apprendre c'est une vidéo explicative."""
+    r = resolve("video: les temps du passe en anglais", learn_mode=True)
+    assert r.active and r.topic == "les temps du passe en anglais"
+    r = resolve("fais une video sur la guerre froide courte", learn_mode=True)
+    assert r.active and r.topic == "la guerre froide"  # « courte » règle la durée, pas le sujet
+    assert not resolve("une video sur la guerre froide").active  # hors mode Apprendre
+    assert not resolve("j'ai vu une video sur youtube", learn_mode=True).active
+
+
+def test_directive_adapts_example_to_the_domain() -> None:
+    d = complete("une video sur la guerre froide", topic="").directive()
+    assert "JAMAIS une opération artificielle" in d
+
+
+def test_malagasy_request_topic() -> None:
+    r = resolve("ataovy horonan-tsary momba ny ampahany", learn_mode=True)
+    assert r.active and r.topic == "ampahany"
+
+
+def test_latex_in_prose_is_made_plain() -> None:
+    story = storyboard.validate({"title": "Fractions", "scenes": [
+        {"type": "title", "text": "Fractions", "narration": r"On a \frac{1}{2} + \frac{1}{2} = 1."},
+        {"type": "bullets", "title": "Idée", "items": [r"$\frac{a}{b}$ avec b \neq 0", "x"],
+         "narration": "Voyons."},
+        {"type": "recap", "title": "Fin", "items": ["a", "b", "c"], "narration": "Fin."}]})
+    assert story["scenes"][0]["narration"] == "On a 1/2 + 1/2 = 1."
+    assert story["scenes"][1]["items"][0] == "a/b avec b ≠ 0"

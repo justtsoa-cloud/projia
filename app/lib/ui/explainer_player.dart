@@ -203,7 +203,7 @@ class _ExplainerPlayerState extends State<ExplainerPlayer> with SingleTickerProv
               color: _bg,
               child: Stack(fit: StackFit.expand, children: [
                 LayoutBuilder(
-                  builder: (context, box) => _SceneView(scene: scene, t: _ctl.value, scale: box.maxWidth / 640),
+                  builder: (context, box) => _SceneView(scene: scene, t: _ctl.value, scale: box.maxWidth / 420),
                 ),
                 if (!playing)
                   const Center(child: Icon(Icons.play_circle_fill, size: 56, color: Color(0xCCF7F7FB))),
@@ -353,7 +353,7 @@ class _SceneView extends StatelessWidget {
           Expanded(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 24 * scale),
-              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              child: FittedBox(fit: BoxFit.scaleDown, child: Column(mainAxisSize: MainAxisSize.min, children: [
                 for (var i = 0; i < steps.length; i++)
                   Opacity(
                     opacity: _ease(t, 0.08 + 0.6 * i / steps.length, 0.2 + 0.6 * i / steps.length),
@@ -365,7 +365,7 @@ class _SceneView extends StatelessWidget {
                       ]),
                     ),
                   ),
-              ]),
+              ])),
             ),
           ),
           SizedBox(height: 22 * scale),

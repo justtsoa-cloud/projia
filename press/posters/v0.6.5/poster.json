@@ -1,0 +1,56 @@
+{
+  "shot": "video",
+  "lang": {
+    "fr": {
+      "tagline": "Nouveautés", "date": "14 octobre 2026",
+      "hero": ["Vos cours en", "vidéo animée"],
+      "sub": "Mode Apprendre : Tontolo explique, avec la voix.",
+      "steps": [
+        ["Mode Apprendre, puis :", "« une vidéo sur les", "fractions »"],
+        ["Tontolo complète votre", "demande : niveau, durée,", "exemple chiffré"],
+        ["Lisez la vidéo : formules,", "courbes et voix ; MP4", "sur Linux (Manim)"]
+      ],
+      "also": "Aussi dans cette version",
+      "items": [
+        ["Image tirée de la discussion", ["« Je veux ça en image » dessine", "le sujet de votre échange."]],
+        ["Poster exact en PDF", ["« Transforme tout cela en poster » :", "A3, texte et formules justes."]],
+        ["Appels internes fiabilisés", ["Plusieurs modèles en course :", "résumés et briefs sans échec."]]
+      ],
+      "footer": "Gratuit · Android · Linux"
+    },
+    "en": {
+      "tagline": "What's new", "date": "October 14, 2026",
+      "hero": ["Your lessons as", "animated videos"],
+      "sub": "Learn mode: Tontolo explains, with a voice.",
+      "steps": [
+        ["Learn mode, then:", "“a video about", "fractions”"],
+        ["Tontolo completes your", "request: level, length,", "worked example"],
+        ["Watch it: formulas, graphs", "and voice; MP4 on Linux", "(Manim)"]
+      ],
+      "also": "Also in this version",
+      "items": [
+        ["Image from the conversation", ["“I want that as an image” draws", "the subject of your chat."]],
+        ["Exact poster as PDF", ["“Turn all this into a poster”:", "A3, correct text and formulas."]],
+        ["More reliable internal calls", ["Several models race:", "summaries and briefs don't fail."]]
+      ],
+      "footer": "Free · Android · Linux"
+    },
+    "mg": {
+      "tagline": "Vaovao", "date": "14 Oktobra 2026",
+      "hero": ["Ny lesonao ho", "horonan-tsary"],
+      "sub": "Mianatra: i Tontolo manazava, miaraka amin'ny feo.",
+      "steps": [
+        ["Mianatra, avy eo:", "« horonan-tsary momba", "ny fraction »"],
+        ["Ampitambaran'i Tontolo ny", "fangatahanao: haavo,", "faharetana, ohatra"],
+        ["Jereo: raikipohy, fakan-tsary", "ary feo; MP4 amin'ny", "Linux (Manim)"]
+      ],
+      "also": "Ao amin'ity dikan-teny ity koa",
+      "items": [
+        ["Sary avy amin'ny resaka", ["« Tiako ho sary izany » dia mikoriana", "ny lohahevitry ny resakao."]],
+        ["Poster marina amin'ny PDF", ["« Ataovy poster izany »: A3,", "lahatsoratra sy raikipohy marina."]],
+        ["Antso anatiny matoky kokoa", ["Modely maromaro mifaninana:", "tsy mivadika ny fintina."]]
+      ],
+      "footer": "Maimaim-poana · Android · Linux"
+    }
+  }
+}
