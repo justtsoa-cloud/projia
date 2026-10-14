@@ -127,3 +127,10 @@ L'application cherche la dernière release par l'API GitHub, puis, si l'API refu
   des « autres changements » qui passerait sous le QR code.
 - L'écran « À propos » affiche `app/assets/qr/download.png` (page de la DERNIÈRE version),
   généré une fois par `scripts/make_qr.sh`.
+
+
+## Affiches et prompts (règle du 2026-10-14)
+
+Chaque version : l'affiche de changelog **et** des prompts d'usage courts pour la nouveauté
+(carte de prompts via `press/posters/build_campaign.py`, voir `docs/CAMPAIGNS.md`). Une campagne
+d'affiches est aussi produite chaque jour.
