@@ -5,6 +5,17 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+### Ajouté
+- Mémoire d'une longue discussion : même après une heure d'échanges, Tontolo retrouve ce qui a été
+  dit au début du fil (rappel des passages anciens pertinents), garde en tête les fichiers
+  joints (même pour « et la suite ? ») et conserve le ton, quel que soit le modèle qui répond.
+  La fiche de compactage retient aussi le style de la conversation et le contenu des fichiers.
+- Accueil : choix de la langue (français, English, Malagasy).
+
+### Corrigé
+- Langue au premier lancement : celle du téléphone (fr, en, mg ; sinon anglais) au lieu du français
+  pour tout le monde, ce qui faussait aussi les statistiques de langue.
+
 ## [0.6.3] - 2026-10-14
 
 ### Corrigé

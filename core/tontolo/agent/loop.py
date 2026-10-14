@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Any
 
 from tontolo import documents, metrics
-from tontolo.agent import browser, openlinks, planner
+from tontolo.agent import browser, openlinks, planner, threadmemory
 from tontolo.agent.mcp_client import McpManager
 from tontolo.agent.taskstore import TOOL_INLINE, TaskStore
 from tontolo.agent.terminal import TerminalManager
@@ -128,12 +128,18 @@ demande venant d'une autre discussion ou de la mémoire."""
 
 THREAD_SUMMARY_PROMPT = (
     "Compacte ce début de discussion pour qu'un autre assistant puisse la continuer sans rien "
-    "perdre. Fiche structurée, dans la langue de la discussion, sous ces titres exacts :\n"
-    "## Sujets\n## Faits et résultats (chiffres, formules, réponses données)\n"
-    "## Décisions et préférences de l'utilisateur\n"
-    "## Créations (images, vidéos, fichiers : sujet de chacun)\n## Tâches en cours\n"
-    "Puces courtes, 30 lignes au maximum. Garde les liens entre sujets (« X sert à Y »). "
-    "Si un résumé précédent est fourni, fusionne-le. Ne rajoute rien qui n'a pas été dit.")
+    "perdre, comme s'il l'avait lue en entier. Fiche structurée, dans la langue de la "
+    "discussion, sous ces titres exacts :\n"
+    "## Sujets et objectif\n## Faits et résultats (noms, chiffres, dates, formules, réponses "
+    "données : recopiés tels quels)\n"
+    "## Décisions, consignes et préférences de l'utilisateur\n"
+    "## Style de la conversation (langue, tutoiement ou vouvoiement, ton, longueur et mise en "
+    "forme des réponses)\n"
+    "## Fichiers, images et créations (nom ou sujet de chacun et ce qu'il contient)\n"
+    "## Tâches en cours et ce qui reste à faire\n"
+    "Puces courtes, 40 lignes au maximum. Garde les liens entre sujets (« X sert à Y »). "
+    "Si un résumé précédent est fourni, fusionne-le sans rien en retirer d'important. Ne "
+    "rajoute rien qui n'a pas été dit.")
 
 KEEP_RECENT = 12       # messages toujours envoyés mot pour mot
 SUMMARIZE_AFTER = 30   # messages non résumés au-delà desquels le début du fil est résumé
@@ -594,16 +600,21 @@ class ChatService:
         return {"model": model, "category": category, "rating": rating}
 
     async def _documents_block(self, cid: str, question: str) -> dict[str, Any] | None:
-        """Extraits des documents joints utiles à la question, à citer « [nom, p. N] »."""
+        """Extraits des documents joints utiles à la question, à citer « [nom, p. N] ».
+        La liste des fichiers joints est toujours rappelée, même si aucun extrait ne ressort
+        (« et la suite ? » ne doit pas faire oublier le livre joint il y a une heure)."""
         docs = await self.db.list_documents(cid, with_pages=True)
         if not docs:
             return None
+        history = await self.db.get_window(cid, 8)
+        query = threadmemory.search_query(history, question)
         per_doc = max(2, documents.TOP_CHUNKS // len(docs))
-        picked = [(d["name"], documents.select(documents.chunk_pages(d["pages"]), question,
+        picked = [(d["name"], documents.select(documents.chunk_pages(d["pages"]), query,
                                                k=per_doc)) for d in docs[-4:]]
         block = documents.context_block(picked)
-        if not block:
-            return None
+        manifest = "Fichiers joints à cette discussion : " + " ; ".join(
+            f"« {d['name']} » ({len(d['pages'])} p.)" for d in docs[-12:]) + "."
+        block = manifest + ("\n\n" + block if block else "")
         # Long document : son plan accompagne les extraits (le modèle « voit » tout le livre).
         outlines = [f"Plan de « {d['name']} » :\n" + str(d.get("digest") or "").split(
             "\n\n## ", 1)[0][:3000] for d in docs[-4:] if d.get("digest")]
@@ -687,7 +698,7 @@ class ChatService:
                     {"role": "user", "content": text[-SUMMARY_CHUNK_CHARS * 2:]}])
                 if not (out and len(out.strip()) > 40):
                     break
-                rolled, reached, i, chunks = out.strip()[:6000], covered + j, j, chunks + 1
+                rolled, reached, i, chunks = out.strip()[:8000], covered + j, j, chunks + 1
             if reached == covered or rolled is None:
                 return False
             # Un message arrivé pendant le résumé ne l'invalide pas : seule une modification
@@ -872,6 +883,15 @@ class ChatService:
             plan = await self.db.get_plan(cid)
             if plan is not None and plan.get("status") == "active":
                 messages.append(planner.plan_block(plan))
+            recalled = threadmemory.recall(history, threadmemory.search_query(history, question))
+            if recalled:
+                messages.append({"role": "system", "content": (
+                    "Passages plus anciens de CETTE discussion, en rapport avec la demande "
+                    "(ils font foi s'ils précisent un chiffre, un nom ou une consigne ; ne cite "
+                    "jamais leurs repères « [message N] », réponds naturellement) :\n"
+                    + untrusted(recalled))})
+            if any(m.get("role") == "assistant" for m in history):
+                messages[0]["content"] += "\n\n" + threadmemory.CONTINUITY
             messages += compact_images(await self._explain_media(
                 await self._thread(cid, history)))
             # Recherche web forcée pour l'actualité : résultats injectés comme données,
