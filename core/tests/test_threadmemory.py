@@ -104,3 +104,18 @@ def test_a_long_thread_keeps_files_facts_and_style_whatever_the_model(
     sent = answer_to("rappelle-moi mon budget pour la cuisine")
     system = "\n".join(str(m["content"]) for m in sent if m["role"] == "system")
     assert "4500 euros" in system or any("4500 euros" in str(m["content"]) for m in sent)
+
+
+def test_very_long_threads_stay_fast_and_bounded() -> None:
+    """Charge : 2000 messages. Le rappel doit rester sous le budget (temps et taille), sinon
+    chaque tour d'une discussion très longue ralentirait."""
+    import time
+
+    history = _talk(2000, secret_at=2000 - threadmemory.MAX_SCAN // 2)  # dans la fenêtre scannée
+    history.append({"role": "user", "content": "Rappelle-moi le budget de la cuisine"})
+    t0 = time.perf_counter()
+    found = threadmemory.recall(history, "Rappelle-moi le budget de la cuisine")
+    elapsed = time.perf_counter() - t0
+    assert found is not None and "4500 euros" in found
+    assert len(found) < 6000       # jamais plus que le budget de contexte prévu
+    assert elapsed < 0.5, f"rappel trop lent : {elapsed:.2f} s pour 2000 messages"

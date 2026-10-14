@@ -14,6 +14,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.6.7': [
+    NewsItem(Icons.battery_saver_outlined, 'Un mode économie',
+        'Réglages › Personnalisation › Mode économie : Tontolo ne lance plus qu\'un modèle à la fois pour les petites tâches (résumés, plans, vidéos). Moins de réseau, de batterie et de quota.',
+        'An economy mode', 'Settings › Personalization › Economy mode: Tontolo runs only one model at a time for small tasks (summaries, plans, videos). Less network, battery and quota.',
+        mg: 'Fomba mitsitsy', mgText: 'Kirakira › Fanamboarana manokana › Fomba mitsitsy: modely iray isaky ny fotoana no alefan\'i Tontolo ho an\'ny asa kely (famintinana, drafitra, horonan-tsary). Tsy dia mandany tambajotra, batterie ary quota.'),
+    NewsItem(Icons.speed_outlined, 'Des choix de modèles plus malins',
+        'Tontolo retient quels modèles gratuits répondent vraiment (et lesquels répondent vide) et met les moins fiables derrière. Le démarrage est mesuré : environ 5 secondes.',
+        'Smarter model choices', 'Tontolo remembers which free models really answer (and which return nothing) and puts the least reliable ones behind. Startup is measured: about 5 seconds.',
+        mg: 'Safidy modely hendry kokoa', mgText: 'Tsaroan\'i Tontolo ny modely maimaim-poana mamaly tokoa (sy ireo tsy mamaly) ary apetrany aoriana ny tsy dia azo itokisana. Voamarina ny fanombohana: eo amin\'ny 5 segondra.'),
+  ],
   '0.6.6': [
     NewsItem(Icons.lock_outline, 'Ce qui sort de votre téléphone : presque rien',
         'Les statistiques se limitent maintenant à la version, la langue et le pays approximatif. « Voir ce qui est envoyé » montre exactement cela. Vos clés ne sortent jamais, même dans les messages d\'erreur.',

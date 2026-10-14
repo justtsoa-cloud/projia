@@ -8,6 +8,7 @@ ou sur une machine Linux (mode client-serveur, jeton obligatoire).
 from __future__ import annotations
 
 import hmac
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import Any
@@ -42,7 +43,10 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        started = time.monotonic()
         core = await Core.start(settings, registry=registry, refresh=refresh)
+        # Durée du démarrage du cœur (catalogue compris) : mesurée pour docs/PERF.md.
+        print(f"[tontolo] cœur prêt en {time.monotonic() - started:.2f}s", flush=True)
         app.state.core = core
         core.catalog.on_changes(lambda ch: hub.publish({"type": "catalog_changes",
                                                         "changes": ch}))

@@ -1,0 +1,151 @@
+{
+ "shot": "eco",
+ "lang": {
+  "fr": {
+   "tagline": "Nouveautés",
+   "date": "14 octobre 2026",
+   "hero": [
+    "Un mode",
+    "économie"
+   ],
+   "sub": "Moins de réseau, de batterie et de quota.",
+   "steps": [
+    [
+     "Réglages, section",
+     "« Réponses » :",
+     "Mode économie"
+    ],
+    [
+     "Un seul modèle à la fois",
+     "pour les petites tâches"
+    ],
+    [
+     "Résumés, plans et vidéos",
+     "gardent la même qualité"
+    ]
+   ],
+   "also": "Aussi dans cette version",
+   "items": [
+    [
+     "Modèles mieux choisis",
+     [
+      "Ceux qui répondent vide",
+      "passent derrière."
+     ]
+    ],
+    [
+     "Démarrage mesuré",
+     [
+      "Cœur prêt en environ",
+      "5 secondes."
+     ]
+    ],
+    [
+     "Tests renforcés",
+     [
+      "Concurrence répétée,",
+      "fils de 2000 messages."
+     ]
+    ]
+   ],
+   "footer": "Gratuit · Android · Linux"
+  },
+  "en": {
+   "tagline": "What's new",
+   "date": "October 14, 2026",
+   "hero": [
+    "An economy",
+    "mode"
+   ],
+   "sub": "Less network, battery and quota.",
+   "steps": [
+    [
+     "Settings, “Answers”",
+     "section: Economy mode"
+    ],
+    [
+     "One model at a time",
+     "for small tasks"
+    ],
+    [
+     "Summaries, plans and videos",
+     "keep the same quality"
+    ]
+   ],
+   "also": "Also in this version",
+   "items": [
+    [
+     "Better model choices",
+     [
+      "Models that return nothing",
+      "go to the back."
+     ]
+    ],
+    [
+     "Measured startup",
+     [
+      "Core ready in about",
+      "5 seconds."
+     ]
+    ],
+    [
+     "Stronger tests",
+     [
+      "Repeated concurrency,",
+      "2000-message threads."
+     ]
+    ]
+   ],
+   "footer": "Free · Android · Linux"
+  },
+  "mg": {
+   "tagline": "Vaovao",
+   "date": "14 Oktobra 2026",
+   "hero": [
+    "Fomba",
+    "mitsitsy"
+   ],
+   "sub": "Tsy dia mandany tambajotra, batterie ary quota.",
+   "steps": [
+    [
+     "Kirakira, ao amin'ny",
+     "« Valiny »: Fomba mitsitsy"
+    ],
+    [
+     "Modely iray isaky ny fotoana",
+     "ho an'ny asa kely"
+    ],
+    [
+     "Famintinana, drafitra,",
+     "horonan-tsary: mitovy",
+     "kalitao ihany"
+    ]
+   ],
+   "also": "Ao amin'ity dikan-teny ity koa",
+   "items": [
+    [
+     "Safidy modely tsara kokoa",
+     [
+      "Ireo tsy mamaly dia",
+      "apetraka aoriana."
+     ]
+    ],
+    [
+     "Fanombohana voamarina",
+     [
+      "Vonona ao anatin'ny",
+      "5 segondra eo ho eo."
+     ]
+    ],
+    [
+     "Fitsapana matanjaka kokoa",
+     [
+      "Fitsapana averina,",
+      "resaka 2000 hafatra."
+     ]
+    ]
+   ],
+   "footer": "Maimaim-poana · Android · Linux"
+  }
+ }
+}

@@ -433,7 +433,12 @@ Pourquoi pas du code Manim écrit par un modèle : du code arbitraire exécuté 
 - [x] Phase A / A5 : tests négatifs des mises à jour signées.
 - [x] Phase A / A6 : entrées non fiables et bornes.
 - [~] Livraison phase A (v0.6.6) : suite complète, version groupée, affiches fr/en/mg, CI, release et signatures.
-- [ ] Phase B : fiabilité, premier lancement, économie et charge.
+- [x] Phase B / B1 : les appels courts alimentent la fiabilité et la vitesse observées (vide, hors format, délai = échec).
+- [x] Phase B / B2 : « Réessayer » existait déjà (erreur, régénération) ; aucun changement.
+- [x] Phase B / B3 : mesuré, cœur prêt en ≈ 5 s sur installation neuve (docs/PERF.md) ; le « 150 s » venait de machines chargées.
+- [x] Phase B / B4 : mode économie (un appel court à la fois), réglage fr/en/mg, test de concurrence.
+- [x] Phase B / B5 : tests de concurrence répétés 3 fois dans la CI.
+- [x] Phase B / B6 : charge 2000 messages (< 0,5 s) dans test_threadmemory.
 - [ ] Phase C : relecture des scénarios, langue, variantes, bibliothèque et progression Apprendre.
 - [ ] Phase D : design, accessibilité, F-Droid et étude Flatpak.
 - [ ] Phase E : réconciliation des tâches et documentation finale.

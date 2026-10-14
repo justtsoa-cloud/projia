@@ -38,6 +38,12 @@ jobs:
         run: |
           uv export --frozen --extra linux --no-dev --no-emit-project --no-hashes --output-file /tmp/tontolo-requirements.txt
           uvx pip-audit -r /tmp/tontolo-requirements.txt --disable-pip --no-deps
+      - name: Tests de concurrence répétés (3 fois : un test instable est un bug)
+        if: matrix.python == '3.14'
+        run: |
+          for i in 1 2 3; do
+            .venv/bin/pytest -q -p no:cacheprovider tests/test_threadmemory.py tests/test_terminal.py tests/test_resilience.py tests/test_sync_conflict.py tests/test_explainer.py tests/test_router.py || exit 1
+          done
       - name: Budget de latence (sélection du modèle < 20 ms)
         run: .venv/bin/pytest -q tests/test_router.py -k selection_is_fast
 

@@ -562,6 +562,7 @@ class Router:
         started = time.monotonic()
 
         async def attempt(m: ModelInfo) -> str | None:
+            t0 = time.monotonic()
             try:
                 client = self.registry.get(self.catalog.catalog.providers[m.provider])
                 self.quota.record_request(m)
@@ -569,13 +570,20 @@ class Router:
                     res = await client.chat(m, messages, max_tokens=max_tokens, temperature=0)
                 content = res.message.get("content")
                 text = str(content) if content and str(content).strip() else None
-                return text if text and (accept is None or accept(text)) else None
+                good = text is not None and (accept is None or accept(text))
+                # Un modèle qui répond vide ou à côté compte comme un échec : il passe derrière.
+                self.reliability.record(m.key, good)
+                if good and text:
+                    self.reliability.record_speed(m.key, len(text), time.monotonic() - t0)
+                return text if good else None
             except ProviderError as err:
+                self.reliability.record(m.key, False)
                 self.quota.on_error(m, err)
             except TimeoutError:
+                self.reliability.record(m.key, False)
                 self.quota.on_error(m, ProviderError("délai dépassé", ErrorKind.NETWORK))
             except Exception:
-                pass
+                self.reliability.record(m.key, False)
             return None
 
         running: set[asyncio.Task[str | None]] = set()
@@ -596,7 +604,7 @@ class Router:
                 for task in done:
                     if (answer := task.result()) is not None:
                         return answer
-                if len(running) < QUICK_PARALLEL:
+                if len(running) < (1 if self.settings.economy else QUICK_PARALLEL):
                     launch()
                 if not running and not launch():
                     break

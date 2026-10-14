@@ -6,6 +6,7 @@ import time
 
 from tontolo.catalog.models import Category
 from tontolo.config import PaidFallback
+from tontolo.providers.registry import ProviderRegistry
 from tontolo.router.classifier import classify
 from tontolo.router.engine import Router
 from tontolo.storage.db import Database
@@ -187,3 +188,47 @@ def test_photo_of_exercise_is_never_an_edit() -> None:
                "rends la réponse en pdf") == Category.VISION
     assert cat("résous ce problème") == Category.VISION
     assert cat("rends la photo plus lumineuse") == Category.IMAGE_EDIT
+
+
+async def test_quick_calls_feed_reliability(settings, catalog_service, fake) -> None:
+    """Les appels courts (résumés, briefs, scénarios) apprennent quels modèles tiennent."""
+    from tontolo.router.engine import Router
+
+    router = Router(settings, catalog_service, registry=ProviderRegistry(lambda p: fake))
+    models = router._small_free_models(8)
+    assert models
+    bad = models[0]
+    for m in models:
+        fake.behaviors[m.model_id] = lambda model, messages: {"role": "assistant", "content": ""}
+    await router.quick([{"role": "user", "content": "x"}], 50, budget=2, per_try=1, stagger=0.1)
+    assert router.reliability.get(bad.key) < router.reliability.get("jamais-vu")
+
+
+async def test_economy_mode_runs_one_quick_call_at_a_time(settings, catalog_service, fake) -> None:
+    import asyncio
+    from types import SimpleNamespace
+
+    from tontolo.router.engine import Router
+
+    live = {"now": 0, "max": 0}
+
+    class Slow:
+        async def chat(self, model, messages, **kw):
+            live["now"] += 1
+            live["max"] = max(live["max"], live["now"])
+            try:
+                await asyncio.sleep(0.3)
+            finally:
+                live["now"] -= 1
+            return SimpleNamespace(message={"content": ""})
+
+    async def run(economy: bool) -> int:
+        settings.economy = economy
+        live["max"] = 0
+        router = Router(settings, catalog_service, registry=SimpleNamespace(get=lambda p: Slow()))
+        await router.quick([{"role": "user", "content": "x"}], 50, budget=1.5, per_try=1,
+                           stagger=0.05)
+        return live["max"]
+
+    assert await run(False) >= 2   # course normale : plusieurs candidats en parallèle
+    assert await run(True) == 1    # économie : un seul à la fois

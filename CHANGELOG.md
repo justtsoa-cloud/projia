@@ -5,6 +5,18 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.6.7] - 2026-10-14
+
+### Ajouté
+- Mode économie (Réglages › Personnalisation) : un seul modèle à la fois pour les petites tâches
+  (résumés, plans, scénarios vidéo) ; moins de réseau, de batterie et de quota.
+
+### Amélioré
+- Fiabilité : les appels courts apprennent quels modèles gratuits tiennent (réponse vide, hors
+  format ou délai = échec) et classent les modèles malades derrière aux appels suivants.
+- Premier lancement mesuré (cœur prêt en ≈ 5 s sur installation neuve) et journalisé ; budgets
+  dans docs/PERF.md. Tests de concurrence répétés 3 fois en CI ; charge de 2000 messages testée.
+
 ## [0.6.6] - 2026-10-14
 
 ### Sécurité

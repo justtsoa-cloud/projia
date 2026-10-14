@@ -25,6 +25,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
   List<Map<String, dynamic>> memories = [];
   bool enabled = true;
   bool speedFirst = false;
+  bool economy = false;
   bool teamReview = true;
   bool autoCompact = true;
   bool taskPlanning = true;
@@ -70,6 +71,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
       userName.text = '${s['user_name'] ?? ''}';
       enabled = m['enabled'] == true;
       speedFirst = s['speed_first'] == true;
+      economy = s['economy'] == true;
       teamReview = s['team_review'] != false; // absent (ancien cœur) : affiché actif
       autoCompact = s['auto_compact'] != false;
       taskPlanning = s['task_planning'] != false;
@@ -144,6 +146,16 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
         onChanged: (v) {
           setState(() => speedFirst = v);
           _call('PUT', '/tontolo/settings', {'speed_first': v});
+        },
+      ),
+      SwitchListTile(
+        secondary: const Icon(Icons.battery_saver_outlined),
+        title: Text(context.t('economy')),
+        subtitle: Text(context.t('economy_help'), style: small),
+        value: economy,
+        onChanged: (v) {
+          setState(() => economy = v);
+          _call('PUT', '/tontolo/settings', {'economy': v});
         },
       ),
       SwitchListTile(
