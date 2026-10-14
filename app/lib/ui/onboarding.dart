@@ -29,10 +29,32 @@ class _OnboardingState extends State<Onboarding> {
       (Icons.gesture, 'onb2_t', 'onb2_b'),
       (Icons.key_outlined, 'onb3_t', 'onb3_b'),
     ];
-    return Scaffold(
+    return ListenableBuilder(
+      listenable: AppScope.of(context).prefs,
+      builder: (context, _) => Scaffold(
       body: SafeArea(
         child: Column(children: [
-          Align(alignment: Alignment.topRight, child: TextButton(onPressed: _finish, child: Text(context.t('skip')))),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
+            child: Row(children: [
+              // Langue : confirmée dès l'accueil (c'est aussi ce qui est compté, de façon anonyme).
+              Expanded(
+                child: Wrap(spacing: 6, children: [
+                  for (final (code, name) in const [('fr', 'Français'), ('en', 'English'), ('mg', 'Malagasy')])
+                    ChoiceChip(
+                      label: Text(name),
+                      selected: AppScope.of(context).prefs.locale == code,
+                      onSelected: (_) {
+                        final scope = AppScope.of(context);
+                        scope.prefs.locale = code;
+                        scope.backend.sendJson('PUT', '/tontolo/settings', {'language': code}).catchError((_) => null);
+                      },
+                    ),
+                ]),
+              ),
+              TextButton(onPressed: _finish, child: Text(context.t('skip'))),
+            ]),
+          ),
           Expanded(
             child: PageView(
               controller: controller,
@@ -87,6 +109,6 @@ class _OnboardingState extends State<Onboarding> {
           ),
         ]),
       ),
-    );
+    ));
   }
 }

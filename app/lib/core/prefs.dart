@@ -1,6 +1,7 @@
 // Préférences locales de l'application (non sensibles).
 
 import 'dart:math';
+import 'dart:ui' show PlatformDispatcher;
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -16,7 +17,19 @@ class Prefs extends ChangeNotifier {
     if ((sp.getBool('onboarded') ?? false) && (sp.getString('lastSeenVersion') ?? '').isEmpty) {
       await sp.setString('lastSeenVersion', '0.2.0');
     }
+    // Première installation : la langue de l'application suit celle du téléphone (et non
+    // « français » pour tout le monde, ce qui faussait aussi les statistiques de langue).
+    if (!sp.containsKey('locale') && !(sp.getBool('onboarded') ?? false)) {
+      await sp.setString('locale', localeFor(PlatformDispatcher.instance.locale.languageCode));
+    }
     return Prefs(sp);
+  }
+
+  /// Langue prise en charge pour un code de langue du téléphone : fr, en ou mg ; une autre
+  /// langue retombe sur l'anglais.
+  static String localeFor(String languageCode) {
+    final code = languageCode.toLowerCase();
+    return const {'fr', 'en', 'mg'}.contains(code) ? code : 'en';
   }
 
   ThemeMode get themeMode => ThemeMode.values[_sp.getInt('theme') ?? 0];

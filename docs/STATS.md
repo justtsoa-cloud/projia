@@ -9,11 +9,23 @@ exactes).
 |---|---|---|
 | `install_id` | identifiant aléatoire de 32 caractères, créé sur l'appareil | compter les appareils sans les identifier |
 | `app_version`, `platform`, `os_version`, `abi` | `0.2.10`, `android`, `Android 14`, `arm64` | savoir quelles versions et quels appareils suivre |
-| `app_locale`, `country` | `mg`, `MG` (pays de la langue du téléphone, pas de géolocalisation) | prioriser les langues |
+| `app_locale`, `country` | `mg`, `MG` (langue de l'application ; région de la langue du téléphone, **jamais une position**) | prioriser les langues |
 | `messages` | `12` (nombre de messages depuis le dernier envoi) | mesurer l'usage |
 
 Jamais envoyés : messages, images, voix, clés, nom, adresse IP stockée par Tontolo, contacts,
 modèle exact de l'appareil.
+
+### Lire la langue et le pays sans se tromper (corrigé en 0.6.4)
+
+- **Avant la 0.6.4**, l'application était en français pour tout le monde tant qu'on n'avait pas
+  changé la langue à la main : `app_locale = 'fr'` surestimait donc fortement le français. Depuis
+  la 0.6.4, la langue suit celle du téléphone (fr, en, mg ; sinon anglais) et se confirme à
+  l'accueil.
+- **`country` n'est pas une localisation** : c'est la région de la langue du téléphone (« Français
+  (France) » donne FR). Un téléphone à Madagascar réglé ainsi apparaît en FR.
+- La vue `stats_langues` ([`docs/stats/supabase_langues.sql`](stats/supabase_langues.sql)) sépare
+  les appareils à langue fiable (≥ 0.6.4) des autres. Pour une vraie localisation, il faudrait
+  collecter davantage (fuseau horaire…) ; ce n'est pas fait, par choix de confidentialité.
 
 ## Notes 👍 / 👎 (depuis 0.5.8)
 
