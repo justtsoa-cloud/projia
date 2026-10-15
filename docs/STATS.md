@@ -48,3 +48,11 @@ Les scripts SQL historiques sont conservés pour compatibilité et ne décrivent
 nouveau format. Leur suppression éventuelle exige une décision séparée du propriétaire.
 Avant v0.6.4, la langue française par défaut faussait sa répartition : les vues historiques
 `stats_langues` distinguent les versions concernées.
+
+## Notes 👍/👎 (option, désactivée par défaut — 2026-10-15)
+
+« Réglages › Partager mes notes » : si l'utilisateur l'active, chaque note envoie à la table
+`ratings` le modèle, le type de demande, la note, la raison et un numéro d'installation
+aléatoire (pour ne compter une réponse qu'une fois), plus version/système/langue. Jamais le texte.
+Désactivée, rien n'est gardé pour l'envoi. Les scores collectifs (`model_scores`) ne sont lus que
+si l'option est activée. Tables Supabase : `docs/stats/supabase_ratings.sql` (déjà en place).

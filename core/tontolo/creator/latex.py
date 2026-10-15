@@ -13,6 +13,7 @@ import re
 import shutil
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import httpx
 
@@ -128,10 +129,27 @@ async def _latexonline(source: str, engine: str) -> tuple[bytes, str]:
 
 
 async def compile_pdf(source: str) -> tuple[bytes, str, str]:
-    """(pdf, journal, service utilisé). Lève LatexError (non relançable = erreur du source)."""
-    if not sandbox.available():
-        raise LatexError(sandbox.unavailable_message())
-    pdf, log = await _local(source, engine_for(source))
-    if not pdf.startswith(b"%PDF"):
-        raise LatexError("fichier produit invalide")
-    return pdf, log, "local"
+    """(pdf, journal, service utilisé). Lève LatexError (non relançable = erreur du source).
+
+    Compilation locale seulement dans un bac à sable (bubblewrap) ; sans lui (Android), on
+    passe aux services en ligne (rétabli sur décision de l'utilisateur, 2026-10-15) : le source
+    du document y est envoyé, rien n'est exécuté chez l'utilisateur."""
+    engine = engine_for(source)
+    last: LatexError | None = None
+    backends: list[tuple[str, Any]] = []
+    if sandbox.available():
+        backends.append(("local", _local))
+    backends += [("latex.ytotech.com", _ytotech), ("latexonline.cc", _latexonline)]
+    for name, fn in backends:
+        if name == "latexonline.cc" and len(source) > 6000:
+            continue  # source passé dans l'URL : limité aux petits documents
+        try:
+            pdf, log = await fn(source, engine)
+            if not pdf.startswith(b"%PDF"):
+                raise LatexError("fichier produit invalide", retryable=True)
+            return pdf, log, name
+        except LatexError as exc:
+            if not exc.retryable:
+                raise  # erreur dans le document : inutile d'essayer un autre service
+            last = exc
+    raise last or LatexError("aucun service LaTeX disponible", retryable=True)

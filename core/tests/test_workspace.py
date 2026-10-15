@@ -326,16 +326,13 @@ def test_no_choice_card_after_an_answer_or_for_a_detailed_request(
     assert offered and offered[-1] is False
 
 
-def test_execution_capabilities_and_pdf_refusal_without_sandbox(client, monkeypatch):
+def test_execution_capabilities_without_sandbox(client, monkeypatch):
+    """Sans bubblewrap (Android) : pas de commandes ni de compilation locale, mais le PDF
+    reste possible par les services en ligne."""
     from tontolo.agent import mcp_client
 
     monkeypatch.setattr(mcp_client, 'bwrap_usable', lambda: None)
     caps = client.get('/tontolo/execution/capabilities').json()
-    assert caps['sandbox'] is caps['latex'] is caps['commands'] is False
+    assert caps['sandbox'] is caps['latex_local'] is caps['commands'] is False
+    assert caps['latex'] is True
     assert client.get('/tontolo/workspace').json()['commands'] is False
-    for lang in ('fr', 'en', 'mg'):
-        client.app.state.core.settings.language = lang
-        response = client.post('/tontolo/chat', json={
-            'content': 'Un document', 'category': 'file:pdf'})
-        assert response.status_code == 501
-        assert 'bubblewrap' in response.json()['detail']

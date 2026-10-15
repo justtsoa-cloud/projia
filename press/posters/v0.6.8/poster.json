@@ -1,0 +1,149 @@
+{
+ "shot": "pdf",
+ "lang": {
+  "fr": {
+   "tagline": "Nouveautés",
+   "date": "15 octobre 2026",
+   "hero": [
+    "Vos PDF, de",
+    "nouveau sur téléphone"
+   ],
+   "sub": "Dites-le simplement : Tontolo compose et compile.",
+   "steps": [
+    [
+     "« Un sujet de révision en PDF,",
+     "deux pages, texte noir"
+    ],
+    [
+     "Répondez aux deux questions :",
+     "public et longueur"
+    ],
+    [
+     "Ouvrez, partagez ou",
+     "enregistrez le PDF"
+    ]
+   ],
+   "also": "Aussi dans cette version",
+   "items": [
+    [
+     "Notes en option",
+     [
+      "Désactivées par défaut :",
+      "jamais le texte."
+     ]
+    ],
+    [
+     "Une panne corrigée",
+     [
+      "Le PDF échouait depuis",
+      "la version 0.6.6."
+     ]
+    ],
+    [
+     "Astuce",
+     [
+      "Niveau + but + format :",
+      "trois détails suffisent."
+     ]
+    ]
+   ],
+   "footer": "Gratuit · Android · Linux"
+  },
+  "en": {
+   "tagline": "What's new",
+   "date": "October 15, 2026",
+   "hero": [
+    "Your PDFs are",
+    "back on phones"
+   ],
+   "sub": "Just ask: Tontolo writes and compiles it.",
+   "steps": [
+    [
+     "“A revision sheet as PDF,",
+     "two pages, black text”"
+    ],
+    [
+     "Answer the two questions:",
+     "audience and length"
+    ],
+    [
+     "Open, share or save",
+     "the PDF"
+    ]
+   ],
+   "also": "Also in this version",
+   "items": [
+    [
+     "Optional ratings",
+     [
+      "Off by default:",
+      "never the text."
+     ]
+    ],
+    [
+     "A fault fixed",
+     [
+      "PDF failed since",
+      "version 0.6.6."
+     ]
+    ],
+    [
+     "Tip",
+     [
+      "Level + goal + format:",
+      "three details are enough."
+     ]
+    ]
+   ],
+   "footer": "Free · Android · Linux"
+  },
+  "mg": {
+   "tagline": "Vaovao",
+   "date": "15 Oktobra 2026",
+   "hero": [
+    "Mandeha indray",
+    "ny PDF-nao"
+   ],
+   "sub": "Lazao fotsiny: i Tontolo no manoratra sy mamoaka.",
+   "steps": [
+    [
+     "« PDF fanamarihana, pejy roa,",
+     "soratra mainty »"
+    ],
+    [
+     "Valio ny fanontaniana roa:",
+     "olona sy halavany"
+    ],
+    [
+     "Sokafy, zarao na",
+     "tehirizo ny PDF"
+    ]
+   ],
+   "also": "Ao amin'ity dikan-teny ity koa",
+   "items": [
+    [
+     "Naoty raha tianao",
+     [
+      "Tsy mandeha raha tsy ekena:",
+      "tsy ny lahatsoratra."
+     ]
+    ],
+    [
+     "Fahadisoana nasaina",
+     [
+      "Tsy nandeha ny PDF",
+      "hatramin'ny 0.6.6."
+     ]
+    ],
+    [
+     "Torohevitra",
+     [
+      "Haavo + tanjona + endrika:",
+      "antsipiriany telo no ampy."
+     ]
+    ]
+   ],
+   "footer": "Maimaim-poana · Android · Linux"
+  }
+ }
+}

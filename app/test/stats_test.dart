@@ -10,6 +10,7 @@ import 'package:tontolo/core/prefs.dart';
 import 'package:tontolo/core/stats.dart';
 
 void main() {
+  ratingsOptIn();
   test('payload limité aux champs anonymes', () async {
     SharedPreferences.setMockInitialValues({});
     final prefs = await Prefs.load();
@@ -66,5 +67,21 @@ void main() {
         statsUrl: 'https://stats.example', statsKey: 'public-anon');
     expect(requests, 0);
     client.close();
+  });
+}
+
+void ratingsOptIn() {
+  test('notes 👍/👎 : gardées seulement si l\'option est activée', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await Prefs.load();
+    final id = 'a' * 32;
+    Stats.queueRating(prefs, answerId: id, model: 'groq:llama', category: 'code', rating: 1);
+    expect(Stats.pendingRatings(prefs), isEmpty); // option désactivée : rien en attente
+    prefs.shareRatings = true;
+    Stats.queueRating(prefs, answerId: id, model: 'groq:llama', category: 'code', rating: -1, reason: 'too_long');
+    expect(Stats.pendingRatings(prefs).single.keys.toSet(),
+        {'answer_id', 'model', 'category', 'rating', 'reason', 'cached'});
+    Stats.queueRating(prefs, answerId: '../x', model: 'm', category: 'chat', rating: 1);
+    expect(Stats.pendingRatings(prefs), hasLength(1)); // identifiant invalide refusé
   });
 }

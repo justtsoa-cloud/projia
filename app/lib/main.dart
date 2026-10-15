@@ -47,7 +47,7 @@ Future<void> main() async {
     activity.start();
     syncSoon(prefs, account, cloud);
     updater.startAuto();
-    Stats.maybeSend(prefs);
+    Stats.maybeSend(prefs, backend: backend);
     // Langue de réponse par défaut du moteur = langue de l'interface.
     if (backend.state == BackendState.ready) {
       backend.sendJson('PUT', '/tontolo/settings', {'language': prefs.locale}).catchError((_) => null);

@@ -65,6 +65,8 @@ class Prefs extends ChangeNotifier {
 
   bool get autoUpdate => _sp.getBool('autoUpdate') ?? true;
   // Statistiques anonymes d'utilisation (activées par défaut, annoncées, désactivables).
+  bool get shareRatings => _sp.getBool('shareRatings') ?? false;
+  set shareRatings(bool v) => _set(() => _sp.setBool('shareRatings', v));
   bool get shareStats => _sp.getBool('shareStats') ?? true;
   set shareStats(bool v) => _set(() => _sp.setBool('shareStats', v));
   String get installId => _sp.getString('installId') ?? '';

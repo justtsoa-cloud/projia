@@ -150,7 +150,7 @@ def register(app: FastAPI, hub: Hub, ws_connects: RateLimiter) -> None:
     @app.get("/tontolo/execution/capabilities")
     async def execution_capabilities(request: Request) -> dict[str, Any]:
         isolated = await asyncio.to_thread(sandbox.available)
-        return {"sandbox": isolated, "latex": isolated,
+        return {"sandbox": isolated, "latex": True, "latex_local": isolated,
                 "commands": isolated and is_desktop(),
                 "reason": None if isolated else sandbox.unavailable_message(
                     core_of(request).settings.language)}

@@ -16,7 +16,6 @@ from fastapi.responses import Response, StreamingResponse
 from tontolo import (
     importer,
     pdfexport,
-    sandbox,
 )
 from tontolo.agent import imagebrief, openlinks, planner
 from tontolo.agent.loop import dumps
@@ -120,8 +119,6 @@ def register(app: FastAPI, hub: Hub, ws_connects: RateLimiter) -> None:
             pend = clarify.pending_creation(await core.db.get_window(body.conversation_id, 6))
             if pend is not None and ("→" in answer or len(answer.split()) <= 12):
                 file_kind, completed = pend[0], f"{pend[1]}\n{answer}"
-        if file_kind in ("pdf", "latex", "poster", "beamer", "book") and not sandbox.available():
-            raise HTTPException(501, sandbox.unavailable_message(core.settings.language))
         if file_kind is not None:
             category = None
         elif category is None:

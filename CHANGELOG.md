@@ -5,6 +5,18 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.6.8] - 2026-10-15
+
+### Corrigé
+- PDF sur téléphone : depuis 0.6.6, « fais-en un PDF » échouait (HTTP 501, bubblewrap absent).
+  Le repli par les services de compilation en ligne est rétabli (le source LaTeX du document y
+  est envoyé) ; la compilation locale reste réservée au bac à sable.
+
+### Modifié
+- Notes 👍/👎 collectives rétablies en option : « Partager mes notes » (désactivé par défaut)
+  envoie modèle, type de demande, note et raison, jamais le texte ; « Voir ce qui est envoyé »
+  les montre. Les statistiques de base restent version, langue et pays approximatif.
+
 ## [0.6.7] - 2026-10-14
 
 ### Ajouté

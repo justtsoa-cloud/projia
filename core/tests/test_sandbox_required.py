@@ -9,16 +9,15 @@ from tontolo.agent.workspace import Workspace
 from tontolo.creator import latex
 
 
-async def test_latex_refuses_without_sandbox_before_any_backend(monkeypatch):
+async def test_latex_without_sandbox_skips_local_and_uses_online(monkeypatch):
     monkeypatch.setattr(mcp_client, 'bwrap_usable', lambda: None)
     local = AsyncMock(return_value=(b'%PDF-test', ''))
-    remote = AsyncMock(return_value=(b'%PDF-test', ''))
+    remote = AsyncMock(return_value=(b'%PDF-online', ''))
     monkeypatch.setattr(latex, '_local', local)
     monkeypatch.setattr(latex, '_ytotech', remote)
-    with pytest.raises(latex.LatexError, match='bubblewrap'):
-        await latex.compile_pdf('\\documentclass{article}')
-    local.assert_not_awaited()
-    remote.assert_not_awaited()
+    pdf, _, service = await latex.compile_pdf('\\documentclass{article}')
+    assert pdf == b'%PDF-online' and service == 'latex.ytotech.com'
+    local.assert_not_awaited()  # jamais de compilation locale sans isolation
 
 
 async def test_commands_refused_and_hidden_without_sandbox(monkeypatch, tmp_path: Path):

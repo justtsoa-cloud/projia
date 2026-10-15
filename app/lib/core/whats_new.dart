@@ -14,6 +14,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.6.8': [
+    NewsItem(Icons.picture_as_pdf_outlined, 'Les PDF marchent de nouveau sur téléphone',
+        'Demandez « fais-en un PDF de deux pages, texte noir sur fond blanc » : Tontolo le compose et le compile, même sans moteur LaTeX sur le téléphone (un service de compilation en ligne est utilisé, le texte du document y est envoyé).',
+        'PDFs work again on phones', 'Ask “make a two-page PDF, black text on white”: Tontolo writes and compiles it, even without a LaTeX engine on the phone (an online compile service is used; the document text is sent to it).',
+        mg: 'Mandeha indray ny PDF amin\'ny finday', mgText: 'Angataho hoe « ataovy PDF pejy roa, soratra mainty amin\'ny fotsy »: i Tontolo no manoratra sy mamoaka azy, na dia tsy misy LaTeX ao amin\'ny finday aza (serivisy an-tserasera no ampiasaina, alefa ao ny lahatsoratry ny antontan-taratasy).'),
+    NewsItem(Icons.thumbs_up_down_outlined, 'Partager mes notes, si vous voulez',
+        'Réglages › Partager mes notes 👍/👎 : désactivé par défaut. Activé, il envoie seulement le modèle, le type de demande, la note et la raison, jamais le texte.',
+        'Share my ratings, if you want', 'Settings › Share my 👍/👎 ratings: off by default. When on, it only sends the model, request type, rating and reason, never the text.',
+        mg: 'Zarao ny naotako, raha tianao', mgText: 'Kirakira › Zarao ny naotako 👍/👎: tsy mandeha raha tsy ekenao. Rehefa alefa dia ny modely, ny karazana fangatahana, ny naoty ary ny antony ihany no alefa, tsy ny lahatsoratra mihitsy.'),
+  ],
   '0.6.7': [
     NewsItem(Icons.battery_saver_outlined, 'Un mode économie',
         'Réglages › Personnalisation › Mode économie : Tontolo ne lance plus qu\'un modèle à la fois pour les petites tâches (résumés, plans, vidéos). Moins de réseau, de batterie et de quota.',

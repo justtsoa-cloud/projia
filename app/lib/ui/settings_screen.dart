@@ -155,6 +155,13 @@ class _Simple extends StatelessWidget {
           value: prefs.shareStats,
           onChanged: (v) => prefs.shareStats = v,
         ),
+        SwitchListTile(
+          secondary: const Icon(Icons.thumbs_up_down_outlined),
+          title: Text(context.t('share_ratings')),
+          subtitle: Text(context.t('share_ratings_help')),
+          value: prefs.shareRatings,
+          onChanged: (v) => prefs.shareRatings = v,
+        ),
         ListTile(
           dense: true,
           leading: const SizedBox(width: 24),
@@ -163,7 +170,7 @@ class _Simple extends StatelessWidget {
             context: context,
             builder: (context) => AlertDialog(
               title: Text(context.t('stats_see')),
-              content: SelectableText(const JsonEncoder.withIndent('  ').convert(Stats.payload(prefs)),
+              content: SelectableText(const JsonEncoder.withIndent('  ').convert({...Stats.payload(prefs), if (prefs.shareRatings) 'ratings': Stats.pendingRatings(prefs)}),
                   style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
               actions: [TextButton(onPressed: () => Navigator.pop(context), child: Text(context.t('got_it')))],
             ),
