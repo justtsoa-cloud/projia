@@ -21,6 +21,7 @@ import contextlib
 import hashlib
 import json
 import logging
+import os
 import time
 from collections.abc import AsyncIterator, Callable
 from datetime import UTC, datetime
@@ -35,6 +36,7 @@ from tontolo.providers.registry import ProviderRegistry
 from tontolo.router import classifier
 from tontolo.router.classifier import TaskProfile
 from tontolo.router.context import SUMMARY_PROMPT, fit
+from tontolo.router.hedge import race_streams
 from tontolo.router.quota import QuotaManager
 from tontolo.router.scoring import (
     LOCAL_LLM_PROVIDERS,
@@ -57,7 +59,7 @@ STALL_TIMEOUT = 60.0         # silence maximal en cours de réponse
 CALL_TIMEOUT = 240.0         # appel sans diffusion (résumés, classifieur, anciens cœurs)
 THINK_TIMEOUT = 150.0        # réflexion maximale sans aucun texte de réponse (diffusion)
 CONTROL_PARAMS = frozenset({"first_token_timeout", "stall_timeout", "think_timeout",
-                            "call_timeout"})  # réglages du routeur, jamais envoyés au modèle
+                            "call_timeout", "hedge_after", "no_hedge"})  # jamais envoyés au modèle
 MAX_WASTED = 200.0           # temps cumulé perdu sur des modèles en échec avant d'abandonner
 
 
@@ -98,6 +100,13 @@ async def _watched(source: AsyncIterator[dict[str, Any]], first: float, stall: f
         if aclose is not None:
             with contextlib.suppress(Exception):
                 await aclose()
+async def _single(source: AsyncIterator[dict[str, Any]]
+                  ) -> AsyncIterator[tuple[int, dict[str, Any]]]:
+    """Flux unique, au même format que la course (index 0)."""
+    async for item in source:
+        yield 0, item
+
+
 GLOBAL_MIN_DEVICES = 5  # notes collectives prises en compte à partir de 5 appareils
 SHORT_WAIT = 30.0  # attente maximale avant un nouvel essai automatique (secondes)
 EST_OUTPUT_TOKENS = 1000
@@ -292,6 +301,7 @@ class Router:
         avoid: frozenset[str] = frozenset(),
     ) -> AsyncIterator[dict[str, Any]]:
         params = params or {}
+        t_turn = time.monotonic()  # début du tour : mesure du délai avant le premier mot
         decision = await self.decide(messages, conversation_id=conversation_id, model=model,
                                      tools_available=bool(tools), forced=forced, strict=strict,
                                      avoid=avoid)
@@ -347,19 +357,69 @@ class Router:
             limits = self.settings.routing  # délais réglés en mode avancé (bornés)
             self.quota.record_request(m)
             started = False
+            first_word_at: float | None = None
             try:
                 result: ChatResult | None = None
                 client = self.registry.get(self.catalog.catalog.providers[m.provider])
                 if stream:
-                    async for item in _watched(
-                            client.stream(m, adapted, tools=use_tools, **api_params),
-                            float(params.get("first_token_timeout",
-                                             limits.first_token_s or FIRST_TOKEN_TIMEOUT)),
-                            float(params.get("stall_timeout", limits.stall_s or STALL_TIMEOUT)),
-                            float(params.get("think_timeout", limits.think_s or THINK_TIMEOUT))):
+                    first_to = float(params.get("first_token_timeout",
+                                                limits.first_token_s or FIRST_TOKEN_TIMEOUT))
+                    stall_to = float(params.get("stall_timeout", limits.stall_s or STALL_TIMEOUT))
+                    think_to = float(params.get("think_timeout", limits.think_s or THINK_TIMEOUT))
+
+                    def source_of(model: ModelInfo, ready: list[dict[str, Any]] | None = None,
+                                  *, extra: dict[str, Any] = api_params,
+                                  limits_s: tuple[float, float, float] = (
+                                      first_to, stall_to, think_to)) -> Any:
+                        async def run() -> AsyncIterator[dict[str, Any]]:
+                            msgs = ready if ready is not None else (
+                                await fit(messages, model, summary=summary,
+                                          summarizer=self._summarize))[0]
+                            cl = self.registry.get(self.catalog.catalog.providers[model.provider])
+                            tl = tools if (tools and model.supports_tools) else None
+                            async for it in _watched(cl.stream(model, msgs, tools=tl, **extra),
+                                                     *limits_s):
+                                yield it
+                        return run
+
+                    backup_pos = self._hedge_partner(chain, idx, cand, avoid, params)
+                    if backup_pos is None:
+                        feed: AsyncIterator[tuple[int, dict[str, Any]]] = _single(
+                            source_of(m, adapted)())
+                    else:
+                        backup = chain[backup_pos]
+
+                        def hedge_failed(i: int, exc: BaseException,
+                                         other: Candidate = backup) -> None:
+                            if i == 1:  # le renfort est tombé : on le note, comme un échec
+                                err_b = exc if isinstance(exc, ProviderError) else ProviderError(
+                                    f"{type(exc).__name__}: {exc}"[:300], ErrorKind.SERVER)
+                                self.quota.on_error(other.model, err_b)
+                                self.reliability.record(other.model.key, False)
+
+                        self.quota.record_request(backup.model)
+                        feed = race_streams(
+                            [source_of(m, adapted), source_of(backup.model)],
+                            self._hedge_after(m, params), hedge_failed)
+                    switched = False
+                    async for which, item in feed:
+                        if which == 1 and backup_pos is not None and not switched:
+                            switched = True
+                            # Le renfort a parlé le premier : il devient le modèle de ce tour.
+                            yield {"type": "model_switched", "from": m.key,
+                                   "to": chain[backup_pos].model.key,
+                                   "to_name": chain[backup_pos].model.name,
+                                   "reason": "réponse plus rapide", "reason_code": "hedge",
+                                   "until": None}
+                            self.reliability.record(m.key, False)  # trop lent ce coup-ci
+                            cand = chain.pop(backup_pos)
+                            m = cand.model
+                            attempts += 1
                         if "_result" in item:
                             result = item["_result"]
                         else:
+                            if not started:
+                                first_word_at = time.monotonic()
                             started = True
                             yield {"type": "delta", **item["delta"]}
                 else:
@@ -441,10 +501,21 @@ class Router:
             metrics.inc("tontolo_model_calls_total", model=m.key, result="ok")
             metrics.inc("tontolo_model_seconds_sum", time.monotonic() - attempt_started,
                         model=m.key)
+            now = time.monotonic()
             self.reliability.record_speed(
                 m.key, len(str(result.message.get("content") or ""))
                 + len(str(result.message.get("tool_calls") or "")),
-                time.monotonic() - attempt_started)
+                now - attempt_started)
+            # Mesure (P1.1) : préparation avant l'appel, premier mot, durée totale du tour.
+            timing = {"prep_s": round(attempt_started - t_turn, 3),
+                      "ttft_s": (round(first_word_at - attempt_started, 3)
+                                 if first_word_at is not None else None),
+                      "total_s": round(now - t_turn, 3), "attempts": attempts}
+            if first_word_at is not None:
+                self.reliability.record_ttft(m.key, first_word_at - attempt_started)
+                metrics.inc("tontolo_ttft_seconds_sum", first_word_at - attempt_started,
+                            model=m.key)
+                metrics.inc("tontolo_ttft_count", model=m.key)
             cost = 0.0
             if not m.is_free:
                 cost = (result.usage.get("prompt_tokens", 0) * m.price_in
@@ -456,7 +527,8 @@ class Router:
             await self.persist()
             yield {"type": "done", "message": result.message, "model": m.key,
                    "name": m.name, "usage": result.usage, "cost": cost,
-                   "finish_reason": result.finish_reason, "profile": prof.as_dict()}
+                   "finish_reason": result.finish_reason, "profile": prof.as_dict(),
+                   "timing": timing}
             return
 
         await self.persist()
@@ -529,6 +601,30 @@ class Router:
         return None
 
     # --- Appels internes (résumé, classifieur) ---------------------------
+
+    def _hedge_after(self, m: ModelInfo, params: dict[str, Any] | None = None) -> float:
+        """Délai avant de couvrir un modèle silencieux : ~2 fois son délai habituel."""
+        if params and params.get("hedge_after"):
+            return float(params["hedge_after"])
+        seen = self.reliability.ttft(m.key)
+        return min(10.0, max(3.0, 2.2 * seen)) if seen else 4.0
+
+    def _hedge_partner(self, chain: list[Candidate], idx: int, cand: Candidate,
+                       avoid: frozenset[str], params: dict[str, Any]) -> int | None:
+        """Position du modèle qui couvre `cand` s'il tarde : gratuit, d'un AUTRE fournisseur
+        (une panne ou une limite de débit est souvent commune à un fournisseur), jamais pour un
+        modèle imposé, en mode économie ou quand la course est désactivée."""
+        if (self.settings.economy or params.get("no_hedge") or cand.preferred
+                or os.environ.get("TONTOLO_NO_HEDGE")  # comparaison avant/après (bench)
+                or not cand.model.is_free):
+            return None
+        for j in range(idx, min(len(chain), idx + 4)):
+            other = chain[j]
+            if (other.model.is_free and other.model.is_text and not other.preferred
+                    and other.model.key not in avoid
+                    and other.model.provider != cand.model.provider):
+                return j
+        return None
 
     def _small_free_models(self, limit: int = 4, quality: str = "chat") -> list[ModelInfo]:
         """Modèles gratuits disponibles, du plus rapide et fiable au meilleur selon `quality`

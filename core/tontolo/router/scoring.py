@@ -72,6 +72,7 @@ class Reliability:
         self.table: dict[str, tuple[float, float]] = {}
         self.dirty: set[str] = set()
         self.speeds: dict[str, float] = {}  # car./s observés (en mémoire)
+        self.ttfts: dict[str, float] = {}   # délai moyen avant le premier mot, en secondes
         self.votes: dict[tuple[str, str], tuple[int, int]] = {}   # notes locales (👍, 👎)
         self.global_scores: dict[tuple[str, str], float] = {}     # notes collectives [-1, 1]
 
@@ -104,6 +105,17 @@ class Reliability:
         cps = chars / seconds
         prev = self.speeds.get(key)
         self.speeds[key] = cps if prev is None else 0.7 * prev + 0.3 * cps
+
+    def record_ttft(self, key: str, seconds: float) -> None:
+        """Délai avant le premier mot (moyenne glissante) : base du choix rapide et de la course
+        couverte (P1.2)."""
+        if seconds < 0:
+            return
+        prev = self.ttfts.get(key)
+        self.ttfts[key] = seconds if prev is None else 0.7 * prev + 0.3 * seconds
+
+    def ttft(self, key: str) -> float | None:
+        return self.ttfts.get(key)
 
     def speed(self, key: str) -> float | None:
         """Vitesse observée normalisée [0, 1] (≈ 0,4 à 50 car./s, 0,86 à 200 car./s)."""

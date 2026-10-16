@@ -210,3 +210,32 @@ async def test_short_cooldown_waits_instead_of_failing(router: Router,
     types = [e["type"] for e in events]
     assert "waiting" in types
     assert events[-1]["type"] == "done" and events[-1]["model"] == "fake:chatty"
+
+
+async def test_done_event_carries_timing(router: Router) -> None:
+    """Mesure P1.1 : préparation, premier mot, durée totale, nombre d'essais."""
+    events = await collect(router.run([{"role": "user", "content": "Salut"}]))
+    done = next(e for e in events if e["type"] == "done")
+    timing = done["timing"]
+    assert set(timing) == {"prep_s", "ttft_s", "total_s", "attempts"}
+    assert 0 <= timing["prep_s"] <= timing["total_s"] and timing["attempts"] >= 1
+
+
+async def test_silent_primary_is_covered_by_the_next_model(router: Router,
+                                                           fake: FakeProvider) -> None:
+    """P1.2 : le meilleur modèle se tait ; le suivant démarre en parallèle et répond, avec UN
+    seul changement de modèle annoncé (régression : un changement par morceau reçu)."""
+    chain = (await router.decide([{"role": "user", "content": "Salut"}])).chain
+    first = chain[0].model
+    # La course couvre avec un AUTRE fournisseur : le deuxième modèle change de fournisseur.
+    cat = router.catalog.catalog
+    cat.providers["fake2"] = cat.providers[first.provider]
+    cat.models[chain[1].model.key].provider = "fake2"
+    fake.hang.add(first.model_id)
+    events = await collect(router.run([{"role": "user", "content": "Salut"}],
+                                      params={"hedge_after": 0.2}))
+    switches = [e for e in events if e["type"] == "model_switched"]
+    assert len(switches) == 1 and switches[0]["reason_code"] == "hedge"
+    done = next(e for e in events if e["type"] == "done")
+    assert done["model"] != first.key and done["model"] == switches[0]["to"]
+    assert not [e for e in events if e["type"] == "error"]

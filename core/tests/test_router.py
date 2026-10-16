@@ -232,3 +232,15 @@ async def test_economy_mode_runs_one_quick_call_at_a_time(settings, catalog_serv
 
     assert await run(False) >= 2   # course normale : plusieurs candidats en parallèle
     assert await run(True) == 1    # économie : un seul à la fois
+
+
+def test_reliability_tracks_time_to_first_word() -> None:
+    from tontolo.router.scoring import Reliability
+
+    r = Reliability()
+    assert r.ttft("m") is None
+    r.record_ttft("m", 2.0)
+    r.record_ttft("m", 1.0)
+    assert 1.0 < r.ttft("m") < 2.0
+    r.record_ttft("m", -1)  # mesure absurde ignorée
+    assert r.ttft("m") < 2.0

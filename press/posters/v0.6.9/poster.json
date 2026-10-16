@@ -1,0 +1,152 @@
+{
+ "shot": "fast",
+ "lang": {
+  "fr": {
+   "tagline": "Nouveautés",
+   "date": "16 octobre 2026",
+   "hero": [
+    "Des réponses",
+    "plus rapides"
+   ],
+   "sub": "Un modèle tarde ? Un autre prend le relais.",
+   "steps": [
+    [
+     "Posez une question courte :",
+     "« Capitale de Madagascar ? »"
+    ],
+    [
+     "Si le meilleur modèle se tait,",
+     "un autre démarre en parallèle"
+    ],
+    [
+     "Le premier qui répond gagne :",
+     "même qualité, moins d'attente"
+    ]
+   ],
+   "also": "Aussi dans cette version",
+   "items": [
+    [
+     "Premier mot, pire cas",
+     [
+      "Pire cas : de 9 s à 4 s",
+      "sur 15 questions réelles."
+     ]
+    ],
+    [
+     "Moins de questions",
+     [
+      "« Deux pages, sixième » :",
+      "plus de public à redonner."
+     ]
+    ],
+    [
+     "Astuce",
+     [
+      "Dites niveau + but + format :",
+      "Tontolo ne redemande rien."
+     ]
+    ]
+   ],
+   "footer": "Gratuit · Android · Linux"
+  },
+  "en": {
+   "tagline": "What's new",
+   "date": "October 16, 2026",
+   "hero": [
+    "Faster",
+    "answers"
+   ],
+   "sub": "A model lags? Another one takes over.",
+   "steps": [
+    [
+     "Ask a short question:",
+     "“Capital of Madagascar?”"
+    ],
+    [
+     "If the best model goes quiet,",
+     "another starts in parallel"
+    ],
+    [
+     "The first to answer wins:",
+     "same quality, less waiting"
+    ]
+   ],
+   "also": "Also in this version",
+   "items": [
+    [
+     "First word, worst case",
+     [
+      "Worst case: 9 s down to 4 s",
+      "on 15 real questions."
+     ]
+    ],
+    [
+     "Fewer questions",
+     [
+      "“Two pages, 9th grade”:",
+      "no audience to repeat."
+     ]
+    ],
+    [
+     "Tip",
+     [
+      "Say level + goal + format:",
+      "Tontolo asks nothing back."
+     ]
+    ]
+   ],
+   "footer": "Free · Android · Linux"
+  },
+  "mg": {
+   "tagline": "Vaovao",
+   "date": "16 Oktobra 2026",
+   "hero": [
+    "Valiny",
+    "haingana kokoa"
+   ],
+   "sub": "Misy modely mihelina? Misy hafa mandray.",
+   "steps": [
+    [
+     "Manontania fohy:",
+     "« Renivohitry ny",
+     "Madagasikara? »"
+    ],
+    [
+     "Raha mangina ny modely,",
+     "misy hafa manomboka",
+     "miaraka"
+    ],
+    [
+     "Ny voalohany mamaly",
+     "no mandresy: kalitao",
+     "mitovy"
+    ]
+   ],
+   "also": "Ao amin'ity dikan-teny ity koa",
+   "items": [
+    [
+     "Teny voalohany, ratsy indrindra",
+     [
+      "Ratsy indrindra: 9 s ho 4 s",
+      "amin'ny fanontaniana 15."
+     ]
+    ],
+    [
+     "Fanontaniana kely kokoa",
+     [
+      "« Pejy roa, kilasy faha-6 »:",
+      "tsy averina intsony."
+     ]
+    ],
+    [
+     "Torohevitra",
+     [
+      "Lazao haavo + tanjona + endrika:",
+      "tsy manontany intsony i Tontolo."
+     ]
+    ]
+   ],
+   "footer": "Maimaim-poana · Android · Linux"
+  }
+ }
+}

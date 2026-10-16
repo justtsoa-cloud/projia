@@ -14,6 +14,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.6.9': [
+    NewsItem(Icons.bolt_outlined, 'Des réponses plus rapides quand un modèle tarde',
+        'Si le meilleur modèle gratuit se tait, un autre prend le relais en parallèle et le premier qui répond gagne : dans le pire des cas, le premier mot arrive deux fois plus vite. Rien ne change pour la qualité.',
+        'Faster answers when a model lags', 'If the best free model goes quiet, another one starts in parallel and the first to answer wins: in the worst case, the first word arrives twice as fast. Quality is unchanged.',
+        mg: 'Valiny haingana kokoa rehefa mampihelina ny modely', mgText: 'Raha mangina ny modely maimaim-poana tsara indrindra, dia misy hafa manomboka miaraka ary ny voalohany mamaly no mandresy: amin\'ny ratsy indrindra, avo roa heny ny hafainganan\'ny teny voalohany. Tsy miova ny kalitao.'),
+    NewsItem(Icons.help_outline, 'Moins de questions inutiles',
+        'Dites « un PDF de deux pages pour la sixième » : Tontolo ne redemande plus la longueur ni le public.',
+        'Fewer needless questions', 'Say “a two-page PDF for 9th grade”: Tontolo no longer asks again about length or audience.',
+        mg: 'Fanontaniana tsy ilaina kely kokoa', mgText: 'Lazao hoe « PDF pejy roa ho an\'ny kilasy faha-6 »: tsy manontany intsony i Tontolo ny halavany na ny olona tanjona.'),
+  ],
   '0.6.8': [
     NewsItem(Icons.picture_as_pdf_outlined, 'Les PDF marchent de nouveau sur téléphone',
         'Demandez « fais-en un PDF de deux pages, texte noir sur fond blanc » : Tontolo le compose et le compile, même sans moteur LaTeX sur le téléphone (un service de compilation en ligne est utilisé, le texte du document y est envoyé).',

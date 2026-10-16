@@ -17,9 +17,17 @@ _AUDIENCE = re.compile(
     r"étudiants?|etudiants?|enfants?|adultes?|débutants?|experts?|professionnels?|pros?|"
     r"enseignants?|profs?|parents?|clients?|équipe|jury|grand public|primaire|collège|lycée|"
     r"licence|master|terminale|seconde|première|students?|kids?|children|beginners?|"
-    r"teachers?|team|managers?|mpianatra|ankizy|mpampianatra|ray aman-dreny)\b", re.I)
-_LENGTH = re.compile(r"\b\d{1,4}\s*(pages?|p\.|pejy|diapos?|slides?|mots|words|teny|"
-                     r"chapitres?|chapters?|lignes?|lines?)\b|\b(court|courte|bref|brève|short|"
+    r"teachers?|team|managers?|mpianatra|ankizy|mpampianatra|ray aman-dreny|"
+    r"sixi[èe]mes?|cinqui[èe]mes?|quatri[èe]mes?|troisi[èe]mes?|[3-6]\s?[eè](?:me)?|"
+    r"cp|ce[12]|cm[12]|maternelle|bts|iut|prépa|prepa|primary|secondary|high school|"
+    r"middle school|grade\s?\d{1,2}|\d{1,2}(?:st|nd|rd|th) grade|year \d{1,2}|"
+    r"kilasy|zokiolona|olon-dehibe)\b", re.I)
+_NUM = (r"(?:\d{1,4}|un|une|deux|trois|quatre|cinq|six|sept|huit|neuf|dix|douze|quinze|vingt|"
+        r"one|two|three|four|five|six|seven|eight|nine|ten|twelve|fifteen|twenty|"
+        r"iray|roa|telo|efatra|dimy|enina|fito|valo|sivy|folo)")
+_LENGTH = re.compile(rf"\b{_NUM}[\s-]*(pages?|p\.|pejy|diapos?|slides?|mots|words|teny|"
+                     r"chapitres?|chapters?|lignes?|lines?|minutes?|mn)\b|"
+                     r"\bpejy\s+" + _NUM + r"\b|\b(court|courte|bref|brève|short|"
                      r"long|longue|détaillé|détaillée|detailed|fohy|lava|une page|one page)\b",
                      re.I)
 # Transformation d'une matière existante (« convertis ce HTML en PDF », « mets ce texte en

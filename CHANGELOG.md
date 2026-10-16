@@ -5,6 +5,22 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.6.9] - 2026-10-16
+
+### Amélioré
+- Réponses plus rapides au pire moment : si le meilleur modèle gratuit se tait, le suivant (d'un
+  autre fournisseur) démarre en parallèle au bout de ~4 s et le premier qui répond gagne, au lieu
+  d'attendre jusqu'à 90 s l'abandon du premier. Mesuré sur 15 questions réelles : délai du premier
+  mot dans le pire cas (p90) 9,0 s → 4,4 s (−51 %). Désactivé en mode économie et pour un modèle
+  que vous imposez. Banc de mesure `core/bench/speed_bench.py`, chiffres dans docs/PERF.md.
+- Les tours mesurent préparation, premier mot et durée totale (événement `done`).
+- Moins de questions inutiles avant un document : « deux pages », « sixième », « 9th grade »,
+  « pejy roa » sont reconnus ; seule l'information manquante est demandée.
+
+### Corrigé
+- Journal d'accès du cœur : le masquage des clés vidait les arguments des enregistrements et
+  provoquait une erreur de journalisation à chaque requête ; la structure est conservée.
+
 ## [0.6.8] - 2026-10-15
 
 ### Corrigé

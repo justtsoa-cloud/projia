@@ -96,6 +96,7 @@ async def test_offline_uses_on_device_model(router: Router, fake: FakeProvider, 
 
     router.probe = down
     router.registry = type(router.registry)(lambda p: fake)  # même faux client pour tous
+    settings.economy = True  # pas de course couverte : on teste le repli hors ligne
     fake.fail("chatty", net())
     chat = ChatService(settings, db, router)
     events = await collect(chat.send(None, "Bonjour", use_tools=False))

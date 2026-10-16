@@ -185,8 +185,15 @@ def install_log_redaction() -> None:
 
     def factory(*args: Any, **kwargs: Any) -> logging.LogRecord:
         record = previous(*args, **kwargs)
-        record.msg = redact(record.getMessage())
-        record.args = ()
+        # Le gabarit et chaque argument texte sont masqués SANS fusionner : certains formateurs
+        # (journal d'accès d'uvicorn) relisent `record.args` tel quel.
+        if isinstance(record.msg, str):
+            record.msg = redact(record.msg)
+        if isinstance(record.args, tuple):
+            record.args = tuple(redact(a) if isinstance(a, str) else a for a in record.args)
+        elif isinstance(record.args, dict):
+            record.args = {k: redact(v) if isinstance(v, str) else v
+                           for k, v in record.args.items()}
         if record.exc_info:
             record.exc_text = redact(logging.Formatter().formatException(record.exc_info))
             record.exc_info = None

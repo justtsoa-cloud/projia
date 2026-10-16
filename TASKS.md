@@ -13,11 +13,11 @@ dans `docs/PERF.md`.
 Principe : on ne rend pas le modèle plus bête, on supprime l'attente inutile et on vérifie APRÈS
 avoir répondu. Objectif chiffré : délai au premier mot (TTFT) médian −40 %, réponse simple
 complète −30 %, qualité inchangée (jeu de questions fixe, notes comparées).
-- [ ] P1.1 Mesure d'abord : journaliser par modèle et par type de demande le TTFT, le débit
+- [x] P1.1 (fait, v0.6.9) Mesure d'abord : journaliser par modèle et par type de demande le TTFT, le débit
   (car./s) et le taux d'échec (déjà `Reliability.record_speed` pour le chat ; l'étendre au TTFT) ;
   tableau de bord « État des modèles » enrichi ; banc de test reproductible (`core/bench/`) avec
   15 questions fixes (simples, maths, code, rédaction, fr/en/mg).
-- [ ] P1.2 Course couverte (hedged request) sur le chat principal : lancer le meilleur modèle ;
+- [x] P1.2 (fait, v0.6.9 : p90 du premier mot −51 %, voir docs/PERF.md) Course couverte (hedged request) sur le chat principal : lancer le meilleur modèle ;
   si son premier mot n'arrive pas avant son p90 habituel, lancer en parallèle le suivant ; le
   premier qui parle gagne, l'autre est annulé. Plafonné par le mode économie et les quotas.
 - [ ] P1.3 Tout ce qui précède la réponse passe en parallèle ou sort du chemin critique : rappel
@@ -37,6 +37,10 @@ complète −30 %, qualité inchangée (jeu de questions fixe, notes comparées)
   affichage progressif fluide, brouillon des réponses courtes via le cache sémantique (déjà là).
 - [ ] P1.9 Garde-fou : un test de non-régression de qualité (mêmes 15 questions, notes
   automatiques + relecture) échoue si la qualité baisse, même si la vitesse monte.
+
+- [ ] P1.10 Modèles retirés ou en erreur permanente (404 « modèle retiré ») : les écarter 24 h et
+  ne pas montrer 5 ou 6 « bascules » à l'utilisateur pour une seule réponse (constat 2026-10-16 :
+  « Bascule vers Qwen3.8-27B (modèle retiré) · 6 bascules ») ; regrouper les bascules en une ligne.
 
 ### P2. Une page d'accueil qui donne envie de revenir (« la piste du jour »)
 Principe : l'accueil propose UNE piste de discussion tirée des centres d'intérêt réels de la
@@ -86,7 +90,7 @@ personne, calculés localement ; jamais un simple « Bonjour ».
   tout moment ; suivi local de l'évolution entre versions.
 
 ### P5. Défauts constatés à corriger tout de suite
-- [ ] P5.1 Questions de précision posées alors que la demande est déjà précise (« sujet de
+- [x] P5.1 (fait, v0.6.9) Questions de précision posées alors que la demande est déjà précise (« sujet de
   révision, sixième, deux pages, noir sur blanc » → l'application redemande public et longueur) :
   ne poser une question que si l'information manque vraiment (détecter niveau, longueur, format
   dans la phrase) ; tests sur des demandes réelles.

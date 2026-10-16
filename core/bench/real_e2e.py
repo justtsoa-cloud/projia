@@ -81,6 +81,7 @@ class Api:
                         ev = json.loads(line[5:])
                         if ev.get("type") == "end":
                             break
+                        ev["_t"] = time.monotonic()  # horodatage (bancs de vitesse)
                         events.append(ev)
         return events
 

@@ -69,3 +69,22 @@ def test_no_http_read_or_export_endpoint_returns_a_key(
                      "/tontolo/mcp", "/tontolo/capabilities"):
             r = c.get(path)
             assert key not in r.text, path
+
+
+def test_log_redaction_keeps_argument_structure(monkeypatch, caplog) -> None:
+    """Le journal d'accès d'uvicorn dépouille `record.args` en 5 éléments : ne pas les vider."""
+    import logging
+
+    key = "FAUSSE.CLE.ACCES.0123456789"
+    monkeypatch.setattr(secrets, "_memory", {"custom": key})
+    original = logging.getLogRecordFactory()
+    try:
+        secrets.install_log_redaction()
+        record = logging.getLogRecordFactory()(
+            "uvicorn.access", logging.INFO, __file__, 1,
+            '%s - "%s %s HTTP/%s" %d', ("127.0.0.1:1", "POST", f"/x?k={key}", "1.1", 200), None)
+        client, method, path, _version, status = record.args
+        assert (client, method, status) == ("127.0.0.1:1", "POST", 200)
+        assert key not in path and key not in record.getMessage()
+    finally:
+        logging.setLogRecordFactory(original)
