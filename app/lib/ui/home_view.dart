@@ -104,6 +104,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   Timer? _rotate;
   String _name = '';
   List<Map<String, dynamic>> _recent = [];
+  List<Map<String, dynamic>> _tracks = []; // « piste du jour » : calculée sur l'appareil
   late List<Suggestion> _pool;
   final List<Object> _shown = []; // Suggestion ou sujet récent (Map)
   int _next = 0;
@@ -201,6 +202,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
       setState(() {
         _name = name;
         _recent = ((home['recent'] as List?) ?? const []).cast<Map<String, dynamic>>();
+        _tracks = ((home['tracks'] as List?) ?? const []).cast<Map<String, dynamic>>();
         _fill();
       });
       if (!_still) _typing.forward(from: 0);
@@ -217,6 +219,21 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     _breath.dispose();
     _cascade.dispose();
     super.dispose();
+  }
+
+  /// « Pas pour moi » : ce thème n'est plus proposé pendant deux semaines.
+  Future<void> _dismissTrack(Map<String, dynamic> t) async {
+    HapticFeedback.selectionClick();
+    final topic = '${t['topic']}';
+    setState(() => _tracks.removeWhere((x) => x['topic'] == topic));
+    try {
+      await AppScope.of(context).backend.sendJson('POST', '/tontolo/home/dismiss', {'topic': topic});
+    } catch (_) {} // ancien cœur : le thème reviendra, sans conséquence
+  }
+
+  void _pickTrack(Map<String, dynamic> t) {
+    HapticFeedback.selectionClick();
+    widget.onSend('${t['prompt']}');
   }
 
   void _pick(Object item) {
@@ -279,6 +296,15 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
                   textAlign: TextAlign.center,
                   style: text.titleMedium?.copyWith(color: scheme.onSurfaceVariant)),
             ),
+            if (_tracks.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              _TrackCard(
+                track: _tracks.first,
+                others: _tracks.skip(1).toList(),
+                onTap: _pickTrack,
+                onDismiss: _dismissTrack,
+              ),
+            ],
             const SizedBox(height: 24),
             Wrap(
               alignment: WrapAlignment.center,
@@ -355,6 +381,58 @@ class _SuggestionCard extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(child: Text(label, maxLines: 2, overflow: TextOverflow.ellipsis)),
             Icon(Icons.north_east, size: 16, color: scheme.onSurfaceVariant),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+
+/// La piste du jour : une invitation précise tirée des centres d'intérêt de la personne, avec deux
+/// variantes plus discrètes et « Pas pour moi » pour écarter le thème.
+class _TrackCard extends StatelessWidget {
+  const _TrackCard({required this.track, required this.others, required this.onTap, required this.onDismiss});
+  final Map<String, dynamic> track;
+  final List<Map<String, dynamic>> others;
+  final void Function(Map<String, dynamic>) onTap;
+  final void Function(Map<String, dynamic>) onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+    return Material(
+      color: scheme.primaryContainer.withValues(alpha: 0.55),
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => onTap(track),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 8, 10),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Icon(Icons.auto_awesome, size: 16, color: scheme.primary),
+              const SizedBox(width: 6),
+              Expanded(child: Text(context.t('track_for_you'), style: text.labelMedium?.copyWith(color: scheme.primary))),
+              TextButton(
+                onPressed: () => onDismiss(track),
+                style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                child: Text(context.t('track_not_me')),
+              ),
+            ]),
+            Padding(
+              padding: const EdgeInsets.only(right: 8, bottom: 4),
+              child: Text('${track['title']}', style: text.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+            ),
+            if (others.isNotEmpty)
+              Wrap(spacing: 8, runSpacing: 4, children: [
+                for (final o in others)
+                  ActionChip(
+                    label: Text('${o['title']}', maxLines: 1, overflow: TextOverflow.ellipsis),
+                    onPressed: () => onTap(o),
+                  ),
+              ]),
           ]),
         ),
       ),

@@ -33,4 +33,12 @@ void main() {
       }
     }
   });
+
+  test('piste du jour : textes dans les trois langues', () {
+    for (final k in ['track_for_you', 'track_not_me', 'home_tracks', 'home_tracks_help']) {
+      for (final l in ['fr', 'en', 'mg']) {
+        expect(tr(l, k), isNot(k), reason: '$l/$k');
+      }
+    }
+  });
 }

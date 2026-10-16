@@ -20,12 +20,12 @@ complète −30 %, qualité inchangée (jeu de questions fixe, notes comparées)
 - [x] P1.2 (fait, v0.6.9 : p90 du premier mot −51 %, voir docs/PERF.md) Course couverte (hedged request) sur le chat principal : lancer le meilleur modèle ;
   si son premier mot n'arrive pas avant son p90 habituel, lancer en parallèle le suivant ; le
   premier qui parle gagne, l'autre est annulé. Plafonné par le mode économie et les quotas.
-- [ ] P1.3 Tout ce qui précède la réponse passe en parallèle ou sort du chemin critique : rappel
+- [x] P1.3 (mesuré : le préambule local pèse < 5 ms, rien à gagner ; le temps est chez le fournisseur) Tout ce qui précède la réponse passe en parallèle ou sort du chemin critique : rappel
   mémoire, recherche dans le fil, catalogue, classification, construction du contexte (aujourd'hui
   en série) ; le classifieur par modèle n'est jamais attendu (heuristiques, puis correction).
 - [ ] P1.4 Connexions préchauffées : au démarrage, ouvrir TLS/HTTP-2 (keep-alive) vers les 2 ou 3
   premiers fournisseurs du classement, sans requête de test facturable.
-- [ ] P1.5 Vérification APRÈS livraison : la relecture par un second modèle (maths, code,
+- [x] P1.5 (fait, v0.7.0 : la saisie est libre dès `done`) Vérification APRÈS livraison : la relecture par un second modèle (maths, code,
   raisonnement) ne bloque plus l'affichage : la réponse s'affiche tout de suite, puis un bandeau
   « vérifiée ✓ » ou « correction proposée » arrive ; rigueur conservée, attente supprimée.
 - [ ] P1.6 Choix adaptatif : demande simple (salutation, définition courte, traduction) → le
@@ -38,24 +38,24 @@ complète −30 %, qualité inchangée (jeu de questions fixe, notes comparées)
 - [ ] P1.9 Garde-fou : un test de non-régression de qualité (mêmes 15 questions, notes
   automatiques + relecture) échoue si la qualité baisse, même si la vitesse monte.
 
-- [ ] P1.10 Modèles retirés ou en erreur permanente (404 « modèle retiré ») : les écarter 24 h et
+- [x] P1.10 (déjà en place : 12 h d'écart + bascules regroupées en une ligne ; le coût vient du premier lancement sans état) Modèles retirés ou en erreur permanente (404 « modèle retiré ») : les écarter 24 h et
   ne pas montrer 5 ou 6 « bascules » à l'utilisateur pour une seule réponse (constat 2026-10-16 :
   « Bascule vers Qwen3.8-27B (modèle retiré) · 6 bascules ») ; regrouper les bascules en une ligne.
 
 ### P2. Une page d'accueil qui donne envie de revenir (« la piste du jour »)
 Principe : l'accueil propose UNE piste de discussion tirée des centres d'intérêt réels de la
 personne, calculés localement ; jamais un simple « Bonjour ».
-- [ ] P2.1 Profil d'intérêts LOCAL : thèmes récents (catégorie de demande, mots-clés des titres,
+- [x] P2.1 (fait, v0.7.0 : thèmes des titres, demi-vie 7 j, sujets sensibles exclus ; interrupteur dans Réglages) Profil d'intérêts LOCAL : thèmes récents (catégorie de demande, mots-clés des titres,
   fichiers, modes Apprendre/Agent), pondérés par la récence ; stocké sur l'appareil, effaçable,
   jamais envoyé ; visible et modifiable dans Réglages (« Mes centres d'intérêt », interrupteur).
-- [ ] P2.2 Carte « piste du jour » en tête de l'accueil : 1 piste principale + 2 secondaires,
+- [x] P2.2 (fait, v0.7.0) Carte « piste du jour » en tête de l'accueil : 1 piste principale + 2 secondaires,
   de types variés : reprendre une discussion en suspens (« Vous en étiez à… »), aller plus loin
   (« Et si on regardait… »), défi ou mini-quiz du domaine, « le saviez-vous », idée de projet
   liée au sujet. Un toucher lance la discussion avec le bon prompt déjà rédigé.
-- [ ] P2.3 Génération sobre : modèles `quick` gratuits, une fois par jour au plus et seulement
+- [~] P2.3 (gabarits sans modèle faits ; variante par modèle gratuit à venir) Génération sobre : modèles `quick` gratuits, une fois par jour au plus et seulement
   à l'ouverture, mise en cache ; repli sans modèle (gabarits par domaine, fr/en/mg) ; première
   utilisation sans historique : pistes générales par niveau/ langue choisis à l'accueil.
-- [ ] P2.4 Respect : « pas pour moi » masque une piste et en apprend ; aucune piste sur des
+- [x] P2.4 (fait, v0.7.0 ; mode confidentiel : interrupteur) Respect : « pas pour moi » masque une piste et en apprend ; aucune piste sur des
   sujets sensibles (santé, argent, intime) sans demande ; mode confidentiel : accueil neutre.
 - [ ] P2.5 Mesure locale (non envoyée) du taux de pistes ouvertes pour ajuster la variété.
 

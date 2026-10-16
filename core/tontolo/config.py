@@ -124,6 +124,8 @@ class Settings(BaseModel):
     # Mode économie : un seul modèle à la fois pour les appels courts (moins de réseau, de batterie
     # et de quota) ; un peu plus lent quand un modèle gratuit est saturé.
     economy: bool = False
+    # Accueil : « piste du jour » tirée des discussions récentes (calculée sur l'appareil).
+    home_tracks: bool = True
     # Équipe de modèles : un second modèle (autre famille) vérifie les réponses de maths,
     # code et raisonnement, et signale une erreur éventuelle.
     team_review: bool = True

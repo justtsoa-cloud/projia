@@ -1,0 +1,149 @@
+{
+ "shot": "track",
+ "lang": {
+  "fr": {
+   "tagline": "Nouveautés",
+   "date": "16 octobre 2026",
+   "hero": [
+    "Une idée pour",
+    "vous, dès l'accueil"
+   ],
+   "sub": "Tirée de vos sujets récents, calculée sur votre téléphone.",
+   "steps": [
+    [
+     "Ouvrez Tontolo : une piste",
+     "vous attend, liée à vos sujets"
+    ],
+    [
+     "Un toucher lance la",
+     "discussion, déjà rédigée"
+    ],
+    [
+     "« Pas pour moi » écarte",
+     "un thème pour deux semaines"
+    ]
+   ],
+   "also": "Aussi dans cette version",
+   "items": [
+    [
+     "Dites-lui",
+     [
+      "« Aller plus loin sur les volcans »",
+      "« Un quiz sur la Guerre froide »"
+     ]
+    ],
+    [
+     "Vie privée",
+     [
+      "Aucun profil envoyé : tout",
+      "reste sur votre appareil."
+     ]
+    ],
+    [
+     "Plus fluide",
+     [
+      "Écrivez la suite dès que",
+      "la réponse est complète."
+     ]
+    ]
+   ],
+   "footer": "Gratuit · Android · Linux"
+  },
+  "en": {
+   "tagline": "What's new",
+   "date": "October 16, 2026",
+   "hero": [
+    "An idea for you,",
+    "right on the home screen"
+   ],
+   "sub": "Drawn from your recent topics, computed on your phone.",
+   "steps": [
+    [
+     "Open Tontolo: an idea waits,",
+     "linked to your recent topics"
+    ],
+    [
+     "One tap starts the chat,",
+     "already written for you"
+    ],
+    [
+     "“Not for me” hides a topic",
+     "for two weeks"
+    ]
+   ],
+   "also": "Also in this version",
+   "items": [
+    [
+     "Just say",
+     [
+      "“Go further on volcanoes”",
+      "“A quiz on the Cold War”"
+     ]
+    ],
+    [
+     "Privacy",
+     [
+      "No profile is sent: it all",
+      "stays on your device."
+     ]
+    ],
+    [
+     "Smoother",
+     [
+      "Write your next message as",
+      "soon as the answer is in."
+     ]
+    ]
+   ],
+   "footer": "Free · Android · Linux"
+  },
+  "mg": {
+   "tagline": "Vaovao",
+   "date": "16 Oktobra 2026",
+   "hero": [
+    "Hevitra ho anao",
+    "avy hatrany"
+   ],
+   "sub": "Avy amin'ny lohahevitrao, kajiana ato amin'ny finday.",
+   "steps": [
+    [
+     "Sokafy i Tontolo: misy hevitra",
+     "mifandray amin'ny lohahevitrao"
+    ],
+    [
+     "Indray tsindry dia manomboka",
+     "ny resaka, efa voasoratra"
+    ],
+    [
+     "« Tsy ho ahy » dia manala",
+     "lohahevitra roa herinandro"
+    ]
+   ],
+   "also": "Ao amin'ity dikan-teny ity koa",
+   "items": [
+    [
+     "Lazao azy",
+     [
+      "« Handroso momba ny volkano »",
+      "« Fanontaniana momba ny Ady »"
+     ]
+    ],
+    [
+     "Tsiambaratelo",
+     [
+      "Tsy misy mivoaka: ao amin'ny",
+      "fitaovanao foana ny zava-drehetra."
+     ]
+    ],
+    [
+     "Malefaka kokoa",
+     [
+      "Soraty ny manaraka raha",
+      "vita ny valiny."
+     ]
+    ]
+   ],
+   "footer": "Maimaim-poana · Android · Linux"
+  }
+ }
+}

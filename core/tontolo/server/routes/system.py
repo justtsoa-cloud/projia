@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import re
+import time
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +20,7 @@ from tontolo import (
 from tontolo.agent.workspace import is_desktop
 from tontolo.app_state import Core
 from tontolo.config import CustomProvider, Settings, save_settings
+from tontolo.home import tracks
 from tontolo.memory import name_from
 from tontolo.security import (
     key_allowed,
@@ -207,8 +210,28 @@ def register(app: FastAPI, hub: Hub, ws_connects: RateLimiter) -> None:
         recent = [{"id": c["id"], "title": c["title"]}
                   for c in await core.db.list_conversations(6, 0, None, None)
                   if str(c.get("title") or "").strip()][:4]
-        return {"name": name, "name_from": "settings" if core.settings.user_name.strip()
-                else ("memory" if name else ""), "recent": recent}
+        out: dict[str, Any] = {"name": name, "name_from": "settings" if core.settings.user_name
+                               .strip() else ("memory" if name else ""), "recent": recent}
+        if core.settings.home_tracks:  # piste du jour : centres d'intérêt locaux (jamais envoyés)
+            raw = await core.db.kv_get("home_dismissed")
+            gone = json.loads(raw) if raw else {}
+            history = await core.db.list_conversations(40, 0, None, None)
+            out["tracks"] = tracks.build(history, core.settings.language, gone)
+        return out
+
+    @app.post("/tontolo/home/dismiss")
+    async def home_dismiss(request: Request) -> dict[str, Any]:
+        """« Pas pour moi » : ce thème n'est plus proposé pendant deux semaines."""
+        core = core_of(request)
+        body = await request.json()
+        topic = tracks.plain(str(body.get("topic") or "")[:tracks.MAX_TOPIC])
+        if topic:
+            raw = await core.db.kv_get("home_dismissed")
+            gone = {k: v for k, v in (json.loads(raw) if raw else {}).items()
+                    if k in tracks.active_dismissals(json.loads(raw) if raw else {})}
+            gone[topic] = time.time()
+            await core.db.kv_set("home_dismissed", json.dumps(dict(list(gone.items())[-50:])))
+        return {"ok": True}
 
     @app.get("/tontolo/storage")
     async def storage(request: Request) -> dict[str, Any]:

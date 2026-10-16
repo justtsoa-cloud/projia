@@ -5,6 +5,19 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.7.0] - 2026-10-16
+
+### Ajouté
+- Accueil « piste du jour » : au lieu d'un simple bonjour, une idée de discussion tirée de vos
+  sujets récents (aller plus loin, quiz, fait surprenant, petit projet), deux variantes plus
+  discrètes, et « Pas pour moi » qui écarte un thème pendant deux semaines. Calculée sur
+  l'appareil à partir de vos titres de discussion, sans modèle, jamais envoyée ; les sujets
+  sensibles (santé, argent, intime…) ne sont jamais proposés. Réglable (Réglages › Réponses).
+
+### Amélioré
+- La réponse complète rend la main tout de suite : la relecture par un second modèle arrive
+  ensuite, sous la réponse, au lieu de bloquer la saisie.
+
 ## [0.6.9] - 2026-10-16
 
 ### Amélioré

@@ -83,6 +83,7 @@ class ChatController extends ChangeNotifier {
   PendingAction? pending;
   List<AskedQuestion> asked = []; // questions à choix en attente de réponse
   StreamSubscription<Map<String, dynamic>>? _sub;
+  StreamSubscription<Map<String, dynamic>>? _tail; // flux resté ouvert pour la relecture après réponse
   String? _lastText;
   int _epoch = 0; // invalide les lectures de la discussion quittée
   int _streamEpoch = 0;
@@ -503,6 +504,8 @@ class ChatController extends ChangeNotifier {
   Future<void> sendLocalRetouch(String text, Uint8List original, String previewDataUrl,
       EditIntent intent) async {
     if (busy) return;
+    _tail?.cancel(); // relecture de la réponse précédente : abandonnée
+    _tail = null;
     final epoch = _epoch;
     final streamEpoch = ++_streamEpoch;
     final cid = conversationId;
@@ -796,6 +799,13 @@ class ChatController extends ChangeNotifier {
           current = null;
           terminal = true;
           if (c.text.isNotEmpty) HapticFeedback.selectionClick(); // la réponse est arrivée
+          if (ev['job'] == null) {
+            // La réponse est complète : l'utilisateur reprend la main tout de suite. La
+            // relecture par un second modèle (vérifiée ✓ / correction proposée) arrive ensuite
+            // et s'ajoute sous la réponse ; un nouveau message l'interrompt.
+            _tail = _sub;
+            _finish();
+          }
         case 'question':
           terminal = true;
           asked = AskedQuestion.parse(ev['questions']);

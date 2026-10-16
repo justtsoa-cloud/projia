@@ -14,6 +14,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.7.0': [
+    NewsItem(Icons.auto_awesome, 'Une idée pour vous dès l\'accueil',
+        'Au lieu d\'un simple bonjour, Tontolo vous propose une piste liée à vos sujets récents : aller plus loin, un quiz, un fait surprenant, un petit projet. « Pas pour moi » écarte un thème. Tout est calculé sur votre appareil, rien n\'est envoyé.',
+        'An idea for you on the home screen', 'Instead of a plain hello, Tontolo suggests an idea linked to your recent topics: go further, a quiz, a surprising fact, a small project. “Not for me” hides a topic. Everything is computed on your device; nothing is sent.',
+        mg: 'Hevitra ho anao amin\'ny fandraisana', mgText: 'Raha tsy salama fotsiny, i Tontolo dia manolotra hevitra mifandray amin\'ny lohahevitrao vao haingana: handroso, fanontaniana fitsapana, zava-misy mahagaga, tetikasa kely. « Tsy ho ahy » dia manala lohahevitra. Kajiana ato amin\'ny fitaovanao daholo, tsy misy alefa.'),
+    NewsItem(Icons.speed_outlined, 'La main dès que la réponse est là',
+        'Vous pouvez écrire la suite dès que la réponse est complète ; la vérification par un second modèle arrive ensuite, sous la réponse.',
+        'Your turn as soon as the answer is in', 'You can write your next message as soon as the answer is complete; the second-model check arrives afterwards, under the answer.',
+        mg: 'Ianao no manaraka raha vita ny valiny', mgText: 'Afaka manoratra ny manaraka ianao raha vita ny valiny; ny fanamarinana avy amin\'ny modely faharoa dia tonga avy eo, ao ambanin\'ny valiny.'),
+  ],
   '0.6.9': [
     NewsItem(Icons.bolt_outlined, 'Des réponses plus rapides quand un modèle tarde',
         'Si le meilleur modèle gratuit se tait, un autre prend le relais en parallèle et le premier qui répond gagne : dans le pire des cas, le premier mot arrive deux fois plus vite. Rien ne change pour la qualité.',
