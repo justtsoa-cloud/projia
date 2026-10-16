@@ -2,6 +2,101 @@
 
 Légende : `[x]` fait · `[~]` en cours · `[ ]` à faire
 
+## PRIORITÉS ABSOLUES — demande du 2026-10-16 (à traiter avant le reste)
+
+Contraintes communes (philosophie inchangée) : gratuit d'abord, clés de l'utilisateur, aucun
+serveur intermédiaire à nous, tout le profil et l'historique restent sur l'appareil, rien d'envoyé
+sans option explicite, fr/en/mg, pas d'orange, test pour chaque comportement, mesure avant/après
+dans `docs/PERF.md`.
+
+### P1. Réponses plus rapides SANS perdre rigueur ni qualité
+Principe : on ne rend pas le modèle plus bête, on supprime l'attente inutile et on vérifie APRÈS
+avoir répondu. Objectif chiffré : délai au premier mot (TTFT) médian −40 %, réponse simple
+complète −30 %, qualité inchangée (jeu de questions fixe, notes comparées).
+- [ ] P1.1 Mesure d'abord : journaliser par modèle et par type de demande le TTFT, le débit
+  (car./s) et le taux d'échec (déjà `Reliability.record_speed` pour le chat ; l'étendre au TTFT) ;
+  tableau de bord « État des modèles » enrichi ; banc de test reproductible (`core/bench/`) avec
+  15 questions fixes (simples, maths, code, rédaction, fr/en/mg).
+- [ ] P1.2 Course couverte (hedged request) sur le chat principal : lancer le meilleur modèle ;
+  si son premier mot n'arrive pas avant son p90 habituel, lancer en parallèle le suivant ; le
+  premier qui parle gagne, l'autre est annulé. Plafonné par le mode économie et les quotas.
+- [ ] P1.3 Tout ce qui précède la réponse passe en parallèle ou sort du chemin critique : rappel
+  mémoire, recherche dans le fil, catalogue, classification, construction du contexte (aujourd'hui
+  en série) ; le classifieur par modèle n'est jamais attendu (heuristiques, puis correction).
+- [ ] P1.4 Connexions préchauffées : au démarrage, ouvrir TLS/HTTP-2 (keep-alive) vers les 2 ou 3
+  premiers fournisseurs du classement, sans requête de test facturable.
+- [ ] P1.5 Vérification APRÈS livraison : la relecture par un second modèle (maths, code,
+  raisonnement) ne bloque plus l'affichage : la réponse s'affiche tout de suite, puis un bandeau
+  « vérifiée ✓ » ou « correction proposée » arrive ; rigueur conservée, attente supprimée.
+- [ ] P1.6 Choix adaptatif : demande simple (salutation, définition courte, traduction) → le
+  modèle gratuit le plus rapide qui a fait ses preuves ; demande exigeante → le meilleur, avec P1.2.
+  Réglage « réponse rapide d'abord » activé par défaut pour les demandes simples seulement.
+- [ ] P1.7 Contexte allégé : n'envoyer que le nécessaire (résumé + passages rappelés + derniers
+  tours), plafonner le prompt système, supprimer les doublons ; moins de jetons = réponse plus tôt.
+- [ ] P1.8 Perception : premier signe de vie en < 300 ms (indicateur honnête de l'étape en cours),
+  affichage progressif fluide, brouillon des réponses courtes via le cache sémantique (déjà là).
+- [ ] P1.9 Garde-fou : un test de non-régression de qualité (mêmes 15 questions, notes
+  automatiques + relecture) échoue si la qualité baisse, même si la vitesse monte.
+
+### P2. Une page d'accueil qui donne envie de revenir (« la piste du jour »)
+Principe : l'accueil propose UNE piste de discussion tirée des centres d'intérêt réels de la
+personne, calculés localement ; jamais un simple « Bonjour ».
+- [ ] P2.1 Profil d'intérêts LOCAL : thèmes récents (catégorie de demande, mots-clés des titres,
+  fichiers, modes Apprendre/Agent), pondérés par la récence ; stocké sur l'appareil, effaçable,
+  jamais envoyé ; visible et modifiable dans Réglages (« Mes centres d'intérêt », interrupteur).
+- [ ] P2.2 Carte « piste du jour » en tête de l'accueil : 1 piste principale + 2 secondaires,
+  de types variés : reprendre une discussion en suspens (« Vous en étiez à… »), aller plus loin
+  (« Et si on regardait… »), défi ou mini-quiz du domaine, « le saviez-vous », idée de projet
+  liée au sujet. Un toucher lance la discussion avec le bon prompt déjà rédigé.
+- [ ] P2.3 Génération sobre : modèles `quick` gratuits, une fois par jour au plus et seulement
+  à l'ouverture, mise en cache ; repli sans modèle (gabarits par domaine, fr/en/mg) ; première
+  utilisation sans historique : pistes générales par niveau/ langue choisis à l'accueil.
+- [ ] P2.4 Respect : « pas pour moi » masque une piste et en apprend ; aucune piste sur des
+  sujets sensibles (santé, argent, intime) sans demande ; mode confidentiel : accueil neutre.
+- [ ] P2.5 Mesure locale (non envoyée) du taux de pistes ouvertes pour ajuster la variété.
+
+### P3. Rappel subtil hors de l'application (notification locale, jamais de harcèlement)
+- [ ] P3.1 Aucune notification les 3 premiers jours d'absence ; au plus UNE tous les 4 jours
+  ensuite ; arrêt total après 3 sans ouverture (silence jusqu'au prochain lancement) ; jamais la
+  nuit (heures calmes), jamais deux dans la même semaine après la première semaine.
+- [ ] P3.2 Contenu : « une nouvelle bien chaude de son domaine » : titre court d'une source
+  publique gratuite choisie selon le centre d'intérêt (flux RSS/Atom ouverts : sciences, éducation,
+  tech, nature, histoire…), récupérée sur l'appareil au moment du rappel (tâche de fond Android,
+  sans serveur à nous), avec lien et bouton « En discuter avec Tontolo » (ouvre une discussion
+  pré-remplie). Si rien de pertinent : pas de notification (jamais de rappel creux).
+- [ ] P3.3 Consentement : proposé une fois, désactivé tant que non accepté ; réglages clairs
+  (fréquence, domaines, heures calmes, tout couper) ; le profil d'intérêts ne quitte jamais
+  l'appareil ; seul le flux choisi voit une requête de lecture, sans identifiant.
+- [ ] P3.4 Linux : notification de bureau équivalente si l'application tourne en arrière-plan ;
+  sinon rien.
+- [ ] P3.5 Tests : plafonds de fréquence, heures calmes, arrêt après 3 ignorées, aucun envoi sans
+  consentement, aucun contenu sans source.
+
+### P4. Retours et notation de l'application
+- [ ] P4.1 Après plusieurs vraies discussions (≥ 5 discussions ET ≥ 7 jours), une seule carte
+  discrète à l'accueil : « Comment ça se passe avec Tontolo ? » (trois visages) ; jamais pendant
+  une tâche ; si ignorée, repoussée de 30 puis 60 jours, puis plus jamais.
+- [ ] P4.2 Réponse positive → invitation facultative à parler de Tontolo (étoile GitHub, lien de
+  partage, avis sur la boutique quand elle existera) ; négative → deux questions courtes (qu'est-ce
+  qui manque / gêne ; vitesse, justesse, langue, interface) et champ libre facultatif.
+- [ ] P4.3 Stockage local d'abord ; envoi à l'auteur SEULEMENT si l'utilisateur l'accepte pour ce
+  retour (table `feedback` Supabase, insertion seule, aucun texte de discussion, aucun
+  identifiant) ; « Voir ce qui est envoyé » comme pour les statistiques.
+- [ ] P4.4 Note de l'application (1 à 5) rangée dans Réglages › À propos pour qui veut la donner à
+  tout moment ; suivi local de l'évolution entre versions.
+
+### P5. Défauts constatés à corriger tout de suite
+- [ ] P5.1 Questions de précision posées alors que la demande est déjà précise (« sujet de
+  révision, sixième, deux pages, noir sur blanc » → l'application redemande public et longueur) :
+  ne poser une question que si l'information manque vraiment (détecter niveau, longueur, format
+  dans la phrase) ; tests sur des demandes réelles.
+- [ ] P5.2 Exécuter `docs/stats/supabase_minimal.sql` dans Supabase (à faire par l'utilisateur).
+- [ ] P5.3 Valider les termes malgaches en attente (`docs/A_FAIRE_UTILISATEUR.md`).
+
+Ordre conseillé : P5.1 (rapide) → P1.1 mesure → P1.3/P1.5/P1.2 (gros gains) → P2 → P4 → P3 (après
+P2, car il réutilise le profil d'intérêts) → P1.4/1.6/1.7/1.8. Chaque lot = une version, affiches
+fr/en/mg avec prompts d'usage, tests, CI verte, release vérifiée.
+
 ## Phase 0 — Cadrage
 - [x] Lire la spécification (`TONTOLO_PROMPT_CLAUDE_CODE.md`)
 - [x] Décisions : périmètre complet, licence Apache-2.0, dépôt public, autonomie
