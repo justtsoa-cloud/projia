@@ -935,7 +935,8 @@ def test_html_document_converted_to_pdf_uses_its_content(
 
 def test_home_name_and_recent(client: TestClient) -> None:
     core = client.app.state.core  # type: ignore[attr-defined]
-    assert client.get("/tontolo/home").json() == {"name": "", "name_from": "", "recent": []}
+    assert client.get("/tontolo/home").json() == {
+        "name": "", "name_from": "", "recent": [], "tracks": []}
 
     async def setup() -> None:
         await core.db.add_memory("L'utilisateur s'appelle Antsa", "explicit", None)

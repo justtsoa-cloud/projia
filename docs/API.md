@@ -148,6 +148,7 @@ Serveur local (127.0.0.1, jeton `Authorization: Bearer …` hors boucle locale).
 | Méthode | Chemin | Rôle |
 |---|---|---|
 | `GET` | `/tontolo/home` | Accueil d'une nouvelle discussion : prénom (réglage, sinon mémoire) et sujets |
+| `POST` | `/tontolo/home/dismiss` | « Pas pour moi » : ce thème n'est plus proposé pendant deux semaines. |
 
 ## Import
 
