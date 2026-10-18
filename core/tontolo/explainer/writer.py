@@ -113,3 +113,20 @@ async def write(brief: Brief, ask: Ask, context: str = "") -> dict[str, Any]:
                          "complete corrected JSON object only.")}]
         return storyboard.validate(extract_json(await ask(messages, accept)),
                                    language=brief.language)
+
+
+async def fix(brief: Brief, story: dict[str, Any], issues: list[str], ask: Ask) -> dict[str, Any]:
+    """Une correction ciblée du scénario après relecture (erreurs de calcul, de fait ou de langue) :
+    le rédacteur renvoie le JSON complet corrigé, revalidé ; StoryboardError sinon."""
+    messages = [{"role": "system", "content": SYSTEM},
+                {"role": "user", "content": _user(brief, "")},
+                {"role": "assistant", "content": json.dumps(story, ensure_ascii=False)[:7000]},
+                {"role": "user", "content": (
+                    "A reviewer found these problems:\n- " + "\n- ".join(issues)
+                    + "\nFix exactly these and reply with the complete corrected JSON object "
+                    "only (same language, same structure).")}]
+
+    def accept(text: str) -> bool:
+        return _valid(text, brief.language)
+
+    return storyboard.validate(extract_json(await ask(messages, accept)), language=brief.language)

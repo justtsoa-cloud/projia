@@ -1,0 +1,150 @@
+{
+ "shot": "video",
+ "lang": {
+  "fr": {
+   "tagline": "Nouveautés",
+   "date": "18 octobre 2026",
+   "hero": [
+    "Des vidéos relues,",
+    "et sur mesure"
+   ],
+   "sub": "Un second modèle vérifie les calculs avant la lecture.",
+   "steps": [
+    [
+     "Mode Apprendre : « une vidéo",
+     "sur les fractions »"
+    ],
+    [
+     "Un second modèle relit calculs",
+     "et faits, la langue est vérifiée"
+    ],
+    [
+     "« Plus court » ou « Plus",
+     "détaillée » : même sujet"
+    ]
+   ],
+   "also": "Aussi dans cette version",
+   "items": [
+    [
+     "Dites-lui",
+     [
+      "« Refais la vidéo en plus court »",
+      "« Une vidéo sur les volcans »"
+     ]
+    ],
+    [
+     "Accessibilité",
+     [
+      "Tous les boutons d'icône",
+      "sont lus à voix haute."
+     ]
+    ],
+    [
+     "F-Droid étudié",
+     [
+      "Le chemin est documenté",
+      "dans docs/FDROID.md."
+     ]
+    ]
+   ],
+   "footer": "Gratuit · Android · Linux"
+  },
+  "en": {
+   "tagline": "What's new",
+   "date": "October 18, 2026",
+   "hero": [
+    "Videos that are",
+    "checked and tailored"
+   ],
+   "sub": "A second model checks the maths before it plays.",
+   "steps": [
+    [
+     "Learn mode: “a video",
+     "about fractions”"
+    ],
+    [
+     "A second model checks maths",
+     "and facts; language verified"
+    ],
+    [
+     "“Shorter” or “More detailed”:",
+     "same topic"
+    ]
+   ],
+   "also": "Also in this version",
+   "items": [
+    [
+     "Just say",
+     [
+      "“Redo the video shorter”",
+      "“A video about volcanoes”"
+     ]
+    ],
+    [
+     "Accessibility",
+     [
+      "Every icon button is",
+      "read aloud."
+     ]
+    ],
+    [
+     "F-Droid studied",
+     [
+      "The path is documented",
+      "in docs/FDROID.md."
+     ]
+    ]
+   ],
+   "footer": "Free · Android · Linux"
+  },
+  "mg": {
+   "tagline": "Vaovao",
+   "date": "18 Oktobra 2026",
+   "hero": [
+    "Horonan-tsary",
+    "voamarina, mifanaraka"
+   ],
+   "sub": "Modely faharoa no manamarina ny kajy alohan'ny filalaovana.",
+   "steps": [
+    [
+     "Mianatra: « horonan-tsary",
+     "momba ny ampahany »"
+    ],
+    [
+     "Modely faharoa manamarina",
+     "kajy sy zava-misy;",
+     "fiteny voamarina"
+    ],
+    [
+     "« Fohy kokoa » na « Antsipiriany",
+     "kokoa »: lohahevitra iray ihany"
+    ]
+   ],
+   "also": "Ao amin'ity dikan-teny ity koa",
+   "items": [
+    [
+     "Lazao azy",
+     [
+      "« Averina fohy kokoa ny horonan-tsary »",
+      "« Horonan-tsary momba ny volkano »"
+     ]
+    ],
+    [
+     "Fidirana ho an'ny rehetra",
+     [
+      "Vakiana avo ny bokotra",
+      "sary rehetra."
+     ]
+    ],
+    [
+     "F-Droid nodinihina",
+     [
+      "Voasoratra ny lalana ao",
+      "amin'ny docs/FDROID.md."
+     ]
+    ]
+   ],
+   "footer": "Maimaim-poana · Android · Linux"
+  }
+ }
+}

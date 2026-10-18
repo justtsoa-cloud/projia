@@ -23,19 +23,19 @@ complète −30 %, qualité inchangée (jeu de questions fixe, notes comparées)
 - [x] P1.3 (mesuré : le préambule local pèse < 5 ms, rien à gagner ; le temps est chez le fournisseur) Tout ce qui précède la réponse passe en parallèle ou sort du chemin critique : rappel
   mémoire, recherche dans le fil, catalogue, classification, construction du contexte (aujourd'hui
   en série) ; le classifieur par modèle n'est jamais attendu (heuristiques, puis correction).
-- [ ] P1.4 Connexions préchauffées : au démarrage, ouvrir TLS/HTTP-2 (keep-alive) vers les 2 ou 3
+- [ ] (reporté : gain de ~100-300 ms, mesure à faire sur téléphone réel) P1.4 Connexions préchauffées : au démarrage, ouvrir TLS/HTTP-2 (keep-alive) vers les 2 ou 3
   premiers fournisseurs du classement, sans requête de test facturable.
 - [x] P1.5 (fait, v0.7.0 : la saisie est libre dès `done`) Vérification APRÈS livraison : la relecture par un second modèle (maths, code,
   raisonnement) ne bloque plus l'affichage : la réponse s'affiche tout de suite, puis un bandeau
   « vérifiée ✓ » ou « correction proposée » arrive ; rigueur conservée, attente supprimée.
-- [ ] P1.6 Choix adaptatif : demande simple (salutation, définition courte, traduction) → le
+- [ ] (reporté : la course couverte traite déjà les lenteurs ; changer le choix du modèle risquerait la qualité) P1.6 Choix adaptatif : demande simple (salutation, définition courte, traduction) → le
   modèle gratuit le plus rapide qui a fait ses preuves ; demande exigeante → le meilleur, avec P1.2.
   Réglage « réponse rapide d'abord » activé par défaut pour les demandes simples seulement.
-- [ ] P1.7 Contexte allégé : n'envoyer que le nécessaire (résumé + passages rappelés + derniers
+- [ ] (reporté : mesure du contexte envoyé à faire d'abord) P1.7 Contexte allégé : n'envoyer que le nécessaire (résumé + passages rappelés + derniers
   tours), plafonner le prompt système, supprimer les doublons ; moins de jetons = réponse plus tôt.
-- [ ] P1.8 Perception : premier signe de vie en < 300 ms (indicateur honnête de l'étape en cours),
+- [ ] (reporté) P1.8 Perception : premier signe de vie en < 300 ms (indicateur honnête de l'étape en cours),
   affichage progressif fluide, brouillon des réponses courtes via le cache sémantique (déjà là).
-- [ ] P1.9 Garde-fou : un test de non-régression de qualité (mêmes 15 questions, notes
+- [x] P1.9 (fait : `bench.speed_bench --compare` refuse deux réponses justes de moins) Garde-fou : un test de non-régression de qualité (mêmes 15 questions, notes
   automatiques + relecture) échoue si la qualité baisse, même si la vitesse monte.
 
 - [x] P1.10 (déjà en place : 12 h d'écart + bascules regroupées en une ligne ; le coût vient du premier lancement sans état) Modèles retirés ou en erreur permanente (404 « modèle retiré ») : les écarter 24 h et
@@ -57,7 +57,7 @@ personne, calculés localement ; jamais un simple « Bonjour ».
   utilisation sans historique : pistes générales par niveau/ langue choisis à l'accueil.
 - [x] P2.4 (fait, v0.7.0 ; mode confidentiel : interrupteur) Respect : « pas pour moi » masque une piste et en apprend ; aucune piste sur des
   sujets sensibles (santé, argent, intime) sans demande ; mode confidentiel : accueil neutre.
-- [ ] P2.5 Mesure locale (non envoyée) du taux de pistes ouvertes pour ajuster la variété.
+- [ ] (reporté) P2.5 Mesure locale (non envoyée) du taux de pistes ouvertes pour ajuster la variété.
 
 ### P3. Rappel subtil hors de l'application (notification locale, jamais de harcèlement)
 - [x] P3.1 (fait, v0.7.1 : 3 jours, 4 jours d'écart, 10 h 30, une par absence) Aucune notification les 3 premiers jours d'absence ; au plus UNE tous les 4 jours
@@ -520,7 +520,7 @@ Pourquoi pas du code Manim écrit par un modèle : du code arbitraire exécuté 
 - [x] X6. Lecteur animé dans l'application (Flutter) : scènes, formules (flutter_math), courbes, narration à voix haute, pause, scène suivante ; bloc ```explainer dans le fil (comme les quiz).
 - [x] X7. Mode Apprendre : action « Vidéo explicative » (accueil, actions sous la réponse), progression visible (étapes), textes fr/en/mg.
 - [x] X8. Tests (intention, complétion, validation, sécurité des gabarits et du LaTeX, évaluateur de courbes, route, lecteur) + essai réel (scénario par modèles gratuits en 74 s, rendu Manim 0.22 de 49 s en 18 s) + doc `docs/EXPLAINER.md`.
-- [ ] X10. Relecture des calculs et des faits du scénario par un modèle d'une autre famille.
+- [x] X10. (fait, v0.7.2) Relecture des calculs et des faits du scénario par un modèle d'une autre famille.
 - [ ] X9. Plus tard : voix du MP4 (synthèse locale), exports, partage de la vidéo, bibliothèque de scénarios.
 
 ## Priorités Codex après v0.6.5 — reprise du 2026-10-14

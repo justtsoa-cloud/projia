@@ -41,4 +41,12 @@ void main() {
       }
     }
   });
+
+  test('boutons d\'icône : libellés d\'accessibilité dans les trois langues', () {
+    for (final k in ['a11y_back', 'a11y_reload', 'a11y_add', 'close']) {
+      for (final l in ['fr', 'en', 'mg']) {
+        expect(tr(l, k), isNot(k), reason: '$l/$k');
+      }
+    }
+  });
 }

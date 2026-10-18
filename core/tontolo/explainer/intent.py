@@ -34,6 +34,9 @@ _MAKE_VIDEO = re.compile(
     rf"montre-moi|donne-moi|make|create|generate|produce|manaova|mamorona|ataovy)\b"
     rf"(?:-moi|-nous)?(?:\s+\S{{1,14}}){{0,4}}?\s+{_VIDEO}\b", re.I)
 # « une vidéo sur la guerre froide », « vidéo : les temps du passé » (sans verbe)
+# « Refais la vidéo, plus courte » : même sujet (celui de la discussion), autre durée.
+_REDO = re.compile(rf"\b(?:refais|refaire|refaites|redo|remake|re-?make|averina|avereno)\b"
+                   rf"(?:\s+\S{{1,14}}){{0,3}}?\s+{_VIDEO}\b", re.I)
 _BARE_VIDEO = re.compile(
     rf"^\s*(?:(?:une?|a|an)\s+)?(?:(?:courte?|petite?|short|quick)\s+)?{_VIDEO}\s*"
     rf"(?::|sur|[àa] propos de|about|on|momba)", re.I)
@@ -62,9 +65,9 @@ _BROAD = re.compile(
     r"^(?:les?\s+|la\s+|l')?(?:maths?|math[ée]matiques|physique|chimie|biologie|svt|histoire|"
     r"g[ée]ographie|fran[çc]ais|anglais|informatique|sciences?|économie|philosophie|"
     r"geometry|algebra|science|history|biology|physics|chemistry)\s*$", re.I)
-_MINUTES = re.compile(r"\b(\d{1,2})\s*(?:min(?:ute)?s?|mn)\b", re.I)
-_SECONDS = re.compile(r"\b(\d{2,3})\s*(?:s|sec(?:ondes?|onds?)?)\b", re.I)
-_SHORT = re.compile(r"\b(?:courte?|rapide|express|short|quick|fohy)\b", re.I)
+_MINUTES = re.compile(r"\b(\d{1,2})\s*(?:min(?:ute)?s?|mn|minitra)\b", re.I)
+_SECONDS = re.compile(r"\b(\d{2,3})\s*(?:s|sec(?:ondes?|onds?)?|segondra|segondy)\b", re.I)
+_SHORT = re.compile(r"\b(?:courte?s?|plus court\w*|rapide|express|short\w*|quick|fohy)\b", re.I)
 _LONG = re.compile(r"\b(?:longue?|d[ée]taill\w*|approfondi\w*|long|detailed|lava)\b", re.I)
 
 
@@ -84,6 +87,8 @@ def resolve(text: str, *, learn_mode: bool = False) -> ExplainerIntent:
     t = (text or "").strip()[:MAX_CHARS]
     if not t:
         return ExplainerIntent()
+    if learn_mode and _REDO.search(t):
+        return ExplainerIntent(True, True, "")
     explicit = _EXPLICIT.search(t) is not None
     if not explicit and not (learn_mode and (_MAKE_VIDEO.search(t) or _BARE_VIDEO.search(t))):
         return ExplainerIntent()

@@ -1,0 +1,8 @@
+Tontolo dia mpanampy AI maimaim-poana izay mitazona ny angonao ao aminao. Mifidy ny modely
+maimaim-poana tsara indrindra isaky ny fangatahana izy ary mifindra samirery rehefa lany ny quota.
+Ny fanalahidinao maimaim-poana no ampiasainao; tsy misy mpizara mpanelanelana.
+
+- Resaka, fomba Mianatra misy horonan-tsary mihetsika, resaka an-peo, sary, PDF
+- Amin'ny fiteny telo: frantsay, anglisy ary malagasy
+- Ao amin'ny fitaovanao ny angonao; antontan'isa kely sy tsy voatery, tsy misy miafina
+- Open source (Apache-2.0)

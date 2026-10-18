@@ -652,6 +652,7 @@ class _AdvancedState extends State<_Advanced> {
           const SizedBox(width: 8),
           Expanded(flex: 2, child: TextField(controller: mcpUrl, decoration: const InputDecoration(hintText: 'https://…/mcp'))),
           IconButton(
+            tooltip: context.t('a11y_add'),
             icon: const Icon(Icons.add),
             onPressed: () async {
               if (mcpName.text.isEmpty || mcpUrl.text.isEmpty) return;

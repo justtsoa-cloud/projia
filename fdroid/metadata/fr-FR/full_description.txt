@@ -1,0 +1,8 @@
+Tontolo est un assistant IA gratuit, qui garde vos données chez vous. Il choisit le meilleur modèle
+gratuit pour chaque demande et change tout seul quand un quota est épuisé. Vous utilisez vos propres
+clés gratuites ; aucun serveur intermédiaire.
+
+- Discussion, mode Apprendre avec vidéos explicatives animées, conversation vocale, images, PDF
+- En trois langues : français, anglais et malgache
+- Vos données restent sur l'appareil ; statistiques minimales et facultatives, rien de caché
+- Libre (Apache-2.0)

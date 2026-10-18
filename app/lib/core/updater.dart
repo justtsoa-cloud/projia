@@ -23,7 +23,7 @@ import '../l10n/strings.dart';
 import 'prefs.dart';
 import 'update_key.dart';
 
-const appVersion = '0.7.1';
+const appVersion = '0.7.2';
 const repo = 'raantss18/tontolo';
 
 enum UpdateStatus { idle, checking, downloading, ready, failed, upToDate }

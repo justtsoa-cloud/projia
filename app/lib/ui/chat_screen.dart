@@ -682,6 +682,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             view,
                             LearnActions(
+                              video: m.text.contains('```explainer'),
                               onSend: (t) {
                                 stickToBottom = true;
                                 chat.send(t);

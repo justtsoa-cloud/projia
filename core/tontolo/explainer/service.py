@@ -7,7 +7,7 @@ from collections.abc import Callable
 from typing import Any
 
 from tontolo.agent import imagebrief
-from tontolo.explainer import storyboard, writer
+from tontolo.explainer import review, storyboard, writer
 from tontolo.explainer.intent import Brief, ExplainerIntent, complete
 
 WRITE_TIMEOUT = 240.0   # budget total de la course entre modèles
@@ -72,6 +72,34 @@ def failure_message(language: str) -> str:
     return _TEXT.get(language, _TEXT["fr"])["failed"]
 
 
+async def _checked(core: Any, story: dict[str, Any], brief: Brief,
+                   ask: Callable[..., Any]) -> dict[str, Any]:
+    """Contrôle de la langue (sans modèle) puis relecture par un second modèle ; une seule
+    correction. Tout échec de contrôle laisse le scénario tel quel (« non relu »)."""
+    issues: list[str] = []
+    if not review.language_ok(story, brief.language):
+        issues.append(f"The texts must be written in {writer._LANG.get(brief.language)}.")
+
+    async def quick(messages: list[dict[str, Any]], accept: Callable[[str], bool]) -> str:
+        out = await core.router.quick(messages, 900, accept, per_try=30, budget=40,
+                                      quality="reasoning", stagger=4.0)
+        if not out:
+            raise TimeoutError("aucun relecteur disponible")
+        return out
+
+    found = await review.review(story, quick)
+    story = {**story, "reviewed": found is not None}
+    issues += found or []
+    if not issues:
+        return story
+    try:
+        fixed = await writer.fix(brief, {k: v for k, v in story.items() if k != "reviewed"},
+                                 issues, ask)
+    except Exception:  # correction impossible : on garde le premier jet
+        return story
+    return {**fixed, "reviewed": found is not None}
+
+
 async def produce(core: Any, text: str, history: list[dict[str, Any]], intent: ExplainerIntent,
                   mode: str) -> tuple[dict[str, Any] | None, Brief, str, bool]:
     """(scénario, demande complétée, modèle, repli ?). Scénario None si tout a échoué."""
@@ -93,7 +121,8 @@ async def produce(core: Any, text: str, history: list[dict[str, Any]], intent: E
         return out
 
     try:
-        return await writer.write(brief, ask, context=summary), brief, model["name"], False
+        story = await writer.write(brief, ask, context=summary)
+        return await _checked(core, story, brief, ask), brief, model["name"], False
     except Exception:  # modèle absent, délai, JSON invalide deux fois
         pass
     # Dernière chance avant le repli : une vidéo plus courte (4 scènes), tous modèles gratuits

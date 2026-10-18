@@ -333,11 +333,13 @@ class _LearnEmptyStateState extends State<LearnEmptyState> {
 
 /// Actions rapides sous la dernière réponse du tuteur.
 class LearnActions extends StatelessWidget {
-  const LearnActions({super.key, required this.onSend, required this.onPrefill});
+  const LearnActions({super.key, required this.onSend, required this.onPrefill, this.video = false});
   final ValueChanged<String> onSend;
   final ValueChanged<String> onPrefill;
+  final bool video; // la réponse est une vidéo : « plus court » / « plus détaillé » au lieu de « En vidéo »
 
   static const _send = ['la_hint', 'la_lost', 'la_next', 'la_quiz', 'la_video'];
+  static const _sendVideo = ['la_hint', 'la_lost', 'la_vshort', 'la_vlong', 'la_next', 'la_quiz'];
 
   @override
   Widget build(BuildContext context) {
@@ -347,6 +349,8 @@ class LearnActions extends StatelessWidget {
       'la_quiz': Icons.quiz_outlined,
       'la_next': Icons.arrow_forward,
       'la_video': Icons.movie_creation_outlined,
+      'la_vshort': Icons.timer_outlined,
+      'la_vlong': Icons.zoom_in,
     };
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 12, 6),
@@ -356,7 +360,7 @@ class LearnActions extends StatelessWidget {
           label: Text(context.t('la_answer')),
           onPressed: () => onPrefill(context.t('la_answer_p')),
         ),
-        for (final k in _send)
+        for (final k in video ? _sendVideo : _send)
           ActionChip(
             avatar: Icon(icons[k], size: 18),
             label: Text(context.t(k)),

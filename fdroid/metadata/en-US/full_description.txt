@@ -1,0 +1,7 @@
+Tontolo is a free, local-first AI assistant. It picks the best free model for each request and
+switches by itself when a quota runs out. You use your own free keys; there is no middleman server.
+
+- Chat, learn mode with animated explainer videos, voice conversation, images, PDF and documents
+- In three languages: French, English and Malagasy
+- Your data stays on your device; minimal optional statistics, nothing hidden
+- Open source (Apache-2.0)

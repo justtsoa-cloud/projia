@@ -5,6 +5,22 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.7.2] - 2026-10-18
+
+### Ajouté
+- Vidéos explicatives relues : avant livraison, un second modèle gratuit vérifie les calculs et les
+  faits du scénario (corrigés une fois si besoin) et la langue des textes est contrôlée sans modèle ;
+  si la relecture est indisponible, la vidéo part quand même, marquée « non relue ».
+- Boutons « Plus court » (45 s) et « Plus détaillée » (2 min) sous une vidéo : même sujet, autre
+  durée, sans retaper la demande (« Refais la vidéo en plus court », « Averina… » compris).
+
+### Accessibilité
+- Tous les boutons d'icône ont un libellé lu par le lecteur d'écran (fr/en/mg).
+
+### Documentation
+- docs/FDROID.md : étude de faisabilité (verdict, anti-fonctionnalités, points bloquants) et
+  métadonnées fr/en/mg dans fdroid/metadata/.
+
 ## [0.7.1] - 2026-10-18
 
 ### Ajouté

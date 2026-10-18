@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:tontolo/l10n/strings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tontolo/core/account.dart';
 import 'package:tontolo/core/activity.dart';
@@ -127,5 +128,13 @@ void main() {
     await open(tester, mp4: true);
     await tester.pump(const Duration(milliseconds: 100));
     expect(find.byIcon(Icons.movie_outlined), findsOneWidget);
+  });
+
+  test('boutons « plus court » / « plus détaillée » : textes dans les trois langues', () {
+    for (final k in ['la_vshort', 'la_vshort_p', 'la_vlong', 'la_vlong_p']) {
+      for (final l in ['fr', 'en', 'mg']) {
+        expect(tr(l, k), isNot(k), reason: '$l/$k');
+      }
+    }
   });
 }

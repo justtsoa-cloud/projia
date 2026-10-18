@@ -309,6 +309,7 @@ class _BrowserPaneState extends State<BrowserPane> {
             padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
             child: Row(children: [
               IconButton(
+                tooltip: context.t('a11y_back'),
                 icon: const Icon(Icons.arrow_back, size: 20),
                 onPressed: () async {
                   if (await t.controller.canGoBack()) await t.controller.goBack();
@@ -325,7 +326,7 @@ class _BrowserPaneState extends State<BrowserPane> {
                   },
                 ),
               ),
-              IconButton(icon: const Icon(Icons.refresh, size: 20), onPressed: t.controller.reload),
+              IconButton(tooltip: context.t('a11y_reload'), icon: const Icon(Icons.refresh, size: 20), onPressed: t.controller.reload),
             ]),
           ),
           if (t.loading != null) const LinearProgressIndicator(minHeight: 2),

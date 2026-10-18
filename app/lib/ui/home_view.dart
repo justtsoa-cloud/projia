@@ -541,7 +541,7 @@ class _NewsCard extends StatelessWidget {
             Icon(Icons.newspaper_outlined, size: 16, color: scheme.tertiary),
             const SizedBox(width: 6),
             Expanded(child: Text(context.t('news_label'), style: Theme.of(context).textTheme.labelMedium)),
-            IconButton(visualDensity: VisualDensity.compact, onPressed: onClose, icon: const Icon(Icons.close, size: 18)),
+            IconButton(tooltip: context.t('close'), visualDensity: VisualDensity.compact, onPressed: onClose, icon: const Icon(Icons.close, size: 18)),
           ]),
           Text('${news['title']}', style: Theme.of(context).textTheme.titleSmall),
           Wrap(spacing: 8, children: [

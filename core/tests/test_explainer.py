@@ -227,8 +227,9 @@ def test_learn_mode_request_becomes_an_explainer_block(client: TestClient,
     assert content.startswith("Voici une vidéo explicative") and "```explainer" in content
     block = json.loads(content.split("```explainer\n")[1].split("\n```")[0])
     assert block["scenes"][0]["type"] == "title" and len(block["scenes"]) == 5
-    assert "collégien" in str(seen[-1][-1]["content"])  # le niveau du mode Apprendre
-    assert "45 secondes" in str(seen[-1][-1]["content"])  # « courte » → 45 s
+    # Le dernier appel est la relecture ; la consigne de rédaction est l'appel précédent.
+    writing = next(m for m in seen if "collégien" in str(m[-1]["content"]))
+    assert "45 secondes" in str(writing[-1]["content"])  # « courte » → 45 s
     # Hors mode Apprendre, une vidéo « normale » reste une génération de vidéo.
     plain = _chat(client, {"content": "fais une vidéo d'un chat qui danse"})
     assert not any(e.get("step") == "explainer_plan" for e in plain)
@@ -313,3 +314,84 @@ def test_mp4_capability_requires_sandbox(client: TestClient,
     assert client.get('/tontolo/explainer/capabilities').json()['mp4'] is False
     response = client.post('/tontolo/explainer/render', json={'story': GOOD})
     assert response.status_code == 501
+
+
+def _story(lang_text: str) -> dict:
+    return {"title": "T", "scenes": [
+        {"type": "title", "text": "T", "narration": lang_text},
+        {"type": "recap", "title": "R", "items": ["a", "b", "c"], "narration": lang_text}]}
+
+
+def test_language_check_without_model() -> None:
+    from tontolo.explainer.review import language_ok
+
+    fr = "Nous allons voir que les fractions sont une partie du tout et que le résultat est simple."
+    en = "We will see that fractions are a part of the whole and that the result is simple for you."
+    assert language_ok(_story(fr), "fr") and not language_ok(_story(en), "fr")
+    assert language_ok(_story(en), "en")
+    assert language_ok(_story("Bonjour"), "fr")  # trop court pour trancher
+
+
+async def test_review_reports_issues_or_none_when_unavailable() -> None:
+    from tontolo.explainer.review import review
+
+    async def wrong(messages, accept):
+        text = '{"ok": false, "issues": ["1/2 + 1/3 vaut 5/6, pas 2/5"]}'
+        assert accept(text)
+        return text
+
+    async def fine(messages, accept):
+        return '{"ok": true, "issues": []}'
+
+    async def down(messages, accept):
+        raise TimeoutError("aucun relecteur")
+
+    async def junk(messages, accept):
+        return "je ne sais pas"
+
+    story = _story("x")
+    assert await review(story, wrong) == ["1/2 + 1/3 vaut 5/6, pas 2/5"]
+    assert await review(story, fine) == []
+    assert await review(story, down) is None and await review(story, junk) is None
+
+
+async def test_checked_story_is_fixed_once_and_marked_reviewed() -> None:
+    from types import SimpleNamespace
+
+    from tontolo.explainer import service
+    from tontolo.explainer.intent import Brief
+
+    good = {"title": "T", "scenes": [
+        {"type": "title", "text": "Fractions", "narration": "Nous voyons les fractions."},
+        {"type": "bullets", "title": "Idée", "items": ["a", "b"], "narration": "Voici l'idée."},
+        {"type": "steps", "title": "Calcul", "steps": [{"text": "x", "latex": "1+1=2"}],
+         "narration": "On calcule."},
+        {"type": "recap", "title": "Fin", "items": ["a", "b", "c"], "narration": "Fin."}]}
+    calls = {"n": 0}
+
+    async def quick(messages, max_tokens, accept, **kw):
+        calls["n"] += 1
+        if "reviewer found" in messages[-1]["content"]:
+            return json.dumps(good)
+        return '{"ok": false, "issues": ["1+1=2 est faux dans la scène 3"]}' if calls["n"] == 1 \
+            else json.dumps(good)
+
+    core = SimpleNamespace(router=SimpleNamespace(quick=quick))
+
+    async def ask(messages, accept):
+        return await quick(messages, 3500, accept)
+
+    out = await service._checked(core, good, Brief("fractions", language="fr"), ask)
+    assert out["reviewed"] is True and out["title"] == "T"
+
+
+def test_redo_request_keeps_the_topic_of_the_discussion() -> None:
+    for text, seconds in [("Refais la vidéo en plus court (45 secondes).", 45),
+                          ("Redo the video shorter (45 seconds).", 45),
+                          ("Averina ny horonan-tsary fohy kokoa (45 segondra).", 45),
+                          ("Refais la vidéo en plus détaillée (2 minutes).", 120),
+                          ("Averina ny horonan-tsary, antsipiriany kokoa (2 minitra).", 120)]:
+        r = resolve(text, learn_mode=True)
+        assert r.active and r.from_context and r.topic == "", text
+        assert complete(text, topic="les fractions").duration_s == seconds, text
+    assert not resolve("Refais la vidéo en plus court", learn_mode=False).active

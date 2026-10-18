@@ -14,6 +14,12 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.7.2': [
+    NewsItem(Icons.fact_check_outlined, 'Des vidéos relues avant d\'être jouées',
+        'Un second modèle vérifie les calculs et les faits du scénario, et la langue est contrôlée. Sous la vidéo, « Plus court » ou « Plus détaillée » la refait sur le même sujet, sans rien retaper.',
+        'Videos checked before they play', 'A second model checks the script\'s calculations and facts, and the language is verified. Under the video, “Shorter” or “More detailed” redoes it on the same topic, with nothing to retype.',
+        mg: 'Horonan-tsary voamarina alohan\'ny filalaovana', mgText: 'Modely faharoa no manamarina ny kajy sy ny zava-misy ao amin\'ny tantara, ary ny fiteny dia hamarinina. Eo ambanin\'ny horonan-tsary, « Fohy kokoa » na « Antsipiriany kokoa » dia manao azy indray amin\'ny lohahevitra iray ihany, tsy mila mamerina manoratra.'),
+  ],
   '0.7.1': [
     NewsItem(Icons.notifications_none, 'Un rappel discret, si vous le voulez',
         'Après quelques jours d\'absence, une seule notification avec une actualité récente de votre domaine (au plus une tous les 4 jours, jamais la nuit). Désactivée tant que vous n\'avez pas dit oui ; rien ne quitte votre téléphone.',
