@@ -1,0 +1,156 @@
+{
+ "shot": "cb",
+ "lang": {
+  "fr": {
+   "tagline": "Nouveautés",
+   "date": "18 octobre 2026",
+   "hero": [
+    "Un rappel discret,",
+    "si vous le voulez"
+   ],
+   "sub": "Une actualité de votre domaine, jamais de harcèlement.",
+   "steps": [
+    [
+     "Tontolo vous demande, une",
+     "seule fois : « Oui » ou",
+     "« Non merci »"
+    ],
+    [
+     "Absent quelques jours ?",
+     "Une seule notification,",
+     "à 10 h 30"
+    ],
+    [
+     "Un titre récent de vos",
+     "sujets : « En discuter",
+     "avec Tontolo »"
+    ]
+   ],
+   "also": "Aussi dans cette version",
+   "items": [
+    [
+     "Votre avis",
+     [
+      "Une carte rare, jamais en",
+      "pleine tâche ; envoi facultatif."
+     ]
+    ],
+    [
+     "Noter Tontolo",
+     [
+      "De 1 à 5 étoiles dans",
+      "À propos."
+     ]
+    ],
+    [
+     "Dites-lui",
+     [
+      "« Parlons de cette actualité :",
+      "explique le contexte »"
+     ]
+    ]
+   ],
+   "footer": "Gratuit · Android · Linux"
+  },
+  "en": {
+   "tagline": "What's new",
+   "date": "October 18, 2026",
+   "hero": [
+    "A quiet reminder,",
+    "if you want it"
+   ],
+   "sub": "News from your field, never nagging.",
+   "steps": [
+    [
+     "Tontolo asks once:",
+     "“Yes” or “No thanks”"
+    ],
+    [
+     "Away a few days? A single",
+     "notification, at 10:30"
+    ],
+    [
+     "A recent headline on your",
+     "topics: “Discuss it with",
+     "Tontolo”"
+    ]
+   ],
+   "also": "Also in this version",
+   "items": [
+    [
+     "Your opinion",
+     [
+      "A rare card, never mid-task;",
+      "sending is optional."
+     ]
+    ],
+    [
+     "Rate Tontolo",
+     [
+      "From 1 to 5 stars in",
+      "About."
+     ]
+    ],
+    [
+     "Just say",
+     [
+      "“Let's talk about this news:",
+      "explain the context”"
+     ]
+    ]
+   ],
+   "footer": "Free · Android · Linux"
+  },
+  "mg": {
+   "tagline": "Vaovao",
+   "date": "18 Oktobra 2026",
+   "hero": [
+    "Fampahatsiahivana",
+    "mangina, raha tianao"
+   ],
+   "sub": "Vaovao ao amin'ny sehatrao, tsy misy fanahiana.",
+   "steps": [
+    [
+     "Manontany indray mandeha",
+     "i Tontolo: « Eny » na",
+     "« Tsia misaotra »"
+    ],
+    [
+     "Andro vitsy tsy tonga?",
+     "Fampandrenesana iray",
+     "ihany, 10 ora 30"
+    ],
+    [
+     "Lohateny vao haingana:",
+     "« Resaho miaraka",
+     "amin'i Tontolo »"
+    ]
+   ],
+   "also": "Ao amin'ity dikan-teny ity koa",
+   "items": [
+    [
+     "Ny hevitrao",
+     [
+      "Karatra tsy fahita matetika,",
+      "tsy alefa raha tsy tianao."
+     ]
+    ],
+    [
+     "Manomeza naoty",
+     [
+      "Kintana 1 ka hatramin'ny 5",
+      "ao amin'ny Momba."
+     ]
+    ],
+    [
+     "Lazao azy",
+     [
+      "« Resahintsika ity vaovao ity:",
+      "hazavao ny tontolo iainana »"
+     ]
+    ]
+   ],
+   "footer": "Maimaim-poana · Android · Linux"
+  }
+ }
+}

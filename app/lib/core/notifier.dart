@@ -81,6 +81,33 @@ class Notifier {
     }
   }
 
+  /// Rappel discret programmé à `when` (heure locale), jusqu'à plusieurs jours à l'avance : canal
+  /// à faible importance (ni son ni vibration). Une seule par `topic`.
+  static Future<bool> scheduleAt(DateTime when, String topic, String title, String body,
+      {String channel = 'Idées de Tontolo'}) async {
+    if (!Platform.isAndroid || !await _ensure()) return false;
+    try {
+      final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      if (!(await android?.requestNotificationsPermission() ?? true)) return false;
+      await cancel(topic);
+      await _plugin.zonedSchedule(
+        id: topic.hashCode & 0x7fffffff,
+        title: title,
+        body: body,
+        scheduledDate: tz.TZDateTime.from(when.toUtc(), tz.UTC),
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails('comeback', channel,
+              icon: 'ic_stat_tontolo', importance: Importance.low, priority: Priority.low),
+        ),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      );
+      return true;
+    } catch (e) {
+      debugPrint('Rappel non programmé : $e');
+      return false;
+    }
+  }
+
   /// Notification immédiate : une discussion attend votre réponse (application en arrière-plan).
   static Future<void> attention(String topic, String title, String body,
       {String channel = 'Réponses attendues'}) async {

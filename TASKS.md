@@ -60,33 +60,33 @@ personne, calculés localement ; jamais un simple « Bonjour ».
 - [ ] P2.5 Mesure locale (non envoyée) du taux de pistes ouvertes pour ajuster la variété.
 
 ### P3. Rappel subtil hors de l'application (notification locale, jamais de harcèlement)
-- [ ] P3.1 Aucune notification les 3 premiers jours d'absence ; au plus UNE tous les 4 jours
+- [x] P3.1 (fait, v0.7.1 : 3 jours, 4 jours d'écart, 10 h 30, une par absence) Aucune notification les 3 premiers jours d'absence ; au plus UNE tous les 4 jours
   ensuite ; arrêt total après 3 sans ouverture (silence jusqu'au prochain lancement) ; jamais la
   nuit (heures calmes), jamais deux dans la même semaine après la première semaine.
-- [ ] P3.2 Contenu : « une nouvelle bien chaude de son domaine » : titre court d'une source
+- [~] P3.2 (v0.7.1 : titre préparé à la mise en arrière-plan, donc ≤ 4 jours ; la lecture AU MOMENT du rappel demande une tâche de fond Android, WorkManager : à faire) Contenu : « une nouvelle bien chaude de son domaine » : titre court d'une source
   publique gratuite choisie selon le centre d'intérêt (flux RSS/Atom ouverts : sciences, éducation,
   tech, nature, histoire…), récupérée sur l'appareil au moment du rappel (tâche de fond Android,
   sans serveur à nous), avec lien et bouton « En discuter avec Tontolo » (ouvre une discussion
   pré-remplie). Si rien de pertinent : pas de notification (jamais de rappel creux).
-- [ ] P3.3 Consentement : proposé une fois, désactivé tant que non accepté ; réglages clairs
+- [x] P3.3 (fait, v0.7.1) Consentement : proposé une fois, désactivé tant que non accepté ; réglages clairs
   (fréquence, domaines, heures calmes, tout couper) ; le profil d'intérêts ne quitte jamais
   l'appareil ; seul le flux choisi voit une requête de lecture, sans identifiant.
 - [ ] P3.4 Linux : notification de bureau équivalente si l'application tourne en arrière-plan ;
   sinon rien.
-- [ ] P3.5 Tests : plafonds de fréquence, heures calmes, arrêt après 3 ignorées, aucun envoi sans
+- [x] P3.5 (fait, v0.7.1 : app/test/comeback_test.dart) Tests : plafonds de fréquence, heures calmes, arrêt après 3 ignorées, aucun envoi sans
   consentement, aucun contenu sans source.
 
 ### P4. Retours et notation de l'application
-- [ ] P4.1 Après plusieurs vraies discussions (≥ 5 discussions ET ≥ 7 jours), une seule carte
+- [x] P4.1 (fait, v0.7.1) Après plusieurs vraies discussions (≥ 5 discussions ET ≥ 7 jours), une seule carte
   discrète à l'accueil : « Comment ça se passe avec Tontolo ? » (trois visages) ; jamais pendant
   une tâche ; si ignorée, repoussée de 30 puis 60 jours, puis plus jamais.
-- [ ] P4.2 Réponse positive → invitation facultative à parler de Tontolo (étoile GitHub, lien de
+- [x] P4.2 (fait, v0.7.1) Réponse positive → invitation facultative à parler de Tontolo (étoile GitHub, lien de
   partage, avis sur la boutique quand elle existera) ; négative → deux questions courtes (qu'est-ce
   qui manque / gêne ; vitesse, justesse, langue, interface) et champ libre facultatif.
-- [ ] P4.3 Stockage local d'abord ; envoi à l'auteur SEULEMENT si l'utilisateur l'accepte pour ce
+- [x] P4.3 (fait, v0.7.1) Stockage local d'abord ; envoi à l'auteur SEULEMENT si l'utilisateur l'accepte pour ce
   retour (table `feedback` Supabase, insertion seule, aucun texte de discussion, aucun
   identifiant) ; « Voir ce qui est envoyé » comme pour les statistiques.
-- [ ] P4.4 Note de l'application (1 à 5) rangée dans Réglages › À propos pour qui veut la donner à
+- [x] P4.4 (fait, v0.7.1) Note de l'application (1 à 5) rangée dans Réglages › À propos pour qui veut la donner à
   tout moment ; suivi local de l'évolution entre versions.
 
 ### P5. Défauts constatés à corriger tout de suite

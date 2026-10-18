@@ -14,6 +14,16 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.7.1': [
+    NewsItem(Icons.notifications_none, 'Un rappel discret, si vous le voulez',
+        'Après quelques jours d\'absence, une seule notification avec une actualité récente de votre domaine (au plus une tous les 4 jours, jamais la nuit). Désactivée tant que vous n\'avez pas dit oui ; rien ne quitte votre téléphone.',
+        'A quiet reminder, if you want it', 'After a few days away, a single notification with recent news from your field (at most one every 4 days, never at night). Off until you say yes; nothing leaves your phone.',
+        mg: 'Fampahatsiahivana mangina, raha tianao', mgText: 'Aorian\'ny andro vitsy tsy tonga, fampandrenesana iray ihany misy vaovao vao haingana ao amin\'ny sehatrao (indray mandeha isaky ny 4 andro farafahabetsany, tsy amin\'ny alina). Tsy mandeha raha tsy hoy ianao eny; tsy misy mivoaka ny findainao.'),
+    NewsItem(Icons.thumbs_up_down_outlined, 'Votre avis, quand vous voulez',
+        'Après quelques semaines, une petite carte demande comment ça se passe ; vous pouvez aussi noter Tontolo dans À propos. Tout reste sur votre appareil, sauf si vous cochez « Envoyer ».',
+        'Your opinion, when you want', 'After a few weeks, a small card asks how it is going; you can also rate Tontolo in About. Everything stays on your device unless you tick “Send”.',
+        mg: 'Ny hevitrao, rehefa tianao', mgText: 'Aorian\'ny herinandro vitsy, karatra kely no manontany ny fizotrany; azonao omena naoty koa i Tontolo ao amin\'ny Momba. Ao amin\'ny fitaovanao foana ny zava-drehetra raha tsy mamarika « Alefaso » ianao.'),
+  ],
   '0.7.0': [
     NewsItem(Icons.auto_awesome, 'Une idée pour vous dès l\'accueil',
         'Au lieu d\'un simple bonjour, Tontolo vous propose une piste liée à vos sujets récents : aller plus loin, un quiz, un fait surprenant, un petit projet. « Pas pour moi » écarte un thème. Tout est calculé sur votre appareil, rien n\'est envoyé.',

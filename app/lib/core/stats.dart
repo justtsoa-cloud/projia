@@ -20,6 +20,9 @@ const _statsKey = String.fromEnvironment('TONTOLO_STATS_KEY');
 class Stats {
   Stats._();
 
+  static String get url => _statsUrl;
+  static String get key => _statsKey;
+
   static bool get configured => _statsUrl.startsWith('https://') && _statsKey.isNotEmpty;
 
   /// Compteur strictement local ; absent du corps envoyé.

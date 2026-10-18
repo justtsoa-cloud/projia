@@ -27,6 +27,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
   bool speedFirst = false;
   bool economy = false;
   bool homeTracks = true;
+  bool comeback = false;
   bool teamReview = true;
   bool autoCompact = true;
   bool taskPlanning = true;
@@ -74,6 +75,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
       speedFirst = s['speed_first'] == true;
       economy = s['economy'] == true;
       homeTracks = s['home_tracks'] != false;
+      comeback = AppScope.of(context).prefs.cbEnabled;
       teamReview = s['team_review'] != false; // absent (ancien cœur) : affiché actif
       autoCompact = s['auto_compact'] != false;
       taskPlanning = s['task_planning'] != false;
@@ -158,6 +160,18 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
         onChanged: (v) {
           setState(() => homeTracks = v);
           _call('PUT', '/tontolo/settings', {'home_tracks': v});
+        },
+      ),
+      SwitchListTile(
+        secondary: const Icon(Icons.notifications_none),
+        title: Text(context.t('cb_setting')),
+        subtitle: Text(context.t('cb_ask_help'), style: small),
+        value: comeback,
+        onChanged: (v) {
+          setState(() => comeback = v);
+          final prefs = AppScope.of(context).prefs;
+          prefs.cbEnabled = v;
+          prefs.cbAsked = true;
         },
       ),
       SwitchListTile(

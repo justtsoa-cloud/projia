@@ -207,11 +207,12 @@ def register(app: FastAPI, hub: Hub, ws_connects: RateLimiter) -> None:
         name = core.settings.user_name.strip()
         if not name and core.settings.memory_enabled:
             name = name_from([str(m.get("text") or "") for m in await core.db.list_memories()])
-        recent = [{"id": c["id"], "title": c["title"]}
-                  for c in await core.db.list_conversations(6, 0, None, None)
+        every = await core.db.list_conversations(200, 0, None, None)
+        recent = [{"id": c["id"], "title": c["title"]} for c in every[:6]
                   if str(c.get("title") or "").strip()][:4]
         out: dict[str, Any] = {"name": name, "name_from": "settings" if core.settings.user_name
-                               .strip() else ("memory" if name else ""), "recent": recent}
+                               .strip() else ("memory" if name else ""), "recent": recent,
+                               "conversations": len(every)}
         if core.settings.home_tracks:  # piste du jour : centres d'intérêt locaux (jamais envoyés)
             raw = await core.db.kv_get("home_dismissed")
             gone = json.loads(raw) if raw else {}

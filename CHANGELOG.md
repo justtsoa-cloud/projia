@@ -5,6 +5,22 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.7.1] - 2026-10-18
+
+### Ajouté
+- Retours d'expérience : après au moins 5 discussions et une semaine d'usage, UNE carte discrète
+  à l'accueil (« Comment ça se passe avec Tontolo ? », trois visages). Ignorée, elle revient 30
+  puis 60 jours plus tard, puis plus jamais ; jamais pendant une tâche. Un avis positif invite à
+  parler de Tontolo ou à mettre une étoile ; un avis négatif propose des raisons (lent, faux,
+  langue, interface, manque) et un mot. Tout reste sur l'appareil ; l'envoi à l'auteur est une case
+  décochée à chaque fois (table `feedback`, docs/stats/supabase_feedback.sql).
+- Note de l'application (1 à 5 étoiles) dans À propos, gardée sur l'appareil, envoi facultatif.
+- Rappel subtil (désactivé tant que vous n'avez pas dit oui) : après 3 jours d'absence, UNE
+  notification discrète à 10 h 30 avec un titre d'actualité récent (≤ 4 jours) lié à vos sujets,
+  lu sur un flux public sur l'appareil ; au plus une tous les 4 jours ; aucune notification s'il
+  n'y a rien de pertinent ; à l'ouverture, « En discuter avec Tontolo » ou lire l'article.
+  Réglable dans Réglages › Réponses.
+
 ## [0.7.0] - 2026-10-16
 
 ### Ajouté

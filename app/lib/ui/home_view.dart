@@ -12,6 +12,10 @@ import 'package:flutter/services.dart';
 import '../core/backend.dart';
 import '../core/chat_controller.dart';
 import '../main.dart';
+import '../core/comeback.dart';
+import '../core/feedback.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'feedback_card.dart';
 import 'theme.dart';
 
 class Suggestion {
@@ -104,6 +108,9 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
   Timer? _rotate;
   String _name = '';
   List<Map<String, dynamic>> _recent = [];
+  bool _askComeback = false; // proposition unique du rappel subtil
+  Map<String, dynamic>? _news; // actualité préparée pour le rappel (récente)
+  bool _askFeedback = false; // carte de retour : rare, jamais pendant une tâche
   List<Map<String, dynamic>> _tracks = []; // « piste du jour » : calculée sur l'appareil
   late List<Suggestion> _pool;
   final List<Object> _shown = []; // Suggestion ou sujet récent (Map)
@@ -203,6 +210,15 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
         _name = name;
         _recent = ((home['recent'] as List?) ?? const []).cast<Map<String, dynamic>>();
         _tracks = ((home['tracks'] as List?) ?? const []).cast<Map<String, dynamic>>();
+        final convs = (home['conversations'] as int?) ?? 0;
+        _askComeback = !scope.prefs.cbAsked && convs >= 3;
+        final news = Comeback.stored(scope.prefs);
+        _news = (scope.prefs.cbEnabled && news != null &&
+                DateTime.now().millisecondsSinceEpoch - ((news['at'] as int?) ?? 0) < 7 * 24 * 3600 * 1000 &&
+                scope.prefs.cbLastFired != 0)
+            ? news
+            : null;
+        _askFeedback = !_askComeback && AppFeedback.ask(scope.prefs, (home['conversations'] as int?) ?? 0, busy: widget.chat.busy);
         _fill();
       });
       if (!_still) _typing.forward(from: 0);
@@ -303,6 +319,40 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
                 others: _tracks.skip(1).toList(),
                 onTap: _pickTrack,
                 onDismiss: _dismissTrack,
+              ),
+            ],
+            if (_askComeback) ...[
+              const SizedBox(height: 16),
+              _ComebackAsk(
+                onAnswer: (yes) {
+                  final prefs = AppScope.of(context).prefs;
+                  prefs.cbAsked = true;
+                  prefs.cbEnabled = yes;
+                  setState(() => _askComeback = false);
+                },
+              ),
+            ],
+            if (_news != null) ...[
+              const SizedBox(height: 16),
+              _NewsCard(
+                news: _news!,
+                onTalk: () {
+                  final n = _news!;
+                  setState(() => _news = null);
+                  AppScope.of(context).prefs.cbNews = '';
+                  widget.onSend(context.t('news_prompt', {'t': '${n['title']}', 'u': '${n['link']}'}));
+                },
+                onClose: () {
+                  setState(() => _news = null);
+                  AppScope.of(context).prefs.cbNews = '';
+                },
+              ),
+            ],
+            if (_askFeedback) ...[
+              const SizedBox(height: 16),
+              FeedbackCard(
+                prefs: AppScope.of(context).prefs,
+                onClose: () => setState(() => _askFeedback = false),
               ),
             ],
             const SizedBox(height: 24),
@@ -435,6 +485,73 @@ class _TrackCard extends StatelessWidget {
               ]),
           ]),
         ),
+      ),
+    );
+  }
+}
+
+
+/// Proposition unique du rappel subtil : jamais activé sans un « Oui ».
+class _ComebackAsk extends StatelessWidget {
+  const _ComebackAsk({required this.onAnswer});
+  final void Function(bool) onAnswer;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.surfaceContainerHigh,
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 12, 8),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(context.t('cb_ask'), style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 4),
+          Text(context.t('cb_ask_help'), style: Theme.of(context).textTheme.bodySmall),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Wrap(spacing: 8, children: [
+              TextButton(onPressed: () => onAnswer(false), child: Text(context.t('cb_no'))),
+              FilledButton(onPressed: () => onAnswer(true), child: Text(context.t('cb_yes'))),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+/// L'actualité du rappel, à l'ouverture : en discuter avec Tontolo ou ouvrir l'article.
+class _NewsCard extends StatelessWidget {
+  const _NewsCard({required this.news, required this.onTalk, required this.onClose});
+  final Map<String, dynamic> news;
+  final VoidCallback onTalk;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.tertiaryContainer.withValues(alpha: 0.55),
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 8, 8),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Icon(Icons.newspaper_outlined, size: 16, color: scheme.tertiary),
+            const SizedBox(width: 6),
+            Expanded(child: Text(context.t('news_label'), style: Theme.of(context).textTheme.labelMedium)),
+            IconButton(visualDensity: VisualDensity.compact, onPressed: onClose, icon: const Icon(Icons.close, size: 18)),
+          ]),
+          Text('${news['title']}', style: Theme.of(context).textTheme.titleSmall),
+          Wrap(spacing: 8, children: [
+            TextButton(onPressed: onTalk, child: Text(context.t('news_talk'))),
+            TextButton(
+              onPressed: () => launchUrl(Uri.parse('${news['link']}'), mode: LaunchMode.externalApplication),
+              child: Text(context.t('news_open')),
+            ),
+          ]),
+        ]),
       ),
     );
   }

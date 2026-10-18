@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'core/backend.dart';
+import 'core/comeback_runner.dart';
 import 'core/chat_controller.dart';
 import 'core/prefs.dart';
 import 'core/stats.dart';
@@ -156,8 +157,10 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
       scope.chat.resumeIfStale(); // réponse générée pendant l'absence : on s'y rattache
       syncSoon(scope.prefs, scope.account, scope.cloud);
       _startLive(scope);
+      ComebackRunner.onResume(scope.prefs);
     } else if (state == AppLifecycleState.paused) {
       scope.cloud.stopLive(); // en arrière-plan : pas de synchro périodique
+      ComebackRunner.onPause(scope.prefs, scope.backend); // un rappel subtil, si accepté
     }
   }
 

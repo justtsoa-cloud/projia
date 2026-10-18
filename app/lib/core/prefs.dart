@@ -67,6 +67,40 @@ class Prefs extends ChangeNotifier {
   // Statistiques anonymes d'utilisation (activées par défaut, annoncées, désactivables).
   bool get shareRatings => _sp.getBool('shareRatings') ?? false;
   set shareRatings(bool v) => _set(() => _sp.setBool('shareRatings', v));
+  // Retours d'expérience (P4) : tout reste local ; l'envoi à l'auteur est un choix à chaque fois.
+  int get firstSeen {
+    final v = _sp.getInt('firstSeen') ?? 0;
+    if (v == 0) {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      _sp.setInt('firstSeen', now);
+      return now;
+    }
+    return v;
+  }
+  int get fbLastAsked => _sp.getInt('fbLastAsked') ?? 0;
+  set fbLastAsked(int v) => _sp.setInt('fbLastAsked', v);
+  int get fbDismissals => _sp.getInt('fbDismissals') ?? 0;
+  set fbDismissals(int v) => _sp.setInt('fbDismissals', v);
+  bool get fbDone => _sp.getBool('fbDone') ?? false;
+  set fbDone(bool v) => _sp.setBool('fbDone', v);
+  /// Retours gardés sur l'appareil (JSON), au plus 20.
+  String get fbLog => _sp.getString('fbLog') ?? '[]';
+  set fbLog(String v) => _sp.setString('fbLog', v);
+  /// Note de l'application (1 à 5), 0 = pas encore donnée.
+  int get appRating => _sp.getInt('appRating') ?? 0;
+  set appRating(int v) => _sp.setInt('appRating', v);
+  // Rappel subtil (P3) : désactivé tant que non accepté.
+  bool get cbEnabled => _sp.getBool('cbEnabled') ?? false;
+  set cbEnabled(bool v) => _sp.setBool('cbEnabled', v);
+  bool get cbAsked => _sp.getBool('cbAsked') ?? false; // proposition faite une seule fois
+  set cbAsked(bool v) => _sp.setBool('cbAsked', v);
+  int get cbLastFired => _sp.getInt('cbLastFired') ?? 0;
+  set cbLastFired(int v) => _sp.setInt('cbLastFired', v);
+  int get cbFireAt => _sp.getInt('cbFireAt') ?? 0; // rappel programmé (ms), 0 = aucun
+  set cbFireAt(int v) => _sp.setInt('cbFireAt', v);
+  /// Titre d'actualité préparé (JSON : title, link).
+  String get cbNews => _sp.getString('cbNews') ?? '';
+  set cbNews(String v) => _sp.setString('cbNews', v);
   bool get shareStats => _sp.getBool('shareStats') ?? true;
   set shareStats(bool v) => _set(() => _sp.setBool('shareStats', v));
   String get installId => _sp.getString('installId') ?? '';

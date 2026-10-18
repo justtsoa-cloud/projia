@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../core/updater.dart';
 import '../core/author.dart';
 import '../main.dart';
+import 'feedback_card.dart';
 
 /// Page de la dernière version (APK, AppImage) : même adresse que le QR code embarqué.
 const downloadUrl = 'https://github.com/raantss18/tontolo/releases/latest';
@@ -59,6 +60,8 @@ class AboutScreen extends StatelessWidget {
               ),
             ),
           ),
+          const Divider(),
+          AppRatingTile(prefs: AppScope.of(context).prefs),
           const Divider(),
           Text(context.t('author'), style: Theme.of(context).textTheme.titleMedium),
           const AuthorCard(),
