@@ -88,4 +88,19 @@ void main() {
     expect(chat.earlierLeft, 0);
     chat.dispose();
   });
+
+  test('question restée sans réponse ni tour en cours : message clair, jamais un écran muet', () async {
+    SharedPreferences.setMockInitialValues({});
+    final backend = DelayedBackend(await Prefs.load());
+    final chat = ChatController(backend);
+    final opening = chat.open('a');
+    backend.responses['/tontolo/conversations/a']!.complete({
+      'active': false,
+      'messages': [{'role': 'user', 'content': 'Quelles sont les actualités importantes aujourd\'hui ?'}],
+    });
+    await opening;
+    expect(chat.messages.last.role, 'notice');
+    expect(chat.messages.last.text, startsWith('errorc|no_answer'));
+    chat.dispose();
+  });
 }

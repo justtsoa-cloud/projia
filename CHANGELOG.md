@@ -5,6 +5,15 @@ Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement
 
 ## [Non publié]
 
+## [0.7.3] - 2026-10-19
+
+### Corrigé
+- Une question pouvait rester sans réponse ni message (rapporté sur téléphone : « Quelles sont les
+  actualités importantes aujourd'hui ? », écran immobile). Le cœur ne termine plus jamais un tour
+  en silence (erreur « Aucune réponse reçue »), et l'application, en rouvrant une discussion dont
+  la dernière ligne est une question sans réponse ni tour en cours (connexion coupée, application
+  fermée), l'indique et propose « Réessayer ».
+
 ## [0.7.2] - 2026-10-18
 
 ### Ajouté

@@ -1,0 +1,149 @@
+{
+ "shot": "ok",
+ "lang": {
+  "fr": {
+   "tagline": "Correctif",
+   "date": "19 octobre 2026",
+   "hero": [
+    "Chaque question",
+    "a une réponse"
+   ],
+   "sub": "Plus d'écran immobile : Tontolo le dit et vous relance.",
+   "steps": [
+    [
+     "Posez votre question,",
+     "comme d'habitude"
+    ],
+    [
+     "Si la réponse ne vient pas,",
+     "un message clair s'affiche"
+    ],
+    [
+     "« Réessayer » : un toucher",
+     "et c'est reparti"
+    ]
+   ],
+   "also": "Aussi à savoir",
+   "items": [
+    [
+     "Dites-lui",
+     [
+      "« Quelles sont les actualités",
+      "importantes aujourd'hui ? »"
+     ]
+    ],
+    [
+     "Vitesse",
+     [
+      "Un autre modèle prend le relais",
+      "si le premier se tait."
+     ]
+    ],
+    [
+     "Sécurité",
+     [
+      "Rien ne sort de votre téléphone",
+      "sans votre accord."
+     ]
+    ]
+   ],
+   "footer": "Gratuit · Android · Linux"
+  },
+  "en": {
+   "tagline": "Fix",
+   "date": "October 19, 2026",
+   "hero": [
+    "Every question",
+    "gets an answer"
+   ],
+   "sub": "No more frozen screen: Tontolo tells you and retries.",
+   "steps": [
+    [
+     "Ask your question,",
+     "as usual"
+    ],
+    [
+     "If the answer never comes,",
+     "a clear message appears"
+    ],
+    [
+     "“Retry”: one tap",
+     "and you are off again"
+    ]
+   ],
+   "also": "Also good to know",
+   "items": [
+    [
+     "Just say",
+     [
+      "“What are the important",
+      "news today?”"
+     ]
+    ],
+    [
+     "Speed",
+     [
+      "Another model takes over",
+      "if the first goes quiet."
+     ]
+    ],
+    [
+     "Safety",
+     [
+      "Nothing leaves your phone",
+      "without your consent."
+     ]
+    ]
+   ],
+   "footer": "Free · Android · Linux"
+  },
+  "mg": {
+   "tagline": "Fanitsiana",
+   "date": "19 Oktobra 2026",
+   "hero": [
+    "Ny fanontaniana",
+    "rehetra dia misy valiny"
+   ],
+   "sub": "Tsy misy efijery tsy mihetsika intsony: lazain'i Tontolo ary averiny.",
+   "steps": [
+    [
+     "Manontania araka ny",
+     "fanaony"
+    ],
+    [
+     "Raha tsy tonga ny valiny,",
+     "hiseho ny hafatra mazava"
+    ],
+    [
+     "« Andramo indray »: indray",
+     "tsindry dia mandeha indray"
+    ]
+   ],
+   "also": "Tsara ho fantatra koa",
+   "items": [
+    [
+     "Lazao azy",
+     [
+      "« Inona ny vaovao lehibe",
+      "anio? »"
+     ]
+    ],
+    [
+     "Hafainganana",
+     [
+      "Misy modely hafa mandray",
+      "raha mangina ny voalohany."
+     ]
+    ],
+    [
+     "Fiarovana",
+     [
+      "Tsy misy mivoaka ny finday",
+      "raha tsy ekenao."
+     ]
+    ]
+   ],
+   "footer": "Maimaim-poana · Android · Linux"
+  }
+ }
+}

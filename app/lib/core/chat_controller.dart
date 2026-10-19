@@ -359,6 +359,11 @@ class ChatController extends ChangeNotifier {
       await _loadDocuments();
       if (epoch != _epoch) return;
       busy = false;
+      // Une question restée sans réponse et sans tour en cours (connexion coupée, application
+      // fermée) : on le dit et on propose « Réessayer » au lieu d'un écran muet.
+      if (data['active'] == false && messages.isNotEmpty && messages.last.role == 'user') {
+        messages.add(ChatMessage(role: 'notice', text: 'errorc|no_answer||'));
+      }
       notifyListeners();
       // Réponse encore en cours de génération : on s'y rattache (rejeu puis direct).
       if (data['active'] == true && conversationId == id) _run(backend.follow(id), replay: true);

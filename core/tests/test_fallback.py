@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from collections.abc import AsyncIterator
 from typing import Any
 
 import pytest
@@ -239,3 +240,18 @@ async def test_silent_primary_is_covered_by_the_next_model(router: Router,
     done = next(e for e in events if e["type"] == "done")
     assert done["model"] != first.key and done["model"] == switches[0]["to"]
     assert not [e for e in events if e["type"] == "error"]
+
+
+async def test_turn_without_answer_never_ends_silently(router: Router, db: Database,
+                                                       settings: Settings,
+                                                       monkeypatch: pytest.MonkeyPatch) -> None:
+    """Un routeur qui s'arrête sans réponse ni erreur doit produire une erreur lisible."""
+    async def mute(*args: Any, **kwargs: Any) -> AsyncIterator[dict[str, Any]]:
+        return
+        yield  # pragma: no cover
+
+    monkeypatch.setattr(router, "run", mute)
+    chat = ChatService(settings, db, router)
+    events = await collect(chat.send(None, "Quelles sont les actualités ?", use_tools=False))
+    errors = [e for e in events if e["type"] == "error"]
+    assert errors and errors[-1]["code"] == "no_answer"

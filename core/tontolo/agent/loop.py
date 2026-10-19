@@ -914,6 +914,10 @@ class ChatService:
                 if ev["type"] in ("error", "paid_confirmation"):
                     return
             if final is None:
+                # Le routeur s'est arrêté sans réponse ni erreur : jamais de silence (la personne
+                # verrait sa question sans suite). Message clair + « Réessayer » côté application.
+                yield {"type": "error", "code": "no_answer",
+                       "message": "Aucune réponse reçue. Réessayez."}
                 return
             msg = final["message"]
             if final.get("finish_reason") == "length" and not msg.get("tool_calls"):

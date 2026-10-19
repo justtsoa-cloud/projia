@@ -897,6 +897,7 @@ String _errorText(BuildContext context, List<String> parts) {
     'offline' => context.t('err_offline'),
     'all_failed' => context.t('err_all_failed'),
     'no_model' => context.t('err_no_model'),
+    'no_answer' => context.t('err_no_answer'),
     'strict_waiting' => context.t('err_strict'),
     'agent_timeout' => context.t('err_agent_timeout'),
     'agent_steps' => context.t('err_agent_steps'),

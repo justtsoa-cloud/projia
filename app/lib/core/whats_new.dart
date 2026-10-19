@@ -14,6 +14,12 @@ class NewsItem {
 }
 
 const whatsNew = <String, List<NewsItem>>{
+  '0.7.3': [
+    NewsItem(Icons.sync_problem_outlined, 'Plus de questions restées sans réponse',
+        'Si une réponse ne vient pas (connexion coupée, modèle muet), Tontolo le dit clairement et propose « Réessayer » au lieu de laisser l\'écran immobile.',
+        'No more unanswered questions', 'If an answer never comes (connection lost, silent model), Tontolo says so clearly and offers “Retry” instead of leaving the screen idle.',
+        mg: 'Tsy misy fanontaniana tsy mamaly intsony', mgText: 'Raha tsy tonga ny valiny (tapaka ny fifandraisana, mangina ny modely), dia lazain\'i Tontolo mazava izany ary manolotra « Andramo indray » fa tsy mamela ny efijery tsy mihetsika.'),
+  ],
   '0.7.2': [
     NewsItem(Icons.fact_check_outlined, 'Des vidéos relues avant d\'être jouées',
         'Un second modèle vérifie les calculs et les faits du scénario, et la langue est contrôlée. Sous la vidéo, « Plus court » ou « Plus détaillée » la refait sur le même sujet, sans rien retaper.',
