@@ -40,7 +40,7 @@ const keyGuides = <String, KeyGuide>{
   'modelscope': KeyGuide(url: 'https://modelscope.cn/my/myaccesstoken', login: 'e-mail, téléphone', path: 'Access Token', button: 'Create', note: 'kg_n_china'),
   'siliconflow': KeyGuide(url: 'https://cloud.siliconflow.cn/account/ak', login: 'téléphone', button: 'Create API Key', prefix: 'sk-', note: 'kg_n_china'),
   'artificial-analysis': KeyGuide(url: 'https://artificialanalysis.ai/insights', login: 'Google, e-mail', path: 'Insights › API', button: 'Create API key', note: 'kg_n_aa'),
-  // Serveurs payants (facturés à l'usage par le fournisseur ; plafond fixé dans Tontolo).
+  // Serveurs payants (facturés à l'usage par le fournisseur ; plafond fixé dans Projia).
   'openai': KeyGuide(url: 'https://platform.openai.com/api-keys', login: 'Google, Microsoft, Apple, e-mail', button: 'Create new secret key', prefix: 'sk-', cost: 'credits', note: 'kg_n_openai'),
   'anthropic': KeyGuide(url: 'https://console.anthropic.com/settings/keys', login: 'Google, e-mail', button: 'Create Key', prefix: 'sk-ant-', cost: 'credits', note: 'kg_n_anthropic'),
   'deepseek': KeyGuide(url: 'https://platform.deepseek.com/api_keys', login: 'Google, e-mail', button: 'Create new API key', prefix: 'sk-', cost: 'credits', note: 'kg_n_deepseek'),

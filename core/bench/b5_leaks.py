@@ -7,7 +7,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from tontolo.agent.terminal import MAX_SESSIONS, TerminalManager
+from projia.agent.terminal import MAX_SESSIONS, TerminalManager
 
 
 def fds() -> int:

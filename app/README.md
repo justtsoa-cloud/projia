@@ -1,4 +1,4 @@
-# tontolo
+# projia
 
 Hub d'IA libre et gratuit
 

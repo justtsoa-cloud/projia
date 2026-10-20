@@ -6,7 +6,7 @@ import random
 import sys
 
 from bench.harness import Timer, core, drain, rss_mb
-from tontolo.providers.base import ErrorKind, ProviderError
+from projia.providers.base import ErrorKind, ProviderError
 
 N = int(sys.argv[1]) if len(sys.argv) > 1 else 40
 TURNS = int(sys.argv[2]) if len(sys.argv) > 2 else 6

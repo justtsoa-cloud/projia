@@ -16,6 +16,6 @@ liste ne constitue pas encore le bilan final des phases A à E.
   puis vérifier une insertion des trois champs et le refus d’une lecture avec la clé anon.
   La migration est préparée, pas exécutée sur le service distant ; les nouvelles versions
   n’enverront pas l’ancien format si cette table manque.
-- [ ] Valider les termes malgaches des affiches du 2026-10-14 (press/campaigns/2026-10-14/campaign.json) : « Manaova horonan-tsary… », « Ataovy sary izany », « Tadidio fa… », « Fintinio ny resaka », « Mitenena, i Tontolo dia mamaly », « Fomba mitsitsy », « Fanamboarana manokana ».
-- [ ] Valider les termes malgaches de la v0.7.1 et des affiches du 2026-10-16/18 : « Hevitra ho anao », « Tsy ho ahy », « Fampahatsiahivana mangina », « Vaovao ao amin'ny sehatrao », « Ahoana ny fizotran'ny zavatra… », « Manomeza naoty », « Resaho miaraka amin'i Tontolo », « Valiny haingana kokoa ».
+- [ ] Valider les termes malgaches des affiches du 2026-10-14 (press/campaigns/2026-10-14/campaign.json) : « Manaova horonan-tsary… », « Ataovy sary izany », « Tadidio fa… », « Fintinio ny resaka », « Mitenena, i Projia dia mamaly », « Fomba mitsitsy », « Fanamboarana manokana ».
+- [ ] Valider les termes malgaches de la v0.7.1 et des affiches du 2026-10-16/18 : « Hevitra ho anao », « Tsy ho ahy », « Fampahatsiahivana mangina », « Vaovao ao amin'ny sehatrao », « Ahoana ny fizotran'ny zavatra… », « Manomeza naoty », « Resaho miaraka amin'i Projia », « Valiny haingana kokoa ».
 - [ ] Valider les textes malgaches de fdroid/metadata/mg/ (description courte et longue).

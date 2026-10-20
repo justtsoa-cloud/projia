@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Règle de version de Tontolo : chaque chiffre va de 0 à 9.
+"""Règle de version de Projia : chaque chiffre va de 0 à 9.
 
     0.2.8 → 0.2.9 → 0.3.0      (après x.y.9 : x.(y+1).0)
     0.9.9 → 1.0.0              (après x.9.9 : (x+1).0.0)
@@ -27,7 +27,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 FILES = {
     "core/pyproject.toml": re.compile(r'^(version = ")(\d+\.\d+\.\d+)(")', re.M),
-    "core/tontolo/__init__.py": re.compile(r'^(__version__ = ")(\d+\.\d+\.\d+)(")', re.M),
+    "core/projia/__init__.py": re.compile(r'^(__version__ = ")(\d+\.\d+\.\d+)(")', re.M),
     "app/lib/core/updater.dart": re.compile(r"^(const appVersion = ')(\d+\.\d+\.\d+)(')", re.M),
     "app/pubspec.yaml": re.compile(r"^(version: )(\d+\.\d+\.\d+)(\+\d+)", re.M),
 }

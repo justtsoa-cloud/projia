@@ -56,9 +56,9 @@ class _AdvancedRoutingState extends State<AdvancedRouting> {
   Future<void> _load() async {
     if (_b.state != BackendState.ready) return;
     try {
-      final s = await _b.getJson('/tontolo/settings') as Map<String, dynamic>;
-      final c = (await _b.getJson('/tontolo/custom-providers') as List).cast<Map<String, dynamic>>();
-      final p = (await _b.getJson('/tontolo/providers') as List).cast<Map<String, dynamic>>();
+      final s = await _b.getJson('/projia/settings') as Map<String, dynamic>;
+      final c = (await _b.getJson('/projia/custom-providers') as List).cast<Map<String, dynamic>>();
+      final p = (await _b.getJson('/projia/providers') as List).cast<Map<String, dynamic>>();
       if (!mounted) return;
       setState(() {
         routing = (s['routing'] as Map?)?.cast<String, dynamic>();
@@ -74,7 +74,7 @@ class _AdvancedRoutingState extends State<AdvancedRouting> {
 
   Future<void> _patchRouting(Map<String, dynamic> patch) async {
     try {
-      final s = await _b.sendJson('PUT', '/tontolo/settings', {'routing': patch});
+      final s = await _b.sendJson('PUT', '/projia/settings', {'routing': patch});
       if (mounted) setState(() => routing = ((s as Map)['routing'] as Map).cast<String, dynamic>());
     } catch (e) {
       _snack(coreError(e));
@@ -145,7 +145,7 @@ class _AdvancedRoutingState extends State<AdvancedRouting> {
                         error = null;
                       });
                       try {
-                        final r = await _b.sendJson('POST', '/tontolo/custom-providers', {
+                        final r = await _b.sendJson('POST', '/projia/custom-providers', {
                           'name': name.text.trim(),
                           'base_url': url.text.trim(),
                           'needs_key': !noKey,
@@ -176,7 +176,7 @@ class _AdvancedRoutingState extends State<AdvancedRouting> {
 
   Future<void> _removeCustom(String id) async {
     try {
-      await _b.sendJson('DELETE', '/tontolo/custom-providers/$id');
+      await _b.sendJson('DELETE', '/projia/custom-providers/$id');
     } catch (e) {
       _snack(coreError(e));
     }
@@ -214,7 +214,7 @@ class _AdvancedRoutingState extends State<AdvancedRouting> {
   // --- Export / import --------------------------------------------------------------------
 
   Future<void> _export() async {
-    final data = await _b.getJson('/tontolo/settings/export');
+    final data = await _b.getJson('/projia/settings/export');
     await Clipboard.setData(ClipboardData(text: const JsonEncoder.withIndent(' ').convert(data)));
     if (mounted) _snack(context.t('adv_exported'));
   }
@@ -234,7 +234,7 @@ class _AdvancedRoutingState extends State<AdvancedRouting> {
     );
     if (ok != true) return;
     try {
-      await _b.sendJson('POST', '/tontolo/settings/import', jsonDecode(ctrl.text));
+      await _b.sendJson('POST', '/projia/settings/import', jsonDecode(ctrl.text));
       if (mounted) _snack(context.t('adv_imported'));
     } on FormatException {
       if (mounted) _snack(context.t('adv_import_hint'));
@@ -363,7 +363,7 @@ class _ChainModelPickerState extends State<_ChainModelPicker> {
   Future<void> _load() async {
     setState(() => loading = true);
     try {
-      final data = await AppScope.of(context).backend.getJson('/tontolo/catalog', {
+      final data = await AppScope.of(context).backend.getJson('/projia/catalog', {
         'category': widget.category, 'usable': true, 'limit': 100, if (query.isNotEmpty) 'q': query,
       }) as Map<String, dynamic>;
       models = (data['models'] as List).cast<Map<String, dynamic>>();

@@ -8,16 +8,16 @@ from pathlib import Path
 
 import pytest
 
-os.environ.setdefault("TONTOLO_NO_KEYRING", "1")
+os.environ.setdefault("PROJIA_NO_KEYRING", "1")
 
-from tontolo.catalog.catalog import Catalog
-from tontolo.catalog.models import ModelInfo
-from tontolo.catalog.service import CatalogService
-from tontolo.config import Settings
-from tontolo.providers.fake import FakeProvider
-from tontolo.providers.registry import ProviderRegistry
-from tontolo.router.engine import Router
-from tontolo.storage.db import Database
+from projia.catalog.catalog import Catalog
+from projia.catalog.models import ModelInfo
+from projia.catalog.service import CatalogService
+from projia.config import Settings
+from projia.providers.fake import FakeProvider
+from projia.providers.registry import ProviderRegistry
+from projia.router.engine import Router
+from projia.storage.db import Database
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -46,7 +46,7 @@ def make_models() -> list[ModelInfo]:
 
 @pytest.fixture
 def tmp_home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    monkeypatch.setenv("TONTOLO_HOME", str(tmp_path))
+    monkeypatch.setenv("PROJIA_HOME", str(tmp_path))
     return tmp_path
 
 

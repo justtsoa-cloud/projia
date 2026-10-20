@@ -11,12 +11,12 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from tontolo.catalog.service import CatalogService
-from tontolo.config import Settings
-from tontolo.providers.fake import FakeProvider
-from tontolo.providers.registry import ProviderRegistry
-from tontolo.server.app import create_app
-from tontolo.storage.db import Database
+from projia.catalog.service import CatalogService
+from projia.config import Settings
+from projia.providers.fake import FakeProvider
+from projia.providers.registry import ProviderRegistry
+from projia.server.app import create_app
+from projia.storage.db import Database
 
 
 @pytest.fixture
@@ -33,7 +33,7 @@ def client(settings: Settings, catalog_service: CatalogService, fake: FakeProvid
 
 
 def _chat(client: TestClient, text: str) -> tuple[int, list[dict[str, Any]]]:
-    with client.stream("POST", "/tontolo/chat", json={"content": text}) as r:
+    with client.stream("POST", "/projia/chat", json={"content": text}) as r:
         return r.status_code, [json.loads(x[5:]) for x in r.iter_lines() if x.startswith("data:")]
 
 

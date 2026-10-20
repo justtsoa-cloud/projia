@@ -1,6 +1,6 @@
 # F-Droid : faisabilité et marche à suivre (étude du 2026-10-18)
 
-Verdict : **possible, mais pas immédiat**. Rien dans Tontolo n'est contraire à la philosophie de
+Verdict : **possible, mais pas immédiat**. Rien dans Projia n'est contraire à la philosophie de
 F-Droid (aucun service Google, aucune pub, aucun traqueur, Apache-2.0), mais le dépôt exige une
 construction **entièrement depuis les sources**, et c'est le point à travailler.
 
@@ -27,15 +27,15 @@ construction **entièrement depuis les sources**, et c'est le point à travaille
    Android et `uv.lock` ; signer avec la clé de F-Droid ou la reproductibilité vérifiée.
 3. **Clé de mise à jour intégrée** : sur F-Droid, les mises à jour passent par le dépôt ; la mise
    à jour intégrée (APK signé par `update-signing.pub`) doit être désactivée dans cette variante
-   (réglage de construction à créer, par exemple `TONTOLO_STORE=fdroid`).
+   (réglage de construction à créer, par exemple `PROJIA_STORE=fdroid`).
 
 ## Marche à suivre (à faire par l'auteur)
-1. Résoudre le point 1 sur une machine propre (`fdroid build -v -l io.github.raantss18.tontolo`).
+1. Résoudre le point 1 sur une machine propre (`fdroid build -v -l io.github.raantss18.projia`).
 2. Copier `fdroid/metadata/` vers un fork de `fdroiddata`, écrire
-   `metadata/io.github.raantss18.tontolo.yml` (Categories: Internet, Science & Education ;
+   `metadata/io.github.raantss18.projia.yml` (Categories: Internet, Science & Education ;
    License: Apache-2.0 ; SourceCode/IssueTracker : dépôt GitHub ; AutoUpdateMode: Version).
 3. Ouvrir la demande de fusion sur gitlab.com/fdroid/fdroiddata.
 
 Flatpak (optionnel) : la compilation locale LaTeX et les commandes de l'agent reposent sur
 bubblewrap, difficile dans un bac à sable Flatpak ; sous Flatpak ces fonctions retombent sur le
-refus (déjà géré par `tontolo/sandbox.py`) et les services en ligne. Non entrepris.
+refus (déjà géré par `projia/sandbox.py`) et les services en ligne. Non entrepris.

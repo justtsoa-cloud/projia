@@ -5,9 +5,9 @@
 
 | Fichier | Pour quels appareils |
 |---|---|
-| `tontolo-…-arm64-v8a.apk` | **Le bon choix dans 95 % des cas.** Processeurs ARM 64 bits (« ARMv8 ») : presque tous les téléphones et tablettes depuis 2016 — Samsung Galaxy, Xiaomi / Redmi / POCO, Google Pixel, OnePlus, Oppo, Realme, Huawei, Honor, Motorola… **Fonctionne de Android 7 à Android 16.** |
-| `tontolo-…-armeabi-v7a.apk` | Processeurs ARM 32 bits : appareils anciens ou d'entrée de gamme (avant ~2016) ou système installé en 32 bits. Android 7 et plus. |
-| `tontolo-…-x86_64.apk` | Processeurs Intel/AMD : émulateurs Android (Android Studio), Chromebooks, tablettes ou PC sous Android x86. |
+| `projia-…-arm64-v8a.apk` | **Le bon choix dans 95 % des cas.** Processeurs ARM 64 bits (« ARMv8 ») : presque tous les téléphones et tablettes depuis 2016 — Samsung Galaxy, Xiaomi / Redmi / POCO, Google Pixel, OnePlus, Oppo, Realme, Huawei, Honor, Motorola… **Fonctionne de Android 7 à Android 16.** |
+| `projia-…-armeabi-v7a.apk` | Processeurs ARM 32 bits : appareils anciens ou d'entrée de gamme (avant ~2016) ou système installé en 32 bits. Android 7 et plus. |
+| `projia-…-x86_64.apk` | Processeurs Intel/AMD : émulateurs Android (Android Studio), Chromebooks, tablettes ou PC sous Android x86. |
 
 *Message « Play Protect : analyse recommandée » ?* C'est normal pour une application installée hors du Play Store : touchez **Analyser l'application**, puis l'installation continue.
 
@@ -18,10 +18,10 @@ Les mises à jour suivantes se proposent ensuite dans l'application elle-même (
 
 | Fichier | Pour quels systèmes |
 |---|---|
-| `Tontolo-…-x86_64.AppImage` | PC 64 bits Intel/AMD, distribution récente (glibc ≥ 2.35 : Ubuntu 22.04+, Debian 12+, Fedora 36+, Arch, openSUSE récent…) avec GTK 3. `chmod +x` puis double-clic. |
-| `tontolo-….whl` / `.tar.gz` | Ligne de commande et serveur compatible OpenAI sur Linux, macOS ou Windows avec Python ≥ 3.11 : `pip install tontolo-….whl`. |
+| `Projia-…-x86_64.AppImage` | PC 64 bits Intel/AMD, distribution récente (glibc ≥ 2.35 : Ubuntu 22.04+, Debian 12+, Fedora 36+, Arch, openSUSE récent…) avec GTK 3. `chmod +x` puis double-clic. |
+| `projia-….whl` / `.tar.gz` | Ligne de commande et serveur compatible OpenAI sur Linux, macOS ou Windows avec Python ≥ 3.11 : `pip install projia-….whl`. |
 
 > Les APK ont été exécutés sur émulateur (x86_64, Android 10 et 16) ; les versions ARM sont construites avec le même code mais n'ont pas encore été essayées sur un appareil réel — signalez tout problème dans les *issues*.
 
 ---
-**Tontolo**, par **RANIRIAMANJAKA Antsa** · [github.com/raantss18](https://github.com/raantss18) · [antsa.raniriamanjaka@univ-antananarivo.mg](mailto:antsa.raniriamanjaka@univ-antananarivo.mg) · Tél./WhatsApp : [+261 33 43 838 82](https://wa.me/261334383882)
+**Projia**, par **RANIRIAMANJAKA Antsa** · [github.com/raantss18](https://github.com/raantss18) · [antsa.raniriamanjaka@univ-antananarivo.mg](mailto:antsa.raniriamanjaka@univ-antananarivo.mg) · Tél./WhatsApp : [+261 33 43 838 82](https://wa.me/261334383882)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from tontolo.creator.clarify import questions_for
+from projia.creator.clarify import questions_for
 
 
 def asked(kind: str, text: str) -> list[str]:

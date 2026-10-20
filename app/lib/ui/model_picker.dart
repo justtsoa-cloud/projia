@@ -24,7 +24,7 @@ class ModelHealth {
 
   static Future<ModelHealth?> fetch(BuildContext context) async {
     try {
-      final h = await AppScope.of(context).backend.getJson('/tontolo/health') as Map<String, dynamic>;
+      final h = await AppScope.of(context).backend.getJson('/projia/health') as Map<String, dynamic>;
       return ModelHealth('${h['state']}', (h['ready'] as num?)?.toInt() ?? 0, h['best'] as String?,
           (h['retry_at'] as num?)?.toDouble(), h['offline'] == true);
     } catch (_) {
@@ -173,7 +173,7 @@ class _QuickModelsState extends State<QuickModels> {
 
   Future<void> _load() async {
     try {
-      final data = await AppScope.of(context).backend.getJson('/tontolo/catalog',
+      final data = await AppScope.of(context).backend.getJson('/projia/catalog',
           {'category': 'chat', 'free': true, 'usable': true, 'limit': 60}) as Map<String, dynamic>;
       final all = (data['models'] as List).cast<Map<String, dynamic>>()
           .where((m) => (m['media'] as List? ?? const []).isEmpty && (m['available_at'] as num? ?? 0) == 0)
@@ -190,7 +190,7 @@ class _QuickModelsState extends State<QuickModels> {
     final chat = widget.chat;
     chat.modelOverride = key;
     if (chat.conversationId != null) {
-      await AppScope.of(context).backend.sendJson('PUT', '/tontolo/preferences',
+      await AppScope.of(context).backend.sendJson('PUT', '/projia/preferences',
           {'scope': 'conversation', 'scope_key': chat.conversationId, 'model': key ?? 'auto'});
     }
     chat.refresh();
@@ -260,7 +260,7 @@ class _ModelPickerState extends State<ModelPicker> {
     setState(() => loading = true);
     final b = AppScope.of(context).backend;
     try {
-      final data = await b.getJson('/tontolo/catalog', {
+      final data = await b.getJson('/projia/catalog', {
         'category': category, 'free': freeOnly, 'usable': true, 'limit': 200,
         if (query.isNotEmpty) 'q': query,
       }) as Map<String, dynamic>;
@@ -278,12 +278,12 @@ class _ModelPickerState extends State<ModelPicker> {
     if (scope == 'conversation') {
       chat.modelOverride = key;
       if (chat.conversationId != null) {
-        await b.sendJson('PUT', '/tontolo/preferences',
+        await b.sendJson('PUT', '/projia/preferences',
             {'scope': 'conversation', 'scope_key': chat.conversationId, 'model': key ?? 'auto'});
       }
     } else {
       chat.modelOverride = null;
-      await b.sendJson('PUT', '/tontolo/preferences', {
+      await b.sendJson('PUT', '/projia/preferences', {
         'scope': scope, 'scope_key': scope == 'category' ? category : '', 'model': key ?? 'auto',
       });
     }

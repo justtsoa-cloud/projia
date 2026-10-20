@@ -6,8 +6,8 @@ import json
 import sys
 
 from bench.harness import Timer, rss_mb
-from tontolo.creator import latex
-from tontolo.creator.pipeline import Creator, Output
+from projia.creator import latex
+from projia.creator.pipeline import Creator, Output
 
 N = int(sys.argv[1]) if len(sys.argv) > 1 else 30
 

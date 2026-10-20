@@ -1,6 +1,6 @@
-# Publier Tontolo : Play Store, F-Droid, dépôts Linux
+# Publier Projia : Play Store, F-Droid, dépôts Linux
 
-Aujourd'hui Tontolo est distribué par les **releases GitHub** (APK par ABI, AppImage, roue
+Aujourd'hui Projia est distribué par les **releases GitHub** (APK par ABI, AppImage, roue
 Python) avec mise à jour intégrée. Ce guide explique comment l'ajouter aux boutiques et
 dépôts, ce qu'il faut changer dans le projet pour chacun, et dans quel ordre s'y prendre.
 Les chiffres marqués *(à vérifier)* évoluent : contrôlez-les le jour de la démarche.
@@ -10,8 +10,8 @@ Les chiffres marqués *(à vérifier)* évoluent : contrôlez-les le jour de la 
 | Canal | Coût | Difficulté | Délai | Conseil |
 |---|---|---|---|---|
 | IzzyOnDroid (dépôt F-Droid) | gratuit | faible | quelques jours | **1ʳᵉ étape** : réutilise les APK des releases |
-| AUR (Arch, Manjaro, EndeavourOS) | gratuit | faible | immédiat | **2ᵉ étape** : paquet `tontolo-bin` prêt dans `packaging/aur/` |
-| PyPI (cœur en ligne de commande) | gratuit | faible | immédiat | `pipx install tontolo` |
+| AUR (Arch, Manjaro, EndeavourOS) | gratuit | faible | immédiat | **2ᵉ étape** : paquet `projia-bin` prêt dans `packaging/aur/` |
+| PyPI (cœur en ligne de commande) | gratuit | faible | immédiat | `pipx install projia` |
 | Google Play | 25 $ une fois *(à vérifier)* | moyenne | 2 à 4 semaines (test fermé) | fait disparaître l'alerte Play Protect |
 | Flathub | gratuit | élevée | semaines | après stabilisation (build depuis les sources) |
 | F-Droid officiel | gratuit | élevée | mois | bloqué par le Python prébuilt (voir plus bas) |
@@ -27,7 +27,7 @@ fermé avec au moins 12 testeurs pendant 14 jours d'affilée** est obligatoire. 
 liste de testeurs (élèves, collègues) dès le début.
 
 **Changements nécessaires dans le projet**
-1. **Canal « play »** : ajouter `--dart-define=TONTOLO_CHANNEL=play` et, dans ce canal,
+1. **Canal « play »** : ajouter `--dart-define=PROJIA_CHANNEL=play` et, dans ce canal,
    **désactiver la mise à jour intégrée** (règle Play : une application ne se met pas à jour
    elle-même hors Play) et **retirer la permission `REQUEST_INSTALL_PACKAGES`** (permission
    restreinte sur Play). Le plus propre : une *flavor* Gradle `play` avec un manifeste qui
@@ -40,7 +40,7 @@ liste de testeurs (élèves, collègues) dès le début.
 **Fiche et formulaires**
 - Textes (titre ≤ 30 caractères, description courte ≤ 80, longue ≤ 4000) : repartir de
   `fastlane/metadata/android/fr-FR/` et `en-US/`.
-- Visuels : icône 512×512 (`docs/brand/tontolo-icon-512.png`), bannière 1024×500, au moins
+- Visuels : icône 512×512 (`docs/brand/projia-icon-512.png`), bannière 1024×500, au moins
   2 captures téléphone (`docs/screenshots/`).
 - **Politique de confidentialité** : URL publique obligatoire (ex. page GitHub Pages reprenant
   `docs/COMPLIANCE.md`).
@@ -81,16 +81,16 @@ prébuilt. Points bloquants actuels :
 - statistiques et mise à jour intégrée à désactiver (build sans `--dart-define` de stats =
   statistiques déjà inertes) ;
 - Flutter doit être fourni via `srclibs: flutter@stable`.
-Une recette d'exemple est dans `packaging/fdroid/io.github.raantss18.tontolo.yml` (à
+Une recette d'exemple est dans `packaging/fdroid/io.github.raantss18.projia.yml` (à
 soumettre en *merge request* au dépôt `fdroiddata` quand les points ci-dessus sont réglés).
 
 ## 3. Linux
 
 ### AUR (le plus simple)
-Paquet binaire `tontolo-bin` construit à partir de l'AppImage de la release :
+Paquet binaire `projia-bin` construit à partir de l'AppImage de la release :
 `packaging/aur/PKGBUILD` et `.SRCINFO`.
 1. Créer un compte sur aur.archlinux.org et y déposer sa clé SSH.
-2. `git clone ssh://aur@aur.archlinux.org/tontolo-bin.git`, copier les deux fichiers.
+2. `git clone ssh://aur@aur.archlinux.org/projia-bin.git`, copier les deux fichiers.
 3. À chaque version : mettre à jour `pkgver`, la somme `sha256sums` (dans `SHA256SUMS` de la
    release), puis `makepkg --printsrcinfo > .SRCINFO`, `makepkg -si` pour tester, `git push`.
 
@@ -100,25 +100,25 @@ réemballage d'une AppImage n'est pas accepté ; `extra-data` est réservé aux 
 libres). Étapes :
 1. Écrire un manifeste qui construit Flutter et le cœur Python depuis les sources (modules
    `flutter`, `python3`, dépendances pip via `flatpak-pip-generator`).
-2. Fichiers AppStream fournis : `packaging/flatpak/io.github.raantss18.tontolo.metainfo.xml`
+2. Fichiers AppStream fournis : `packaging/flatpak/io.github.raantss18.projia.metainfo.xml`
    et `.desktop` (valider avec `appstreamcli validate` et `desktop-file-validate`).
 3. Ouvrir une *pull request* sur `flathub/flathub` (branche `new-pr`), revue par l'équipe.
 Réaliste après la 0.3.x, une fois le build reproductible.
 
 ### Snap Store
 `snapcraft` peut empaqueter le bundle Linux (`flutter build linux`) avec l'extension
-`gnome`. Compte Ubuntu One, `snapcraft register tontolo`, puis `snapcraft upload`.
+`gnome`. Compte Ubuntu One, `snapcraft register projia`, puis `snapcraft upload`.
 Confinement strict : prévoir les *plugs* `network`, `audio-record`, `home`.
 
 ### Paquet .deb (optionnel)
 Le bundle `build/linux/x64/release/bundle` peut être empaqueté avec `dpkg-deb` (dossier
-`/opt/tontolo` + fichier `.desktop` + icône) et ajouté aux assets de release par la CI.
+`/opt/projia` + fichier `.desktop` + icône) et ajouté aux assets de release par la CI.
 
 ### PyPI (cœur en ligne de commande et serveur compatible OpenAI)
 1. Créer le projet sur pypi.org et configurer la **publication de confiance** (*Trusted
    Publishing*) pour le dépôt GitHub et le workflow `release.yml`.
 2. Ajouter à la CI une étape `pypa/gh-action-pypi-publish` qui publie la roue `core/dist/*`.
-3. Ensuite : `pipx install tontolo` puis `tontolo serve`.
+3. Ensuite : `pipx install projia` puis `projia serve`.
 
 ## Rappels communs
 - **Même clé de signature Android partout** (GitHub, IzzyOnDroid) pour que les mises à jour

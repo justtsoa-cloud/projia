@@ -2,7 +2,7 @@
 
 Facultatifs. Un compte (Google ou GitHub) permet de retrouver ses **discussions** (avec
 dossiers, épingles et mode Apprendre), ses **mémoires** et ses **clés d'API** sur tous ses
-appareils. Sans compte, Tontolo fonctionne exactement comme avant.
+appareils. Sans compte, Projia fonctionne exactement comme avant.
 
 ## Ce que voit le serveur : rien de lisible
 - Le compte donne l'**accès** (Supabase Auth, flux OAuth PKCE). La **lecture** exige la
@@ -30,13 +30,13 @@ appareils. Sans compte, Tontolo fonctionne exactement comme avant.
 1. **SQL** : exécuter `docs/accounts/supabase_sync.sql` dans *SQL Editor*.
 2. **URL de retour** : *Authentication › URL Configuration › Redirect URLs*, ajouter
    `http://localhost:43823/` (Linux et anciennes versions Android), ainsi que
-   `io.github.raantss18.tontolo://login-callback/` (Android à partir de la 0.4.7).
+   `io.github.raantss18.projia://login-callback/` (Android à partir de la 0.4.7).
    Conserver les deux URL exactes, sans wildcard.
 3. **Google** : console.cloud.google.com › *APIs & Services › Credentials* › *Create
    credentials › OAuth client ID* (type *Web application*), *Authorized redirect URI* :
    `https://<projet>.supabase.co/auth/v1/callback`. Puis Supabase › *Authentication ›
    Providers › Google* : activer, coller *Client ID* et *Client secret*.
-   (Écran de consentement OAuth : nom « Tontolo », e-mail d'assistance, publier l'app.)
+   (Écran de consentement OAuth : nom « Projia », e-mail d'assistance, publier l'app.)
 4. **GitHub** : github.com › *Settings › Developer settings › OAuth Apps › New OAuth App*,
    *Authorization callback URL* : `https://<projet>.supabase.co/auth/v1/callback`. Puis
    Supabase › *Providers › GitHub* : activer, coller *Client ID* et *Client secret*.

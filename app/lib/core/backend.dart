@@ -1,9 +1,9 @@
-// Démarrage et connexion au cœur Tontolo.
+// Démarrage et connexion au cœur Projia.
 //
 // Mode local : le cœur Python est embarqué (serious_python) et écoute sur
 // 127.0.0.1 avec un port libre et un jeton aléatoire, pour qu'aucune autre
 // application de l'appareil ne puisse l'utiliser.
-// Mode distant : l'application parle à un serveur Tontolo sur Linux (URL + jeton).
+// Mode distant : l'application parle à un serveur Projia sur Linux (URL + jeton).
 // Le reste de l'application utilise le même code dans les deux cas.
 
 import 'dart:async';
@@ -64,7 +64,7 @@ class Backend extends ChangeNotifier {
   Future<void> _startEmbedded() async {
     if (_pythonStarted) return;
     final support = await getApplicationSupportDirectory();
-    final home = Directory('${support.path}/tontolo');
+    final home = Directory('${support.path}/projia');
     await home.create(recursive: true);
     // Quitter l'application (bouton Retour) ne tue pas le processus Android : le moteur Python
     // y reste en vie, mais l'interface est recréée. On le retrouve (port + jeton mémorisés)
@@ -85,10 +85,10 @@ class Backend extends ChangeNotifier {
     // Le cœur tourne dans un fil d'exécution d'arrière-plan : l'interface reste fluide.
     unawaited(SeriousPython.run(
       environmentVariables: {
-        'TONTOLO_PORT': '$port',
-        'TONTOLO_TOKEN': token,
-        'TONTOLO_HOME': home.path,
-        'TONTOLO_PLATFORM': Platform.isAndroid ? 'android' : 'linux',
+        'PROJIA_PORT': '$port',
+        'PROJIA_TOKEN': token,
+        'PROJIA_HOME': home.path,
+        'PROJIA_PLATFORM': Platform.isAndroid ? 'android' : 'linux',
       },
     ));
   }
@@ -101,7 +101,7 @@ class Backend extends ChangeNotifier {
       final url = 'http://127.0.0.1:${j['port']}';
       final t = '${j['token']}';
       final r = await http
-          .get(Uri.parse('$url/tontolo/status'), headers: {'Authorization': 'Bearer $t'})
+          .get(Uri.parse('$url/projia/status'), headers: {'Authorization': 'Bearer $t'})
           .timeout(const Duration(seconds: 2));
       if (r.statusCode != 200) return false;
       baseUrl = url;
@@ -125,7 +125,7 @@ class Backend extends ChangeNotifier {
       await Future.delayed(Duration(milliseconds: delay));
       delay = min(delay * 2, 800);
     }
-    throw Exception('Le cœur Tontolo ne répond pas ($baseUrl)');
+    throw Exception('Le cœur Projia ne répond pas ($baseUrl)');
   }
 
   Uri uri(String path, [Map<String, dynamic>? query]) => Uri.parse('$baseUrl$path').replace(
@@ -155,7 +155,7 @@ class Backend extends ChangeNotifier {
   /// Flux d'événements SSE (`data: {...}`). La génération tourne côté cœur : fermer ce flux
   /// (quitter la discussion) ne l'interrompt pas ; on peut s'y rattacher avec `follow`.
   Stream<Map<String, dynamic>> follow(String conversationId) =>
-      sse('/tontolo/chat/$conversationId/stream', null, method: 'GET');
+      sse('/projia/chat/$conversationId/stream', null, method: 'GET');
 
   Stream<Map<String, dynamic>> sse(String path, Object? body, {String method = 'POST'}) async* {
     final client = http.Client();

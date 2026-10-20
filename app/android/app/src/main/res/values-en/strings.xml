@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="work_channel">Answers in progress</string>
-    <string name="work_text">Tontolo is finishing your answer…</string>
-    <string name="shortcut_ask_short">Ask Tontolo</string>
+    <string name="work_text">Projia is finishing your answer…</string>
+    <string name="shortcut_ask_short">Ask Projia</string>
     <string name="shortcut_ask_long">Write a question</string>
-    <string name="widget_ask_hint">Ask Tontolo…</string>
-    <string name="widget_description">Ask Tontolo</string>
+    <string name="widget_ask_hint">Ask Projia…</string>
+    <string name="widget_description">Ask Projia</string>
 </resources>

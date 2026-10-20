@@ -8,14 +8,14 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from tontolo.agent.tools import calculator, file_tools, safe_get
-from tontolo.catalog.service import CatalogService
-from tontolo.config import Settings
-from tontolo.providers.fake import FakeProvider
-from tontolo.providers.registry import ProviderRegistry
-from tontolo.secrets import redact
-from tontolo.security import ProviderPins, host_of, origin_allowed
-from tontolo.server.app import create_app
+from projia.agent.tools import calculator, file_tools, safe_get
+from projia.catalog.service import CatalogService
+from projia.config import Settings
+from projia.providers.fake import FakeProvider
+from projia.providers.registry import ProviderRegistry
+from projia.secrets import redact
+from projia.security import ProviderPins, host_of, origin_allowed
+from projia.server.app import create_app
 
 
 @pytest.fixture
@@ -32,7 +32,7 @@ def client(settings: Settings, catalog_service: CatalogService, fake: FakeProvid
 
 
 def test_csrf_foreign_origin_rejected(client: TestClient) -> None:
-    r = client.post("/tontolo/keys/openrouter", headers={"Origin": "https://evil.example"},
+    r = client.post("/projia/keys/openrouter", headers={"Origin": "https://evil.example"},
                     json={"key": "x"})
     assert r.status_code == 403
     assert client.get("/health", headers={"Origin": "http://localhost:3000"}).status_code == 200
@@ -46,7 +46,7 @@ def test_dns_rebinding_rejected(client: TestClient) -> None:
 def test_mcp_stdio_not_configurable_remotely(client: TestClient, settings: Settings) -> None:
     settings.server.host = "0.0.0.0"
     settings.server.token = "t"
-    r = client.put("/tontolo/mcp", headers={"Authorization": "Bearer t"},
+    r = client.put("/projia/mcp", headers={"Authorization": "Bearer t"},
                    json={"servers": [{"name": "x", "transport": "stdio", "command": "rm"}]})
     assert r.status_code == 403
 
@@ -58,7 +58,7 @@ def test_helpers() -> None:
 
 
 @pytest.mark.parametrize("url", [
-    "http://127.0.0.1:8765/tontolo/keys", "http://localhost/", "http://169.254.169.254/latest",
+    "http://127.0.0.1:8765/projia/keys", "http://localhost/", "http://169.254.169.254/latest",
     "http://10.0.0.1/", "http://[::1]/", "file:///etc/passwd", "ftp://example.org/",
 ])
 async def test_ssrf_blocked(url: str) -> None:
@@ -93,12 +93,12 @@ async def test_file_tools_confined(tmp_path: Path) -> None:
 
 
 def test_latex_cannot_read_or_run_files() -> None:
-    from tontolo.creator import book, bundle
+    from projia.creator import book, bundle
 
     files = {"main.tex": "\\documentclass{x}\\input{/etc/passwd}"}
     _, missing = bundle.inline_tex(files, "main.tex")
     assert missing == ["/etc/passwd"]  # chemin hors projet : jamais lu
-    from tontolo.creator.pipeline import latex_problems
+    from projia.creator.pipeline import latex_problems
 
     nasty = ["\\openin5=/etc/passwd", "\\read5 to \\x", "\\InputIfFileExists{/etc/passwd}{}{}",
              "\\verbatiminput{/etc/hosts}", "\\lstinputlisting{/etc/hosts}",
@@ -113,20 +113,20 @@ def test_latex_cannot_read_or_run_files() -> None:
 
 
 def test_media_served_safely(client: TestClient, tmp_path: Path) -> None:
-    from tontolo.server.common import safe_mime
+    from projia.server.common import safe_mime
 
     assert safe_mime("text/html") == "text/html" and safe_mime("<script>") == \
         "application/octet-stream"
     core = client.app.state.core  # type: ignore[attr-defined]
     page = core.media.dir / "page.html"
-    page.write_text("<script>fetch('/tontolo/memory')</script>")
+    page.write_text("<script>fetch('/projia/memory')</script>")
 
     async def make() -> None:
         await core.db.upsert_job({"id": "e" * 32, "kind": "file_gen", "status": "done",
                                   "params": {"mime": "text/html"}, "result_path": str(page)})
 
     client.portal.call(make)  # type: ignore[attr-defined]
-    r = client.get("/tontolo/media/" + "e" * 32 + "/file")
+    r = client.get("/projia/media/" + "e" * 32 + "/file")
     assert r.headers["content-type"].startswith("application/octet-stream")
     assert "attachment" in r.headers["content-disposition"]
     assert r.headers["x-content-type-options"] == "nosniff"
@@ -135,7 +135,7 @@ def test_media_served_safely(client: TestClient, tmp_path: Path) -> None:
 
 def test_connected_address_is_checked_after_connection() -> None:
     """DNS rebinding : la vérification porte aussi sur l'adresse réellement connectée."""
-    from tontolo.security import assert_public_peer, connected_ip
+    from projia.security import assert_public_peer, connected_ip
 
     class Stream:
         def __init__(self, ip: str) -> None:
@@ -162,7 +162,7 @@ async def test_real_connection_exposes_the_peer_address() -> None:
 
     import httpx
 
-    from tontolo.security import connected_ip
+    from projia.security import connected_ip
 
     async def handle(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         await reader.readuntil(b"\r\n\r\n")

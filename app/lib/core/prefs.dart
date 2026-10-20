@@ -122,7 +122,7 @@ class Prefs extends ChangeNotifier {
   bool get notifyNewFree => _sp.getBool('notifyNewFree') ?? false;
   set notifyNewFree(bool v) => _set(() => _sp.setBool('notifyNewFree', v));
 
-  /// Serveur Tontolo avec lequel synchroniser l'historique (mode local).
+  /// Serveur Projia avec lequel synchroniser l'historique (mode local).
   String get syncUrl => _sp.getString('syncUrl') ?? '';
   set syncUrl(String v) => _set(() => _sp.setString('syncUrl', v));
 

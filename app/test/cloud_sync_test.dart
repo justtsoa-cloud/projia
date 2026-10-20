@@ -4,12 +4,12 @@ import 'dart:convert';
 
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tontolo/core/account.dart';
-import 'package:tontolo/core/cloud_sync.dart';
+import 'package:projia/core/account.dart';
+import 'package:projia/core/cloud_sync.dart';
 
 void main() {
-  test('Android revient dans Tontolo ; Linux conserve le retour local', () {
-    expect(authCallbackUrl(android: true), 'io.github.raantss18.tontolo://login-callback/');
+  test('Android revient dans Projia ; Linux conserve le retour local', () {
+    expect(authCallbackUrl(android: true), 'io.github.raantss18.projia://login-callback/');
     expect(authCallbackUrl(android: false), 'http://localhost:43823/');
   });
 
@@ -17,10 +17,10 @@ void main() {
     expect(isAndroidAuthCallback(Uri.parse('$androidCallbackUrl?code=sample')), isTrue);
     for (final bad in [
       'https://login-callback/?code=sample',
-      'io.github.raantss18.tontolo://other/?code=sample',
-      'io.github.raantss18.tontolo://login-callback/other?code=sample',
-      'io.github.raantss18.tontolo://login-callback:123/?code=sample',
-      'io.github.raantss18.tontolo://user@login-callback/?code=sample',
+      'io.github.raantss18.projia://other/?code=sample',
+      'io.github.raantss18.projia://login-callback/other?code=sample',
+      'io.github.raantss18.projia://login-callback:123/?code=sample',
+      'io.github.raantss18.projia://user@login-callback/?code=sample',
       '$androidCallbackUrl#access_token=sample',
     ]) {
       expect(isAndroidAuthCallback(Uri.parse(bad)), isFalse, reason: bad);

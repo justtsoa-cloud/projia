@@ -24,7 +24,7 @@ import 'prefs.dart';
 import 'update_key.dart';
 
 const appVersion = '0.7.3';
-const repo = 'raantss18/tontolo';
+const repo = 'justtsoa-cloud/projia';
 
 enum UpdateStatus { idle, checking, downloading, ready, failed, upToDate }
 
@@ -173,7 +173,7 @@ class Updater extends ChangeNotifier {
   }
 
   /// Vrai si `signature` (Ed25519, 64 octets) signe exactement `sums` avec la clé publique de
-  /// Tontolo (ou `publicKey`, pour les tests).
+  /// Projia (ou `publicKey`, pour les tests).
   static Future<bool> verifySums(List<int> sums, List<int> signature, {String publicKey = updateSigningKey}) async {
     if (signature.length != 64) return false;
     try {
@@ -214,8 +214,8 @@ class Updater extends ChangeNotifier {
   static Map<String, dynamic> fallbackRelease(String v) {
     String dl(String n) => 'https://github.com/$repo/releases/download/v$v/$n';
     final names = [
-      for (final abi in ['arm64-v8a', 'armeabi-v7a', 'x86_64']) 'tontolo-$v-$abi.apk',
-      'Tontolo-$v-x86_64.AppImage', 'Tontolo-$v-aarch64.AppImage', 'SHA256SUMS', 'SHA256SUMS.sig',
+      for (final abi in ['arm64-v8a', 'armeabi-v7a', 'x86_64']) 'projia-$v-$abi.apk',
+      'Projia-$v-x86_64.AppImage', 'Projia-$v-aarch64.AppImage', 'SHA256SUMS', 'SHA256SUMS.sig',
     ];
     return {
       'tag_name': 'v$v',
@@ -268,7 +268,7 @@ class Updater extends ChangeNotifier {
       String os, String arch, String version) {
     if (!RegExp(r'^\d+\.\d+\.\d+$').hasMatch(version)) return null;
     final expected = os == 'android'
-        ? 'tontolo-$version-$arch.apk' : 'Tontolo-$version-$arch.AppImage';
+        ? 'projia-$version-$arch.apk' : 'Projia-$version-$arch.AppImage';
     return assets.where((a) => a['name'] == expected).firstOrNull;
   }
 

@@ -8,13 +8,13 @@ from typing import Any
 
 import pytest
 
-from tontolo.agent.loop import ChatService
-from tontolo.config import PaidFallback, Settings
-from tontolo.providers.base import ErrorKind, ProviderError, Scope
-from tontolo.providers.fake import FakeProvider
-from tontolo.router.engine import Router
-from tontolo.router.quota import QuotaManager, next_utc_midnight
-from tontolo.storage.db import Database
+from projia.agent.loop import ChatService
+from projia.config import PaidFallback, Settings
+from projia.providers.base import ErrorKind, ProviderError, Scope
+from projia.providers.fake import FakeProvider
+from projia.router.engine import Router
+from projia.router.quota import QuotaManager, next_utc_midnight
+from projia.storage.db import Database
 
 
 def r429(retry: float | None = 60, msg: str = "Rate limit exceeded") -> ProviderError:

@@ -27,7 +27,7 @@ class _StatusScreenState extends State<StatusScreen> {
     final b = AppScope.of(context).backend;
     final h = await ModelHealth.fetch(context);
     try {
-      final data = await b.getJson('/tontolo/catalog', {'free': true, 'usable': true, 'limit': 400}) as Map<String, dynamic>;
+      final data = await b.getJson('/projia/catalog', {'free': true, 'usable': true, 'limit': 400}) as Map<String, dynamic>;
       final all = (data['models'] as List).cast<Map<String, dynamic>>();
       if (!mounted) return;
       setState(() {

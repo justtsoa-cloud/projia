@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tontolo/core/chat_controller.dart';
-import 'package:tontolo/ui/question_card.dart';
+import 'package:projia/core/chat_controller.dart';
+import 'package:projia/ui/question_card.dart';
 
 void main() {
   final qs = AskedQuestion.parse([

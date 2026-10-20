@@ -5,11 +5,11 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from tontolo.agent.loop import ChatService, has_study_block, parse_study_json, study_kind
-from tontolo.config import Settings
-from tontolo.providers.fake import FakeProvider
-from tontolo.router.engine import Router
-from tontolo.storage.db import Database
+from projia.agent.loop import ChatService, has_study_block, parse_study_json, study_kind
+from projia.config import Settings
+from projia.providers.fake import FakeProvider
+from projia.router.engine import Router
+from projia.storage.db import Database
 
 QUIZ = {"title": "Vecteurs", "questions": [
     {"q": "Coordonnées de $\\vec{BH}$ ?", "choices": ["(-1,1,1)", "(1,-1,1)"], "answer": 0,

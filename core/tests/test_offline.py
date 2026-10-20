@@ -6,13 +6,13 @@ from typing import Any
 
 import pytest
 
-from tontolo.agent.loop import ChatService
-from tontolo.config import Settings
-from tontolo.providers.base import ErrorKind, ProviderError
-from tontolo.providers.fake import FakeProvider
-from tontolo.router import engine
-from tontolo.router.engine import Router
-from tontolo.storage.db import Database
+from projia.agent.loop import ChatService
+from projia.config import Settings
+from projia.providers.base import ErrorKind, ProviderError
+from projia.providers.fake import FakeProvider
+from projia.router import engine
+from projia.router.engine import Router
+from projia.storage.db import Database
 
 
 def net() -> ProviderError:
@@ -84,7 +84,7 @@ async def test_health_states(router: Router) -> None:
 
 async def test_offline_uses_on_device_model(router: Router, fake: FakeProvider, db: Database,
                                             settings: Settings) -> None:
-    from tontolo.catalog.sources import local_llm
+    from projia.catalog.sources import local_llm
 
     cat = router.catalog.catalog
     cat.providers.update(local_llm.PROVIDERS)

@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Projia
+GenericName=AI assistant
+GenericName[fr]=Assistant IA
+Comment=Free AI assistant that always picks the best free model
+Comment[fr]=Assistant IA gratuit qui choisit toujours le meilleur modèle gratuit
+Exec=projia
+Icon=io.github.raantss18.projia
+Terminal=false
+Categories=Utility;Education;
+Keywords=AI;chat;assistant;LLM;IA;
+StartupWMClass=projia

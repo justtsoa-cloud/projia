@@ -14,8 +14,8 @@ import 'backend.dart';
 import 'prefs.dart';
 import 'updater.dart' show appVersion;
 
-const _statsUrl = String.fromEnvironment('TONTOLO_STATS_URL');
-const _statsKey = String.fromEnvironment('TONTOLO_STATS_KEY');
+const _statsUrl = String.fromEnvironment('PROJIA_STATS_URL');
+const _statsKey = String.fromEnvironment('PROJIA_STATS_KEY');
 
 class Stats {
   Stats._();
@@ -102,7 +102,7 @@ class Stats {
     if (r.statusCode != 200) return;
     final rows = jsonDecode(utf8.decode(r.bodyBytes));
     if (rows is List && backend.state == BackendState.ready) {
-      await backend.sendJson('PUT', '/tontolo/feedback/global', {'scores': rows});
+      await backend.sendJson('PUT', '/projia/feedback/global', {'scores': rows});
     }
   }
 

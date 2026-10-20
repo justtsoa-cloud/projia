@@ -93,7 +93,7 @@ class _Simple extends StatelessWidget {
             onChanged: (v) {
               prefs.locale = v ?? 'fr';
               // Le moteur répond par défaut dans la langue de l'interface.
-              scope.backend.sendJson('PUT', '/tontolo/settings', {'language': prefs.locale}).catchError((_) => null);
+              scope.backend.sendJson('PUT', '/projia/settings', {'language': prefs.locale}).catchError((_) => null);
             },
           ),
         ),
@@ -214,7 +214,7 @@ class _ProviderKeysState extends State<ProviderKeys> {
   Future<void> _load() async {
     final b = AppScope.of(context).backend;
     if (b.state != BackendState.ready) return;
-    final data = await b.getJson('/tontolo/providers') as List;
+    final data = await b.getJson('/projia/providers') as List;
     final list = data.cast<Map<String, dynamic>>()
       ..add({'id': 'artificial-analysis', 'name': mounted ? context.t('aa_name') : 'Artificial Analysis',
              'description': mounted ? context.t('aa_help') : null,
@@ -348,9 +348,9 @@ class _PaidSimpleState extends State<PaidSimple> {
     final b = AppScope.of(context).backend;
     if (b.state != BackendState.ready) return;
     try {
-      final s = await b.getJson('/tontolo/settings') as Map<String, dynamic>;
-      final sp = await b.getJson('/tontolo/spend') as Map<String, dynamic>;
-      final prov = (await b.getJson('/tontolo/providers') as List).cast<Map<String, dynamic>>();
+      final s = await b.getJson('/projia/settings') as Map<String, dynamic>;
+      final sp = await b.getJson('/projia/spend') as Map<String, dynamic>;
+      final prov = (await b.getJson('/projia/providers') as List).cast<Map<String, dynamic>>();
       if (!mounted) return;
       setState(() {
         paid = (s['paid'] as Map?)?.cast<String, dynamic>() ?? {};
@@ -366,7 +366,7 @@ class _PaidSimpleState extends State<PaidSimple> {
   }
 
   Future<void> _patch(Map<String, dynamic> patch) async {
-    final s = await AppScope.of(context).backend.sendJson('PUT', '/tontolo/settings', {'paid': patch});
+    final s = await AppScope.of(context).backend.sendJson('PUT', '/projia/settings', {'paid': patch});
     if (mounted) setState(() => paid = ((s as Map)['paid'] as Map).cast<String, dynamic>());
   }
 
@@ -521,9 +521,9 @@ class _AdvancedState extends State<_Advanced> {
   Future<void> _load() async {
     final b = AppScope.of(context).backend;
     if (b.state != BackendState.ready) return;
-    final s = await b.getJson('/tontolo/settings') as Map<String, dynamic>;
-    final st = await b.getJson('/tontolo/status') as Map<String, dynamic>;
-    final mcp = await b.getJson('/tontolo/mcp') as Map<String, dynamic>;
+    final s = await b.getJson('/projia/settings') as Map<String, dynamic>;
+    final st = await b.getJson('/projia/status') as Map<String, dynamic>;
+    final mcp = await b.getJson('/projia/mcp') as Map<String, dynamic>;
     if (mounted) {
       setState(() {
         settings = s;
@@ -534,7 +534,7 @@ class _AdvancedState extends State<_Advanced> {
   }
 
   Future<void> _patch(Map<String, dynamic> patch) async {
-    final s = await AppScope.of(context).backend.sendJson('PUT', '/tontolo/settings', patch);
+    final s = await AppScope.of(context).backend.sendJson('PUT', '/projia/settings', patch);
     setState(() => settings = (s as Map).cast<String, dynamic>());
   }
 
@@ -641,7 +641,7 @@ class _AdvancedState extends State<_Advanced> {
           value: srv['enabled'] != false,
           onChanged: (v) async {
             mcpServers[i] = {...srv, 'enabled': v};
-            await scope.backend.sendJson('PUT', '/tontolo/mcp', {'servers': mcpServers});
+            await scope.backend.sendJson('PUT', '/projia/mcp', {'servers': mcpServers});
             setState(() {});
           },
         ),
@@ -657,7 +657,7 @@ class _AdvancedState extends State<_Advanced> {
             onPressed: () async {
               if (mcpName.text.isEmpty || mcpUrl.text.isEmpty) return;
               mcpServers.add({'name': mcpName.text.trim(), 'transport': 'http', 'url': mcpUrl.text.trim(), 'enabled': true});
-              await scope.backend.sendJson('PUT', '/tontolo/mcp', {'servers': mcpServers});
+              await scope.backend.sendJson('PUT', '/projia/mcp', {'servers': mcpServers});
               mcpName.clear();
               mcpUrl.clear();
               _load();
@@ -671,7 +671,7 @@ class _AdvancedState extends State<_Advanced> {
         subtitle: Text(status == null ? '' : '${context.t('catalog_sources')} : ${(status!['sources'] as Map).entries.map((e) => '${e.key} ${e.value}').join(', ')}'),
         trailing: const Icon(Icons.refresh),
         onTap: () async {
-          await scope.backend.sendJson('POST', '/tontolo/catalog/refresh');
+          await scope.backend.sendJson('POST', '/projia/catalog/refresh');
           _load();
         },
       ),
@@ -750,8 +750,8 @@ class _StorageSectionState extends State<_StorageSection> {
     final b = AppScope.of(context).backend;
     try {
       final data = method == 'GET'
-          ? await b.getJson('/tontolo/storage')
-          : await b.sendJson('POST', '/tontolo/storage/clear-cache', {});
+          ? await b.getJson('/projia/storage')
+          : await b.sendJson('POST', '/projia/storage/clear-cache', {});
       if (mounted) setState(() => r = (data as Map).cast<String, dynamic>());
     } catch (_) {}
   }

@@ -6,16 +6,16 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tontolo/core/account.dart';
-import 'package:tontolo/core/activity.dart';
-import 'package:tontolo/core/backend.dart';
-import 'package:tontolo/core/chat_controller.dart';
-import 'package:tontolo/core/cloud_sync.dart';
-import 'package:tontolo/core/prefs.dart';
-import 'package:tontolo/core/updater.dart';
-import 'package:tontolo/l10n/strings.dart';
-import 'package:tontolo/main.dart';
-import 'package:tontolo/ui/settings_screen.dart';
+import 'package:projia/core/account.dart';
+import 'package:projia/core/activity.dart';
+import 'package:projia/core/backend.dart';
+import 'package:projia/core/chat_controller.dart';
+import 'package:projia/core/cloud_sync.dart';
+import 'package:projia/core/prefs.dart';
+import 'package:projia/core/updater.dart';
+import 'package:projia/l10n/strings.dart';
+import 'package:projia/main.dart';
+import 'package:projia/ui/settings_screen.dart';
 
 class FakeCore extends Backend {
   FakeCore(super.prefs, this.data) {
@@ -24,7 +24,7 @@ class FakeCore extends Backend {
   final Map<String, dynamic> data;
   final sent = <(String, String, Object?)>[];
 
-  dynamic _answer(String path) => jsonDecode(jsonEncode(data[path.replaceFirst('/tontolo/', '')]));
+  dynamic _answer(String path) => jsonDecode(jsonEncode(data[path.replaceFirst('/projia/', '')]));
 
   @override
   Future<dynamic> getJson(String path, [Map<String, dynamic>? query]) async => _answer(path);
@@ -32,7 +32,7 @@ class FakeCore extends Backend {
   @override
   Future<dynamic> sendJson(String method, String path, [Object? body]) async {
     sent.add((method, path, body));
-    if (path == '/tontolo/settings' && body is Map) {
+    if (path == '/projia/settings' && body is Map) {
       (data['settings'] as Map<String, dynamic>).addAll(body.cast<String, dynamic>());
     }
     return _answer(path) ?? <String, dynamic>{};
@@ -80,11 +80,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(multi);
     await tester.pumpAndSettle();
-    expectSent('PUT', '/tontolo/settings', {'task_planning': true, 'orchestrate': true});
+    expectSent('PUT', '/projia/settings', {'task_planning': true, 'orchestrate': true});
     expect(find.textContaining('confiées en même temps à plusieurs modèles'), findsOneWidget);
     await tester.tap(find.descendant(of: find.byType(SegmentedButton<String>), matching: find.text('Simple')));
     await tester.pumpAndSettle();
-    expectSent('PUT', '/tontolo/settings', {'task_planning': false, 'orchestrate': false});
+    expectSent('PUT', '/projia/settings', {'task_planning': false, 'orchestrate': false});
   });
 
   testWidgets('onglet Avancé : affiché sans erreur, dans les trois langues', (tester) async {

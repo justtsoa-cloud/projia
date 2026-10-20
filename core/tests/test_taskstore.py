@@ -11,8 +11,8 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
+from projia.agent.taskstore import KEEP_DAYS, TaskStore
 from tests.test_planner import COMPLEX, _chat, _script, client  # noqa: F401
-from tontolo.agent.taskstore import KEEP_DAYS, TaskStore
 
 
 def test_store_put_read_purge(tmp_path: Path) -> None:
@@ -35,11 +35,11 @@ def test_parallel_parts_and_steps_are_kept(client: TestClient,  # noqa: F811
     _script(fake, "parallel", seen)
     events = _chat(client, {"content": COMPLEX})
     cid = next(e["id"] for e in events if e["type"] == "conversation")
-    items = client.get(f"/tontolo/conversations/{cid}/tasks").json()
+    items = client.get(f"/projia/conversations/{cid}/tasks").json()
     assert [i["kind"] for i in items] == ["part"] * 3
-    one = client.get(f"/tontolo/conversations/{cid}/tasks/{items[0]['id']}").json()
+    one = client.get(f"/projia/conversations/{cid}/tasks/{items[0]['id']}").json()
     assert one["content"].startswith("partie par")
-    plan = client.get(f"/tontolo/conversations/{cid}").json()["plan"]
+    plan = client.get(f"/projia/conversations/{cid}").json()["plan"]
     assert plan["status"] == "done" and all(r["ref"] for r in plan["results"])
 
     _script(fake, "steps", seen)
@@ -48,10 +48,10 @@ def test_parallel_parts_and_steps_are_kept(client: TestClient,  # noqa: F811
     _chat(client, {"conversation_id": cid, "content": "continuer"})
     prompt = json.dumps(seen[-1], ensure_ascii=False)
     assert "Étape 1 livrée (texte complet : task_read id=" in prompt  # le fil ne se perd pas
-    kinds = [i["kind"] for i in client.get(f"/tontolo/conversations/{cid}/tasks").json()]
+    kinds = [i["kind"] for i in client.get(f"/projia/conversations/{cid}/tasks").json()]
     assert kinds == ["step", "step"]
-    assert client.delete(f"/tontolo/conversations/{cid}").json()["ok"]
-    assert client.get(f"/tontolo/conversations/{cid}/tasks").json() == []
+    assert client.delete(f"/projia/conversations/{cid}").json()["ok"]
+    assert client.get(f"/projia/conversations/{cid}/tasks").json() == []
 
 
 def test_long_tool_output_is_stored(client: TestClient, fake: Any) -> None:  # noqa: F811
@@ -61,7 +61,7 @@ def test_long_tool_output_is_stored(client: TestClient, fake: Any) -> None:  # n
     async def big(args: dict[str, Any]) -> str:
         return "ligne\n" * 2000
 
-    from tontolo.agent.tools import Tool
+    from projia.agent.tools import Tool
 
     core.chat.toolbox.add(Tool("gros_outil", "renvoie beaucoup", {"type": "object",
                                                                   "properties": {}}, big))
@@ -78,29 +78,29 @@ def test_long_tool_output_is_stored(client: TestClient, fake: Any) -> None:  # n
         fake.behaviors[mid] = act
     events = _chat(client, {"content": "lance l'outil"})
     cid = next(e["id"] for e in events if e["type"] == "conversation")
-    msgs = client.get(f"/tontolo/conversations/{cid}").json()["messages"]
+    msgs = client.get(f"/projia/conversations/{cid}").json()["messages"]
     tool_msg = next(m for m in msgs if m["role"] == "tool")
     assert len(tool_msg["content"]) < 3500 and "task_read id=" in tool_msg["content"]
-    items = client.get(f"/tontolo/conversations/{cid}/tasks").json()
+    items = client.get(f"/projia/conversations/{cid}/tasks").json()
     assert items[0]["kind"] == "tool" and items[0]["size"] == 12000
 
 
 def test_cloud_roundtrip(client: TestClient) -> None:  # noqa: F811
     core = client.app.state.core  # type: ignore[attr-defined]
     core.chat.tasks.put("c9", "draft", "livre.tex", "\\documentclass{book}")
-    out = client.get("/tontolo/cloud/tasks").json()
+    out = client.get("/projia/cloud/tasks").json()
     assert out["items"][0]["content"] == "\\documentclass{book}" and out["until"] > 0
-    assert client.get("/tontolo/cloud/tasks", params={"since": out["until"]}).json()[
+    assert client.get("/projia/cloud/tasks", params={"since": out["until"]}).json()[
         "items"] == []
     item = dict(out["items"][0], conversation_id="c10", updated=out["until"] + 1)
-    assert client.post("/tontolo/cloud/tasks", json={"items": [item]}).json() == {"applied": 1}
-    assert client.post("/tontolo/cloud/tasks", json={"items": [item]}).json() == {"applied": 0}
+    assert client.post("/projia/cloud/tasks", json={"items": [item]}).json() == {"applied": 1}
+    assert client.post("/projia/cloud/tasks", json={"items": [item]}).json() == {"applied": 0}
     bad = dict(item, conversation_id="../x")
-    assert client.post("/tontolo/cloud/tasks", json={"items": [bad]}).json() == {"applied": 0}
+    assert client.post("/projia/cloud/tasks", json={"items": [bad]}).json() == {"applied": 0}
 
 
 def test_total_size_is_bounded(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    from tontolo.agent import taskstore
+    from projia.agent import taskstore
 
     monkeypatch.setattr(taskstore, "TOTAL_MAX", 2500)
     store = TaskStore(tmp_path)

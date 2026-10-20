@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Tous les fournisseurs d'IA sont appelés en HTTPS. Le HTTP en clair reste permis
-     pour le cœur embarqué (127.0.0.1) et pour un serveur Tontolo personnel sur le
+     pour le cœur embarqué (127.0.0.1) et pour un serveur Projia personnel sur le
      réseau local (mode distant, protégé par jeton) ; HTTPS y est recommandé. -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="true">

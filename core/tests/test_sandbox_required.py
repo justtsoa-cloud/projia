@@ -4,9 +4,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from tontolo.agent import mcp_client
-from tontolo.agent.workspace import Workspace
-from tontolo.creator import latex
+from projia.agent import mcp_client
+from projia.agent.workspace import Workspace
+from projia.creator import latex
 
 
 async def test_latex_without_sandbox_skips_local_and_uses_online(monkeypatch):
@@ -30,7 +30,7 @@ async def test_commands_refused_and_hidden_without_sandbox(monkeypatch, tmp_path
 
 
 async def test_real_sandbox_hides_environment_files_and_network(tmp_path, monkeypatch):
-    from tontolo import sandbox
+    from projia import sandbox
 
     if not sandbox.available():
         pytest.skip('bubblewrap utilisable requis pour cet essai réel')
@@ -53,7 +53,7 @@ async def test_real_sandbox_hides_environment_files_and_network(tmp_path, monkey
 async def test_real_latex_isolated(tmp_path):
     import shutil
 
-    from tontolo import sandbox
+    from projia import sandbox
 
     if not sandbox.available() or not shutil.which('pdflatex'):
         pytest.skip('bubblewrap et pdflatex requis pour cet essai réel')

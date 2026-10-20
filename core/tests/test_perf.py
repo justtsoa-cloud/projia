@@ -7,7 +7,7 @@ import asyncio
 import time
 
 from bench.harness import core, drain
-from tontolo.providers.base import ErrorKind, ProviderError
+from projia.providers.base import ErrorKind, ProviderError
 
 
 async def test_concurrent_turns_stay_fast_and_consistent() -> None:

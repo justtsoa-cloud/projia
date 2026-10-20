@@ -193,7 +193,7 @@ class _GeneratorsSheetState extends State<GeneratorsSheet> {
 
   Future<void> _load() async {
     try {
-      final data = await AppScope.of(context).backend.getJson('/tontolo/generators') as Map<String, dynamic>;
+      final data = await AppScope.of(context).backend.getJson('/projia/generators') as Map<String, dynamic>;
       final k = (data['kinds'] as Map).map((key, v) => MapEntry('$key', (v as List).cast<Map<String, dynamic>>()));
       if (mounted) setState(() => kinds = k);
     } catch (_) {

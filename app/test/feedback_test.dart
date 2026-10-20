@@ -4,8 +4,8 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:tontolo/core/feedback.dart';
-import 'package:tontolo/l10n/strings.dart';
+import 'package:projia/core/feedback.dart';
+import 'package:projia/l10n/strings.dart';
 
 const day = 24 * 3600 * 1000;
 

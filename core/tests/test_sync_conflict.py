@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import asyncio
 
-from tontolo.storage.db import Database
+from projia.storage.db import Database
 
 
 async def _talk(db: Database, cid: str, *texts: str) -> None:

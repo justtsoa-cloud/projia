@@ -52,7 +52,7 @@ uv run python -m bench.real_e2e r2_complex_plan r3_long_conversation r4_revision
   Un chapitre qui ne compile pas après trois corrections est simplifié : le texte est gardé
   sans mise en forme.
 - **Vitesse** : les catalogues ne donnent pas la vitesse de la plupart des modèles gratuits.
-  Tontolo mesure la vitesse réelle de chaque modèle et favorise les plus rapides pour les
+  Projia mesure la vitesse réelle de chaque modèle et favorise les plus rapides pour les
   échanges simples.
 
 Les bugs trouvés et corrigés (B1 à B14, O1) sont listés dans `TASKS.md`, section « Tests

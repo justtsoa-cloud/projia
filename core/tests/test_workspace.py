@@ -10,12 +10,12 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from tontolo.agent.workspace import Workspace, check_workdir
-from tontolo.catalog.service import CatalogService
-from tontolo.config import Settings
-from tontolo.providers.fake import FakeProvider
-from tontolo.providers.registry import ProviderRegistry
-from tontolo.server.app import create_app
+from projia.agent.workspace import Workspace, check_workdir
+from projia.catalog.service import CatalogService
+from projia.config import Settings
+from projia.providers.fake import FakeProvider
+from projia.providers.registry import ProviderRegistry
+from projia.server.app import create_app
 
 
 @pytest.fixture
@@ -70,7 +70,7 @@ async def test_search_and_read(ws: Workspace) -> None:
 
 
 async def test_commands_guarded(ws: Workspace) -> None:
-    from tontolo import sandbox
+    from projia import sandbox
 
     if not sandbox.available():
         pytest.skip("bubblewrap requis pour l'exécution réelle")
@@ -103,7 +103,7 @@ def test_one_confirmation_at_a_time(client: TestClient, fake: FakeProvider,
     root = tmp_path / "w"
     root.mkdir()
     (root / "notes.txt").write_text("v1\n")
-    assert client.put("/tontolo/workspace", json={"path": str(root)}).json()["path"] == str(
+    assert client.put("/projia/workspace", json={"path": str(root)}).json()["path"] == str(
         root.resolve())
     calls = [{"id": f"c{i}", "type": "function", "function": {
         "name": "edit_file" if i == 1 else "write_file",
@@ -120,32 +120,32 @@ def test_one_confirmation_at_a_time(client: TestClient, fake: FakeProvider,
 
     for mid in ("coder-pro", "chatty", "small", "vision-x", "paid-genius"):
         fake.behaviors[mid] = act
-    events = _chat(client, "/tontolo/chat", {"content": "mets notes en v2", "mode": "agent"})
+    events = _chat(client, "/projia/chat", {"content": "mets notes en v2", "mode": "agent"})
     conf = next(e for e in events if e["type"] == "tool_confirmation")
     assert [c["name"] for c in conf["calls"]] == ["edit_file"]  # une seule à la fois
     assert "+v2" in conf["calls"][0]["preview"]
     cid = conf["conversation_id"]
-    after = _chat(client, f"/tontolo/chat/{cid}/resume", {"approved": True})
+    after = _chat(client, f"/projia/chat/{cid}/resume", {"approved": True})
     results = [e for e in after if e["type"] == "tool_result"]
     assert "Modifié" in results[0]["preview"] and "une à une" in results[1]["preview"]
     assert (root / "notes.txt").read_text() == "v2\n" and not (root / "n2.txt").exists()
-    ws = client.get("/tontolo/workspace").json()
+    ws = client.get("/projia/workspace").json()
     assert ws["history"][0]["rel"] == "notes.txt"
-    assert "Restauré" in client.post("/tontolo/workspace/undo").json()["message"]
+    assert "Restauré" in client.post("/projia/workspace/undo").json()["message"]
     assert (root / "notes.txt").read_text() == "v1\n"
-    assert client.put("/tontolo/workspace", json={"path": "/etc"}).status_code == 400
-    assert client.put("/tontolo/workspace", json={"path": None}).json()["path"] is None
+    assert client.put("/projia/workspace", json={"path": "/etc"}).status_code == 400
+    assert client.put("/projia/workspace", json={"path": None}).json()["path"] is None
 
 
 def test_workspace_not_configurable_remotely(settings: Settings, tmp_path: Path) -> None:
     app = create_app(settings, refresh=False)
     with TestClient(app, base_url="http://127.0.0.1", client=("10.0.0.5", 1)) as c:
-        assert c.put("/tontolo/workspace", json={"path": str(tmp_path)}).status_code == 403
-        assert c.post("/tontolo/workspace/undo").status_code == 403
+        assert c.put("/projia/workspace", json={"path": str(tmp_path)}).status_code == 403
+        assert c.post("/projia/workspace/undo").status_code == 403
 
 
 def test_secrets_are_masked() -> None:
-    from tontolo.agent.workspace import redact
+    from projia.agent.workspace import redact
 
     text = ("export OPENAI_API_KEY=sk-abcdefghijklmnopqrstuvwx\nghp_0123456789abcdefghijABCD\n"
             "password: hunter22\n-----BEGIN OPENSSH PRIVATE KEY-----\nabc\n"
@@ -180,7 +180,7 @@ async def test_search_never_follows_links_outside(ws: Workspace, tmp_path: Path)
 async def test_tool_conversation_is_per_task() -> None:
     import asyncio
 
-    from tontolo.agent.loop import CURRENT
+    from projia.agent.loop import CURRENT
 
     seen: dict[str, str] = {}
 
@@ -195,7 +195,7 @@ async def test_tool_conversation_is_per_task() -> None:
 
 def test_power_tools_only_in_agent_mode(client: TestClient, fake: FakeProvider,
                                         tmp_path: Path) -> None:
-    assert client.put("/tontolo/workspace", json={"path": str(tmp_path)}).status_code == 200
+    assert client.put("/projia/workspace", json={"path": str(tmp_path)}).status_code == 200
     seen: list[set[str]] = []
 
     orig = fake.stream
@@ -206,12 +206,12 @@ def test_power_tools_only_in_agent_mode(client: TestClient, fake: FakeProvider,
             yield item
 
     fake.stream = spy  # type: ignore[method-assign]
-    _chat(client, "/tontolo/chat", {"content": "Quelle est la capitale de la France ? Réponds."})
-    _chat(client, "/tontolo/chat", {"content": "Liste mes fichiers", "mode": "agent"})
+    _chat(client, "/projia/chat", {"content": "Quelle est la capitale de la France ? Réponds."})
+    _chat(client, "/projia/chat", {"content": "Liste mes fichiers", "mode": "agent"})
     general, agent = seen[0], seen[-1]
     assert {"web_search", "calculator", "read_file", "list_dir"} <= general
     assert not general & {"run_command", "write_file", "edit_file", "terminal_send"}
-    from tontolo import sandbox
+    from projia import sandbox
 
     assert {"write_file", "edit_file"} <= agent
     assert ("run_command" in agent) == sandbox.available()
@@ -236,18 +236,18 @@ def test_ask_user_choices(client: TestClient, fake: FakeProvider) -> None:
 
     for mid in ("coder-pro", "chatty", "small", "vision-x", "paid-genius"):
         fake.behaviors[mid] = act
-    events = _chat(client, "/tontolo/chat", {"content": "fais-moi un cours"})
+    events = _chat(client, "/projia/chat", {"content": "fais-moi un cours"})
     q = next(e for e in events if e["type"] == "question")
     assert [x["question"] for x in q["questions"]] == ["Pour qui ?", "Longueur ?"]
     assert q["questions"][0]["options"] == ["Élèves", "Pro"]  # doublons et vides retirés
     assert q["questions"][1]["multiple"] is True
     cid = q["conversation_id"]
     # La réponse arrive comme un message normal : plus de nouvelle série de questions.
-    again = _chat(client, "/tontolo/chat", {"conversation_id": cid, "content": "Élèves ; courte"})
+    again = _chat(client, "/projia/chat", {"conversation_id": cid, "content": "Élèves ; courte"})
     assert not any(e["type"] == "question" for e in again)
     assert any(e["type"] == "done" for e in again)
     # Mode Apprendre : l'outil n'est pas proposé.
-    learn = _chat(client, "/tontolo/chat", {"content": "explique les fractions", "mode": "learn"})
+    learn = _chat(client, "/projia/chat", {"content": "explique les fractions", "mode": "learn"})
     assert not any(e["type"] == "question" for e in learn)
 
 
@@ -268,11 +268,11 @@ def test_ask_user_only_at_the_start_of_a_task(client: TestClient, fake: FakeProv
         return original(model, messages, tools=tools, **params)
 
     fake.stream = spy  # type: ignore[method-assign]
-    first = _chat(client, "/tontolo/chat", {"content": "Aide-moi pour ma coopérative"})
+    first = _chat(client, "/projia/chat", {"content": "Aide-moi pour ma coopérative"})
     cid = next(e["conversation_id"] for e in first if e.get("conversation_id"))
     for text in ("Quels risques ?", "Propose un calendrier sur 6 mois."):
-        _chat(client, "/tontolo/chat", {"conversation_id": cid, "content": text})
-    _chat(client, "/tontolo/chat", {"conversation_id": cid, "content": (
+        _chat(client, "/projia/chat", {"conversation_id": cid, "content": text})
+    _chat(client, "/projia/chat", {"conversation_id": cid, "content": (
         "Maintenant je voudrais aussi monter un site web complet pour vendre notre vanille "
         "en ligne à l'étranger avec paiement et livraison")})
     tool_rounds = [o for o in offered]
@@ -290,8 +290,8 @@ def test_no_choice_card_for_a_summary_request(client: TestClient, fake: FakeProv
         return original(model, messages, tools=tools, **params)
 
     fake.stream = spy  # type: ignore[method-assign]
-    _chat(client, "/tontolo/chat", {"content": "Fintino ity rakitra ity"})
-    _chat(client, "/tontolo/chat", {"content": "Aide-moi pour ma coopérative"})
+    _chat(client, "/projia/chat", {"content": "Fintino ity rakitra ity"})
+    _chat(client, "/projia/chat", {"content": "Aide-moi pour ma coopérative"})
     assert offered[0] is False and offered[-1] is True
 
 
@@ -306,7 +306,7 @@ def test_no_choice_card_after_an_answer_or_for_a_detailed_request(
 
     for mid in ("coder-pro", "chatty", "small", "vision-x", "paid-genius"):
         fake.behaviors[mid] = act
-    events = _chat(client, "/tontolo/chat", {"content": "Aide-moi pour ma coopérative"})
+    events = _chat(client, "/projia/chat", {"content": "Aide-moi pour ma coopérative"})
     assert not any(e["type"] == "question" for e in events)  # réponse donnée : pas de carte
     done = [e for e in events if e["type"] == "done"]
     assert done and done[-1]["message"]["content"].startswith("Voici la présentation")
@@ -322,17 +322,17 @@ def test_no_choice_card_after_an_answer_or_for_a_detailed_request(
                 "des illustrations, des exemples concrets, du code Python commenté, des "
                 "schémas, un plan au début, une conclusion et des exercices pour des étudiants "
                 "de licence en informatique")
-    _chat(client, "/tontolo/chat", {"content": detailed})
+    _chat(client, "/projia/chat", {"content": detailed})
     assert offered and offered[-1] is False
 
 
 def test_execution_capabilities_without_sandbox(client, monkeypatch):
     """Sans bubblewrap (Android) : pas de commandes ni de compilation locale, mais le PDF
     reste possible par les services en ligne."""
-    from tontolo.agent import mcp_client
+    from projia.agent import mcp_client
 
     monkeypatch.setattr(mcp_client, 'bwrap_usable', lambda: None)
-    caps = client.get('/tontolo/execution/capabilities').json()
+    caps = client.get('/projia/execution/capabilities').json()
     assert caps['sandbox'] is caps['latex_local'] is caps['commands'] is False
     assert caps['latex'] is True
-    assert client.get('/tontolo/workspace').json()['commands'] is False
+    assert client.get('/projia/workspace').json()['commands'] is False

@@ -2,8 +2,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:tontolo/core/comeback.dart';
-import 'package:tontolo/l10n/strings.dart';
+import 'package:projia/core/comeback.dart';
+import 'package:projia/l10n/strings.dart';
 
 const rss = '''<?xml version="1.0"?><rss><channel><title>Flux</title>
 <item><title><![CDATA[Un volcan en éruption aux Philippines]]></title><link>https://exemple.org/a</link>

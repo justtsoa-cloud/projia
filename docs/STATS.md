@@ -1,6 +1,6 @@
 # Statistiques minimales
 
-Depuis la phase A après v0.6.5, Tontolo peut envoyer **au plus une tentative par jour**
+Depuis la phase A après v0.6.5, Projia peut envoyer **au plus une tentative par jour**
 à Supabase. L'envoi est annoncé à l'accueil et désactivable dans
 *Réglages › Statistiques anonymes*. Sans configuration à la compilation, aucun envoi.
 
@@ -10,9 +10,9 @@ La liste blanche est exacte :
 - `country` : région de la langue du téléphone, ou chaîne vide si inconnue.
 
 Le pays n'est **pas une position** : « Français (France) » donne FR, même si le téléphone
-est à Madagascar. Aucun GPS, aucune adresse IP collectée par le code de Tontolo.
+est à Madagascar. Aucun GPS, aucune adresse IP collectée par le code de Projia.
 Comme tout service HTTP, l'hébergeur reçoit nécessairement l'adresse IP de connexion ;
-Tontolo ne l'ajoute pas aux statistiques ni ne contrôle les journaux de l'hébergeur.
+Projia ne l'ajoute pas aux statistiques ni ne contrôle les journaux de l'hébergeur.
 
 Ne sont plus envoyés : identifiant d'installation, système, ABI, compteur de messages,
 identifiant de réponse, modèle, catégorie, note et raison de la note. Les files de notes

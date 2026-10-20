@@ -53,7 +53,7 @@ class _GalleryState extends State<_Gallery> {
   Future<void> _load() async {
     final b = AppScope.of(context).backend;
     if (b.state != BackendState.ready) return;
-    final data = await b.getJson('/tontolo/media', {'limit': 200, if (kind != null) 'kind': kind}) as List;
+    final data = await b.getJson('/projia/media', {'limit': 200, if (kind != null) 'kind': kind}) as List;
     if (!mounted) return;
     setState(() {
       jobs = data.cast<Map<String, dynamic>>();
@@ -107,7 +107,7 @@ class _GalleryState extends State<_Gallery> {
                                 icon: const Icon(Icons.delete_outline, size: 18),
                                 tooltip: context.t('delete'),
                                 onPressed: () async {
-                                  await AppScope.of(context).backend.sendJson('DELETE', '/tontolo/media/${j['id']}');
+                                  await AppScope.of(context).backend.sendJson('DELETE', '/projia/media/${j['id']}');
                                   _load();
                                 },
                               ),
@@ -153,8 +153,8 @@ class _NewsFeedState extends State<NewsFeed> {
   Future<void> _load() async {
     final b = AppScope.of(context).backend;
     if (b.state != BackendState.ready) return;
-    final data = await b.getJson('/tontolo/changes', {'limit': 200}) as List;
-    await b.sendJson('POST', '/tontolo/changes/seen');
+    final data = await b.getJson('/projia/changes', {'limit': 200}) as List;
+    await b.sendJson('POST', '/projia/changes/seen');
     if (mounted) {
       setState(() => items = data.cast<Map<String, dynamic>>().where((c) => c['kind'] != 'new' && c['kind'] != 'price_changed').toList());
     }
@@ -167,7 +167,7 @@ class _NewsFeedState extends State<NewsFeed> {
     }
     return RefreshIndicator(
       onRefresh: () async {
-        await AppScope.of(context).backend.sendJson('POST', '/tontolo/catalog/refresh');
+        await AppScope.of(context).backend.sendJson('POST', '/projia/catalog/refresh');
         await _load();
       },
       child: ListView.builder(

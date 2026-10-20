@@ -36,7 +36,7 @@ class ChatMessage {
   int rating = 0; // 👍 1, 👎 -1, 0 sans note
 }
 
-/// Question à choix posée par Tontolo (outil `ask_user`) pour préciser la demande.
+/// Question à choix posée par Projia (outil `ask_user`) pour préciser la demande.
 class AskedQuestion {
   AskedQuestion(this.question, this.options, this.multiple);
   final String question;
@@ -74,7 +74,7 @@ class ChatController extends ChangeNotifier {
   final TurnProgress progress = TurnProgress();
 
   /// Compteur incrémenté pour demander à l'écran de discussion de mettre le curseur dans la
-  /// saisie (raccourci / widget « Demander à Tontolo »).
+  /// saisie (raccourci / widget « Demander à Projia »).
   int focusRequests = 0;
   void requestInputFocus() {
     focusRequests++;
@@ -141,7 +141,7 @@ class ChatController extends ChangeNotifier {
     plan = null;
     planSteps.clear();
     notifyListeners();
-    if (id != null) await backend.sendJson('DELETE', '/tontolo/conversations/$id/plan');
+    if (id != null) await backend.sendJson('DELETE', '/projia/conversations/$id/plan');
   }
 
   /// Fiche compactée du début de la discussion (null si elle n'a pas encore été compactée).
@@ -151,7 +151,7 @@ class ChatController extends ChangeNotifier {
   Future<String?> compact() async {
     final id = conversationId;
     if (id == null) return null;
-    final r = await backend.sendJson('POST', '/tontolo/conversations/$id/compact', {}) as Map<String, dynamic>;
+    final r = await backend.sendJson('POST', '/projia/conversations/$id/compact', {}) as Map<String, dynamic>;
     summary = r['summary'] as String?;
     notifyListeners();
     return r['ok'] == true ? summary : null;
@@ -184,7 +184,7 @@ class ChatController extends ChangeNotifier {
   Future<void> checkOfflineQueue() async {
     if (_offlineTimer == null || busy) return;
     try {
-      final r = await backend.getJson('/tontolo/online') as Map<String, dynamic>;
+      final r = await backend.getJson('/projia/online') as Map<String, dynamic>;
       if (r['online'] != true || _offlineTimer == null) return;
     } catch (_) {
       return;
@@ -233,7 +233,7 @@ class ChatController extends ChangeNotifier {
   /// Documents joints à la conversation (noms et pages), affichés au-dessus de la saisie.
   final List<Map<String, dynamic>> documents = [];
 
-  static const _video = MethodChannel('tontolo/video');
+  static const _video = MethodChannel('projia/video');
 
   /// Android (sans ffmpeg) : images clés de la vidéo jointe, extraites par le système ; le
   /// cœur les fait décrire par un modèle à vision. Liste vide ailleurs ou en cas d'échec.
@@ -241,7 +241,7 @@ class ChatController extends ChangeNotifier {
     if (!Platform.isAndroid || !RegExp(r'\.(mp4|m4v|mov|webm|mkv|3gp|avi)$', caseSensitive: false).hasMatch(name)) {
       return const [];
     }
-    final tmp = File('${Directory.systemTemp.path}/tontolo-video-${DateTime.now().microsecondsSinceEpoch}');
+    final tmp = File('${Directory.systemTemp.path}/projia-video-${DateTime.now().microsecondsSinceEpoch}');
     try {
       await tmp.writeAsBytes(bytes, flush: true);
       final list = await _video.invokeListMethod<Map<Object?, Object?>>('keyframes', {'path': tmp.path, 'count': 4}) ?? const [];
@@ -259,7 +259,7 @@ class ChatController extends ChangeNotifier {
   /// en citant les pages. Renvoie un message d'erreur (traduit) ou null.
   Future<String?> attachDocument(String name, Uint8List bytes) async {
     final epoch = _epoch;
-    final req = http.MultipartRequest('POST', backend.uri('/tontolo/documents'))
+    final req = http.MultipartRequest('POST', backend.uri('/projia/documents'))
       ..headers.addAll(backend.headers)
       ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: name));
     if (conversationId != null) req.fields['conversation_id'] = conversationId!;
@@ -294,7 +294,7 @@ class ChatController extends ChangeNotifier {
     final epoch = _epoch;
     if (cid == null) return;
     try {
-      final list = await backend.getJson('/tontolo/conversations/$cid/documents') as List;
+      final list = await backend.getJson('/projia/conversations/$cid/documents') as List;
       if (epoch != _epoch) return;
       documents.addAll(list.cast<Map<String, dynamic>>());
     } catch (_) {}
@@ -303,7 +303,7 @@ class ChatController extends ChangeNotifier {
   Future<void> removeDocument(Map<String, dynamic> doc) async {
     if (conversationId == null) return;
     final epoch = _epoch;
-    await backend.sendJson('DELETE', '/tontolo/conversations/$conversationId/documents/${doc['id']}');
+    await backend.sendJson('DELETE', '/projia/conversations/$conversationId/documents/${doc['id']}');
     if (epoch != _epoch) return;
     documents.remove(doc);
     notifyListeners();
@@ -342,7 +342,7 @@ class ChatController extends ChangeNotifier {
     busy = true;
     notifyListeners();
     try {
-      final data = await backend.getJson('/tontolo/conversations/$id?tail=$pageSize')
+      final data = await backend.getJson('/projia/conversations/$id?tail=$pageSize')
           as Map<String, dynamic>;
       if (epoch != _epoch) return;
       earlierLeft = _earlierCount(data);
@@ -406,7 +406,7 @@ class ChatController extends ChangeNotifier {
     loadingEarlier = true;
     notifyListeners();
     try {
-      final data = await backend.getJson('/tontolo/conversations/$id?tail=$pageSize&before=$first')
+      final data = await backend.getJson('/projia/conversations/$id?tail=$pageSize&before=$first')
           as Map<String, dynamic>;
       if (epoch != _epoch) return;
       final keep = List<ChatMessage>.of(messages);
@@ -459,7 +459,7 @@ class ChatController extends ChangeNotifier {
       final media = RegExp(r'^\[média:([0-9a-f]+)\]$').firstMatch(msg.text);
       if (media != null) {
         try {
-          msg.job = await backend.getJson('/tontolo/media/${media.group(1)}') as Map<String, dynamic>;
+          msg.job = await backend.getJson('/projia/media/${media.group(1)}') as Map<String, dynamic>;
           msg.text = '';
         } catch (_) {}
       }
@@ -492,7 +492,7 @@ class ChatController extends ChangeNotifier {
     // (un ancien serveur distant ignore simplement ces champs).
     final sendMode = conversationId == null || _modeChanged || learn || agent != null;
     _modeChanged = false;
-    _run(backend.sse('/tontolo/chat', {
+    _run(backend.sse('/projia/chat', {
       'conversation_id': conversationId,
       'content': content,
       'model': modelOverride,
@@ -529,7 +529,7 @@ class ChatController extends ChangeNotifier {
       final loc = backend.prefs.locale;
       final note = tr(loc, 'local_retouch_note',
           {'steps': intent.plan.steps.map((k) => tr(loc, k)).join(' · ')});
-      final res = await backend.sendJson('POST', '/tontolo/chat/local-media', {
+      final res = await backend.sendJson('POST', '/projia/chat/local-media', {
         'conversation_id': cid,
         'content': [
           if (text.isNotEmpty) {'type': 'text', 'text': text},
@@ -578,7 +578,7 @@ class ChatController extends ChangeNotifier {
         messages.removeLast();
       }
     }
-    _run(backend.sse('/tontolo/chat/$conversationId/regenerate', {
+    _run(backend.sse('/projia/chat/$conversationId/regenerate', {
       'approved': true, 'model': modelOverride, 'avoid_model': ?avoidModel,
     }));
   }
@@ -593,7 +593,7 @@ class ChatController extends ChangeNotifier {
     m.rating = rating;
     notifyListeners();
     try {
-      final r = await backend.sendJson('POST', '/tontolo/feedback',
+      final r = await backend.sendJson('POST', '/projia/feedback',
           {'uid': uid, 'rating': rating, 'reason': reason}) as Map<String, dynamic>;
       if (backend.prefs.shareRatings) {
         Stats.queueRating(backend.prefs, answerId: uid, model: '${r['model'] ?? ''}',
@@ -615,7 +615,7 @@ class ChatController extends ChangeNotifier {
     if (i < 0) return;
     messages.removeRange(i + 1, messages.length);
     m.text = text;
-    _run(backend.sse('/tontolo/chat/$conversationId/edit', {'seq': m.seq, 'content': text, 'model': modelOverride}));
+    _run(backend.sse('/projia/chat/$conversationId/edit', {'seq': m.seq, 'content': text, 'model': modelOverride}));
   }
 
   bool get canRegenerate =>
@@ -623,14 +623,14 @@ class ChatController extends ChangeNotifier {
 
   Future<void> resolveTools(bool approved) async {
     pending = null;
-    _run(backend.sse('/tontolo/chat/$conversationId/resume', {'approved': approved, 'model': modelOverride}));
+    _run(backend.sse('/projia/chat/$conversationId/resume', {'approved': approved, 'model': modelOverride}));
   }
 
   Future<void> resolvePaid(bool approved) async {
     pending = null;
     notifyListeners();
     if (!approved || conversationId == null) return;
-    await backend.sendJson('POST', '/tontolo/chat/$conversationId/approve-paid');
+    await backend.sendJson('POST', '/projia/chat/$conversationId/approve-paid');
     // Relance du dernier message utilisateur, désormais autorisé en payant.
     if (messages.isNotEmpty && messages.last.role == 'user') {
       final last = messages.removeLast();
@@ -643,7 +643,7 @@ class ChatController extends ChangeNotifier {
     _streamEpoch++;
     final cid = conversationId;
     if (cid != null) {
-      backend.sendJson('POST', '/tontolo/chat/$cid/stop').catchError((_) {});
+      backend.sendJson('POST', '/projia/chat/$cid/stop').catchError((_) {});
     }
     _sub?.cancel();
     _sub = null;

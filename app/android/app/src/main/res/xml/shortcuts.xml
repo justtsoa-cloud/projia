@@ -8,8 +8,8 @@
         android:shortcutShortLabel="@string/shortcut_ask_short"
         android:shortcutLongLabel="@string/shortcut_ask_long">
         <intent
-            android:action="io.github.raantss18.tontolo.ASK"
-            android:targetPackage="io.github.raantss18.tontolo"
-            android:targetClass="io.github.raantss18.tontolo.MainActivity" />
+            android:action="io.github.raantss18.projia.ASK"
+            android:targetPackage="io.github.raantss18.projia"
+            android:targetClass="io.github.raantss18.projia.MainActivity" />
     </shortcut>
 </shortcuts>

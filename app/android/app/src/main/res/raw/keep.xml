@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Icône utilisée par son nom depuis Dart (notifications) : à ne pas retirer à la compilation. -->
 <resources xmlns:tools="http://schemas.android.com/tools"
-    tools:keep="@drawable/ic_stat_tontolo" />
+    tools:keep="@drawable/ic_stat_projia" />

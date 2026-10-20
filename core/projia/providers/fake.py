@@ -1,0 +1,100 @@
+"""Fournisseur simulé pour les tests (quotas, bascule, retour) et la démonstration."""
+
+from __future__ import annotations
+
+from collections.abc import AsyncIterator, Callable
+from dataclasses import dataclass, field
+from typing import Any
+
+from projia.catalog.models import ModelInfo
+from projia.providers.base import ChatResult, ProviderError
+
+Behavior = Callable[[ModelInfo, list[dict[str, Any]]], dict[str, Any] | ProviderError]
+
+
+@dataclass
+class FakeProvider:
+    """Répond « [modèle] réponse » ou lève l'erreur programmée pour un modèle."""
+
+    behaviors: dict[str, Behavior] = field(default_factory=dict)
+    errors: dict[str, list[ProviderError]] = field(default_factory=dict)
+    calls: list[tuple[str, int]] = field(default_factory=list)
+    fail_mid_stream: set[str] = field(default_factory=set)
+    chunk_delay: float = 0.0  # simule une génération lente
+    last_messages: list[dict[str, Any]] = field(default_factory=list)
+    hang: set[str] = field(default_factory=set)         # modèles qui ne répondent jamais
+    stall_mid: set[str] = field(default_factory=set)    # un mot, puis silence
+    crash: dict[str, Exception] = field(default_factory=dict)  # exception inattendue
+    overthink: set[str] = field(default_factory=set)    # réflexion sans fin, aucune réponse
+
+    def fail(self, model_id: str, *errors: ProviderError) -> None:
+        self.errors.setdefault(model_id, []).extend(errors)
+
+    def _answer(self, model: ModelInfo, messages: list[dict[str, Any]]) -> dict[str, Any]:
+        self.calls.append((model.model_id, len(messages)))
+        self.last_messages = messages
+        if model.model_id in self.crash:
+            raise self.crash[model.model_id]
+        queue = self.errors.get(model.model_id)
+        if queue:
+            raise queue.pop(0)
+        if model.model_id in self.behaviors:
+            out = self.behaviors[model.model_id](model, messages)
+            if isinstance(out, ProviderError):
+                raise out
+            return out
+        last = next((m for m in reversed(messages) if m["role"] == "user"), {"content": ""})
+        content = last["content"] if isinstance(last["content"], str) else "…"
+        return {"role": "assistant", "content": f"[{model.model_id}] {content}"}
+
+    async def chat(
+        self, model: ModelInfo, messages: list[dict[str, Any]], *,
+        tools: list[dict[str, Any]] | None = None, **params: Any,
+    ) -> ChatResult:
+        if model.model_id in self.hang:
+            import asyncio
+
+            await asyncio.sleep(3600)
+        msg = dict(self._answer(model, messages))
+        finish = msg.pop("_finish", "stop")  # « length » : réponse coupée (tests)
+        return ChatResult(msg, {"prompt_tokens": 10, "completion_tokens": 5}, finish)
+
+    async def stream(
+        self, model: ModelInfo, messages: list[dict[str, Any]], *,
+        tools: list[dict[str, Any]] | None = None, **params: Any,
+    ) -> AsyncIterator[dict[str, Any]]:
+        if model.model_id in self.fail_mid_stream:
+            self.fail_mid_stream.discard(model.model_id)
+            yield {"delta": {"content": "réponse parti"}}
+            from projia.providers.base import ErrorKind
+
+            raise ProviderError("coupure", ErrorKind.RATE_LIMIT, status=429, retry_after=30)
+        if model.model_id in self.overthink:
+            import asyncio
+
+            while True:  # jamais silencieux, jamais de réponse
+                yield {"delta": {"reasoning": "hmm "}}
+                await asyncio.sleep(0.02)
+        if model.model_id in self.hang:
+            import asyncio
+
+            await asyncio.sleep(3600)
+        msg = dict(self._answer(model, messages))
+        finish = msg.pop("_finish", "stop")
+        text = msg.get("content") or ""
+        if model.model_id in self.stall_mid:
+            import asyncio
+
+            yield {"delta": {"content": text[:4]}}
+            await asyncio.sleep(3600)
+        for i in range(0, len(text), 8):
+            if self.chunk_delay:
+                import asyncio
+
+                await asyncio.sleep(self.chunk_delay)
+            yield {"delta": {"content": text[i:i + 8]}}
+        if msg.get("tool_calls"):
+            yield {"delta": {"tool_calls": [dict(tc, index=i)
+                                            for i, tc in enumerate(msg["tool_calls"])]}}
+        yield {"_result": ChatResult(msg, {"prompt_tokens": 10, "completion_tokens": 5},
+                                     finish)}

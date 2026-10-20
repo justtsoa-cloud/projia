@@ -3,7 +3,7 @@ requires = ["hatchling>=1.25"]
 build-backend = "hatchling.build"
 
 [project]
-name = "tontolo"
+name = "projia"
 version = "0.7.3"
 description = "Hub d'IA libre : choisit automatiquement le meilleur modèle gratuit, bascule sur quota épuisé et revient au meilleur."
 readme = "README.md"
@@ -48,7 +48,7 @@ explainer = ["manim>=0.18"]
 # Routage LiteLLM optionnel côté Linux (lourd : non embarqué sur Android).
 litellm = ["litellm>=1.50"]
 keyring = ["keyring>=25"]
-linux = ["tontolo[search,extract,mcp,math,keyring]"]
+linux = ["projia[search,extract,mcp,math,keyring]"]
 dev = [
   "pytest>=8",
   "pytest-asyncio>=0.24",
@@ -60,17 +60,17 @@ dev = [
 ]
 
 [project.scripts]
-tontolo = "tontolo.cli:main"
+projia = "projia.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/raantss18/tontolo"
-Issues = "https://github.com/raantss18/tontolo/issues"
+Homepage = "https://github.com/justtsoa-cloud/projia"
+Issues = "https://github.com/justtsoa-cloud/projia/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["tontolo"]
+packages = ["projia"]
 
 [tool.hatch.build.targets.sdist]
-include = ["tontolo", "tests", "README.md", "LICENSE"]
+include = ["projia", "tests", "README.md", "LICENSE"]
 
 [tool.ruff]
 line-length = 100
@@ -82,7 +82,7 @@ ignore = ["RUF001", "RUF002", "RUF003", "ASYNC240"]  # textes français ; petits
 
 [tool.mypy]
 python_version = "3.11"
-packages = ["tontolo"]
+packages = ["projia"]
 ignore_missing_imports = true
 warn_unused_ignores = true
 check_untyped_defs = true
@@ -96,11 +96,11 @@ addopts = "-m 'not network'"
 
 [tool.ruff.lint.per-file-ignores]
 # Gabarits XML Office Open : des lignes longues restent plus lisibles que découpées.
-"tontolo/creator/docx.py" = ["E501"]
-"tontolo/creator/office.py" = ["E501"]
+"projia/creator/docx.py" = ["E501"]
+"projia/creator/office.py" = ["E501"]
 # Gabarit Manim et exemple JSON du rédacteur : du texte, pas du code à découper.
-"tontolo/explainer/manim_render.py" = ["E501"]
-"tontolo/explainer/writer.py" = ["E501"]
+"projia/explainer/manim_render.py" = ["E501"]
+"projia/explainer/writer.py" = ["E501"]
 # Bancs d'essai (endurance, charge, essais réels) : scripts jetables, pas du code livré.
 "bench/**" = ["E501", "ASYNC221", "RUF059", "SIM115", "B", "SIM"]
 

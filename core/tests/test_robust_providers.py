@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from tontolo.providers.fake import FakeProvider
-from tontolo.router import engine
-from tontolo.router.engine import Router
+from projia.providers.fake import FakeProvider
+from projia.router import engine
+from projia.router.engine import Router
 
 
 async def _run(router: Router, text: str = "bonjour") -> list[dict]:

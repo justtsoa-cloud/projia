@@ -1,4 +1,4 @@
-# Architecture de Tontolo
+# Architecture de Projia
 
 ```
 ┌──────────────── Application Flutter (Android · Linux) ────────────────┐
@@ -7,8 +7,8 @@
 └───────────────┬───────────────────────────────────┬───────────────────┘
         mode local (127.0.0.1 + jeton aléatoire)    mode distant (URL + jeton)
                 │                                   │
-┌───────────────▼───────── Cœur Python `tontolo` ───▼──────────────────┐
-│ server/  FastAPI : /v1 (compatible OpenAI) · /tontolo (natif) · WS   │
+┌───────────────▼───────── Cœur Python `projia` ───▼──────────────────┐
+│ server/  FastAPI : /v1 (compatible OpenAI) · /projia (natif) · WS   │
 │ agent/   boucle agentique · outils natifs · MCP (SDK ou client léger)│
 │ router/  classifier → scoring → engine (bascule, retour) · quota     │
 │ media/   jobs persistés : image · STT · TTS · musique · vidéo        │
@@ -46,7 +46,7 @@ et taille doivent concorder). `catalog/watcher.py` produit le fil « Nouveautés
 | Sujet | Choix | Raison |
 |---|---|---|
 | Licence | **Apache-2.0** (au lieu de MIT) | Décision du mainteneur : permissive + licence de brevets ; compatible avec toutes les dépendances. |
-| LiteLLM | Optionnel (Linux, `TONTOLO_USE_LITELLM=1`) ; adaptateur httpx par défaut partout | LiteLLM tire tiktoken/tokenizers/aiohttp : trop lourd pour l'APK. Un seul chemin de code testé. |
+| LiteLLM | Optionnel (Linux, `PROJIA_USE_LITELLM=1`) ; adaptateur httpx par défaut partout | LiteLLM tire tiktoken/tokenizers/aiohttp : trop lourd pour l'APK. Un seul chemin de code testé. |
 | Recherche web sous Android | Repli HTML DuckDuckGo en httpx | `ddgs` ajoute primp + lxml (≈ 16 Mo par ABI). |
 | MCP sous Android | Client Streamable HTTP léger (`agent/mcp_lite.py`) | Le SDK tire cryptography, jsonschema, opentelemetry (≈ 14 Mo par ABI). |
 | Découverte des fournisseurs | mnfst/awesome-free-llm-apis | cheahjs/free-llm-api-resources introuvable (404). |
@@ -56,7 +56,7 @@ et taille doivent concorder). `catalog/watcher.py` produit le fil « Nouveautés
 
 ## Mémoire
 
-`tontolo/memory.py` : souvenirs locaux (table `memories`). Capture explicite
+`projia/memory.py` : souvenirs locaux (table `memories`). Capture explicite
 (« souviens-toi que… ») et extraction automatique tous les 4 messages par un petit modèle
 gratuit ; rappel par pertinence dans un budget de caractères ; compactage automatique au-delà
 de `memory_max_items` (fusion locale des doublons, puis regroupement par modèle, sinon retrait

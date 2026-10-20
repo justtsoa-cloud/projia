@@ -1,0 +1,39 @@
+# Recette d'exemple pour fdroiddata (F-Droid officiel). NON soumise : points bloquants
+# (voir docs/DISTRIBUTION.md) — Python prébuilt de serious_python à compiler depuis les
+# sources, canal « fdroid » sans mise à jour intégrée à créer.
+Categories:
+  - Science & Education
+  - Internet
+License: Apache-2.0
+AuthorName: RANIRIAMANJAKA Antsa
+AuthorEmail: antsa.raniriamanjaka@univ-antananarivo.mg
+SourceCode: https://github.com/justtsoa-cloud/projia
+IssueTracker: https://github.com/justtsoa-cloud/projia/issues
+Changelog: https://github.com/justtsoa-cloud/projia/blob/main/CHANGELOG.md
+
+AntiFeatures:
+  NonFreeNet:
+    fr: Utilise des services d'IA en ligne non libres.
+    en: Uses non-free online AI services.
+
+RepoType: git
+Repo: https://github.com/justtsoa-cloud/projia.git
+
+Builds:
+  - versionName: 0.3.0
+    versionCode: 14
+    commit: v0.3.0
+    subdir: app
+    output: build/app/outputs/flutter-apk/app-release.apk
+    srclibs:
+      - flutter@stable
+    prebuild:
+      # À faire : compiler Python et empaqueter le cœur sans binaire téléchargé.
+      - $$flutter$$/bin/flutter config --no-analytics
+    build:
+      - $$flutter$$/bin/flutter build apk --release --dart-define=PROJIA_CHANNEL=fdroid
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags ^v[0-9.]+$
+CurrentVersion: 0.3.0
+CurrentVersionCode: 14

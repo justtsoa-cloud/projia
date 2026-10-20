@@ -1,4 +1,4 @@
-// Questions à choix posées par Tontolo pour préciser la demande (réponse en un toucher).
+// Questions à choix posées par Projia pour préciser la demande (réponse en un toucher).
 import 'package:flutter/material.dart';
 
 import '../core/chat_controller.dart';

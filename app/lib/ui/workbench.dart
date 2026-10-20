@@ -84,9 +84,9 @@ class _TerminalPaneState extends State<TerminalPane> {
     terminal.buffer.clear();
     terminal.buffer.setCursor(0, 0);
     try {
-      final ws = await backend.getJson('/tontolo/workspace') as Map<String, dynamic>;
+      final ws = await backend.getJson('/projia/workspace') as Map<String, dynamic>;
       cwd = ws['path'] as String?;
-      final base = backend.uri('/tontolo/terminal/$key/ws', {if (backend.token.isNotEmpty) 'token': backend.token});
+      final base = backend.uri('/projia/terminal/$key/ws', {if (backend.token.isNotEmpty) 'token': backend.token});
       final s = await WebSocket.connect(base.replace(scheme: base.scheme == 'https' ? 'wss' : 'ws').toString());
       socket = s;
       failed = false;
@@ -208,7 +208,7 @@ class BrowserBridge extends ChangeNotifier {
         continue;
       }
       try {
-        final r = await backend.getJson('/tontolo/browser/next', {'wait': 25}) as Map<String, dynamic>;
+        final r = await backend.getJson('/projia/browser/next', {'wait': 25}) as Map<String, dynamic>;
         final cmd = (r['command'] as Map?)?.cast<String, dynamic>();
         if (cmd == null) continue;
         Map<String, dynamic> data;
@@ -217,7 +217,7 @@ class BrowserBridge extends ChangeNotifier {
         } catch (e) {
           data = {'error': '$e'};
         }
-        await backend.sendJson('POST', '/tontolo/browser/result', {'id': cmd['id'], 'data': data});
+        await backend.sendJson('POST', '/projia/browser/result', {'id': cmd['id'], 'data': data});
       } catch (_) {
         await Future<void>.delayed(const Duration(seconds: 3));
       }
@@ -399,7 +399,7 @@ class _DesktopBrowserInfoState extends State<_DesktopBrowserInfo> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    AppScope.of(context).backend.getJson('/tontolo/browser').then((s) {
+    AppScope.of(context).backend.getJson('/projia/browser').then((s) {
       if (mounted) setState(() => status = (s as Map).cast<String, dynamic>());
     }).catchError((_) {});
   }

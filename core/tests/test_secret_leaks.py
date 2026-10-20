@@ -1,8 +1,8 @@
 """Régressions : les erreurs fournisseur ne doivent jamais révéler une clé."""
 import json
 
-from tontolo import secrets
-from tontolo.providers.openai_compat import classify_error
+from projia import secrets
+from projia.providers.openai_compat import classify_error
 
 
 def test_json_provider_error_redacts_message_and_metadata():
@@ -50,9 +50,9 @@ def test_no_http_read_or_export_endpoint_returns_a_key(
     """Une clé enregistrée n'apparaît dans aucune lecture ni aucun export du cœur."""
     from fastapi.testclient import TestClient
 
-    from tontolo.catalog.service import CatalogService
-    from tontolo.providers.registry import ProviderRegistry
-    from tontolo.server.app import create_app
+    from projia.catalog.service import CatalogService
+    from projia.providers.registry import ProviderRegistry
+    from projia.server.app import create_app
 
     async def fake_load(self):
         self.catalog = catalog_service.catalog
@@ -63,10 +63,10 @@ def test_no_http_read_or_export_endpoint_returns_a_key(
     monkeypatch.setattr(secrets, "_memory", {"openrouter": key})
     app = create_app(settings, registry=ProviderRegistry(lambda p: fake), refresh=False)
     with TestClient(app, base_url="http://127.0.0.1") as c:
-        for path in ("/tontolo/providers", "/tontolo/settings", "/tontolo/metrics",
-                     "/tontolo/answers", "/tontolo/memory", "/tontolo/spend",
-                     "/tontolo/cloud/export", "/tontolo/activity", "/tontolo/sync",
-                     "/tontolo/mcp", "/tontolo/capabilities"):
+        for path in ("/projia/providers", "/projia/settings", "/projia/metrics",
+                     "/projia/answers", "/projia/memory", "/projia/spend",
+                     "/projia/cloud/export", "/projia/activity", "/projia/sync",
+                     "/projia/mcp", "/projia/capabilities"):
             r = c.get(path)
             assert key not in r.text, path
 

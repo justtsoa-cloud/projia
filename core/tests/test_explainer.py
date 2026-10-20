@@ -11,13 +11,13 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from tontolo.catalog.service import CatalogService
-from tontolo.config import Settings
-from tontolo.explainer import manim_render, storyboard, writer
-from tontolo.explainer.intent import complete, resolve
-from tontolo.providers.fake import FakeProvider
-from tontolo.providers.registry import ProviderRegistry
-from tontolo.server.app import create_app
+from projia.catalog.service import CatalogService
+from projia.config import Settings
+from projia.explainer import manim_render, storyboard, writer
+from projia.explainer.intent import complete, resolve
+from projia.providers.fake import FakeProvider
+from projia.providers.registry import ProviderRegistry
+from projia.server.app import create_app
 
 GOOD = {"title": "Additionner des fractions", "scenes": [
     {"type": "title", "text": "Additionner des fractions", "narration": "Bonjour."},
@@ -66,7 +66,7 @@ def test_naive_requests_are_completed() -> None:
 
 
 def test_the_chosen_length_is_only_announced_when_the_video_is_close_to_it() -> None:
-    from tontolo.explainer import service
+    from projia.explainer import service
 
     brief = complete("fais-moi une vidéo sur les fractions")  # durée choisie : 75 s
     short = storyboard.validate(GOOD)
@@ -205,7 +205,7 @@ def client(settings: Settings, catalog_service: CatalogService, fake: FakeProvid
 
 
 def _chat(client: TestClient, body: dict[str, Any]) -> list[dict[str, Any]]:
-    with client.stream("POST", "/tontolo/chat", json=body) as r:
+    with client.stream("POST", "/projia/chat", json=body) as r:
         return [json.loads(x[5:]) for x in r.iter_lines() if x.startswith("data:")]
 
 
@@ -249,14 +249,14 @@ def test_if_the_model_fails_the_user_still_gets_an_answer(client: TestClient,
 
 
 def test_render_endpoint_validates_and_reports_capabilities(client: TestClient) -> None:
-    caps = client.get("/tontolo/explainer/capabilities").json()
+    caps = client.get("/projia/explainer/capabilities").json()
     assert set(caps) >= {"manim", "ffmpeg", "latex", "sandbox", "mp4"}
-    bad = client.post("/tontolo/explainer/render", json={"story": {"scenes": [{"type": "x"}]}})
+    bad = client.post("/projia/explainer/render", json={"story": {"scenes": [{"type": "x"}]}})
     assert bad.status_code == 400
-    evil = client.post("/tontolo/explainer/render", json={"story": {
+    evil = client.post("/projia/explainer/render", json={"story": {
         "title": "t", "scenes": [{"type": "equation", "latex": "\\input{/etc/passwd}"}] * 3}})
     assert evil.status_code == 400
-    huge = client.post("/tontolo/explainer/render", content=b"x" * 300_000)
+    huge = client.post("/projia/explainer/render", content=b"x" * 300_000)
     assert huge.status_code == 413
 
 
@@ -300,7 +300,7 @@ def test_latex_in_prose_is_made_plain() -> None:
 
 
 def test_manim_requires_sandbox(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    from tontolo.agent import mcp_client
+    from projia.agent import mcp_client
 
     monkeypatch.setattr(mcp_client, 'bwrap_usable', lambda: None)
     with pytest.raises(manim_render.RenderError, match='bubblewrap'):
@@ -311,8 +311,8 @@ def test_mp4_capability_requires_sandbox(client: TestClient,
                                         monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(manim_render, 'status', lambda: {
         'manim': True, 'ffmpeg': True, 'latex': True, 'sandbox': False})
-    assert client.get('/tontolo/explainer/capabilities').json()['mp4'] is False
-    response = client.post('/tontolo/explainer/render', json={'story': GOOD})
+    assert client.get('/projia/explainer/capabilities').json()['mp4'] is False
+    response = client.post('/projia/explainer/render', json={'story': GOOD})
     assert response.status_code == 501
 
 
@@ -323,7 +323,7 @@ def _story(lang_text: str) -> dict:
 
 
 def test_language_check_without_model() -> None:
-    from tontolo.explainer.review import language_ok
+    from projia.explainer.review import language_ok
 
     fr = "Nous allons voir que les fractions sont une partie du tout et que le résultat est simple."
     en = "We will see that fractions are a part of the whole and that the result is simple for you."
@@ -333,7 +333,7 @@ def test_language_check_without_model() -> None:
 
 
 async def test_review_reports_issues_or_none_when_unavailable() -> None:
-    from tontolo.explainer.review import review
+    from projia.explainer.review import review
 
     async def wrong(messages, accept):
         text = '{"ok": false, "issues": ["1/2 + 1/3 vaut 5/6, pas 2/5"]}'
@@ -358,8 +358,8 @@ async def test_review_reports_issues_or_none_when_unavailable() -> None:
 async def test_checked_story_is_fixed_once_and_marked_reviewed() -> None:
     from types import SimpleNamespace
 
-    from tontolo.explainer import service
-    from tontolo.explainer.intent import Brief
+    from projia.explainer import service
+    from projia.explainer.intent import Brief
 
     good = {"title": "T", "scenes": [
         {"type": "title", "text": "Fractions", "narration": "Nous voyons les fractions."},

@@ -10,8 +10,8 @@ from typing import Any
 
 import pytest
 
-from tontolo.creator import book, intent, latex
-from tontolo.creator.pipeline import Creator, Output
+from projia.creator import book, intent, latex
+from projia.creator.pipeline import Creator, Output
 
 
 def test_detection_and_size() -> None:
@@ -165,7 +165,7 @@ async def test_slow_chapter_is_retried_then_replaced(monkeypatch: pytest.MonkeyP
 
 
 def test_failing_chapter_found_without_line_number() -> None:
-    from tontolo.creator.book import failing_chapter
+    from projia.creator.book import failing_chapter
 
     chapters = ["\\chapter{A}\nbonjour\n", "\\chapter{B}\n\\begin{tcolorbox}[Livre VII]\n"]
     log = "! Package pgfkeys Error: I do not know the key '/tcb/Livre VII' and I am going"
@@ -174,7 +174,7 @@ def test_failing_chapter_found_without_line_number() -> None:
 
 
 def test_plain_chapter_is_always_compilable_text() -> None:
-    from tontolo.creator.book import plain_chapter
+    from projia.creator.book import plain_chapter
 
     body = ("\\chapter{X}\n\\section{Idées}\n\\begin{tcolorbox}[Livre VII]\n"
             "Texte \\textbf{fort} & 5%\n\\end{tcolorbox}\n% note\n")

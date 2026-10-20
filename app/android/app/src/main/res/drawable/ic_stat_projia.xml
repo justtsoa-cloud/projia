@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icône monochrome de notification : le « T » de Projia et son point. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M5,6.5C5,5.12 6.12,4 7.5,4H15v2.5H7.5V6.5H10v9.5c0,1.1 0.9,2 2,2s2,-0.9 2,-2V9h2.5v7c0,2.48 -2.02,4.5 -4.5,4.5S7.5,18.48 7.5,16V9H7.5C6.12,9 5,7.88 5,6.5z"/>
+    <path android:fillColor="#FFFFFFFF" android:pathData="M19,5.25m-2.25,0a2.25,2.25 0,1 1,4.5 0a2.25,2.25 0,1 1,-4.5 0"/>
+</vector>

@@ -1,4 +1,4 @@
-Tontolo picks the best free AI model for every message and automatically switches to another one when a quota is reached: you keep going without paying or configuring anything.
+Projia picks the best free AI model for every message and automatically switches to another one when a quota is reached: you keep going without paying or configuring anything.
 
 • Chat, code and maths (LaTeX formulas), web search with sources
 • Free images, short videos and voice

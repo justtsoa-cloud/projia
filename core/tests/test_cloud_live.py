@@ -9,11 +9,11 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from tontolo.catalog.service import CatalogService
-from tontolo.config import Settings
-from tontolo.providers.fake import FakeProvider
-from tontolo.providers.registry import ProviderRegistry
-from tontolo.server.app import create_app
+from projia.catalog.service import CatalogService
+from projia.config import Settings
+from projia.providers.fake import FakeProvider
+from projia.providers.registry import ProviderRegistry
+from projia.server.app import create_app
 
 
 @pytest.fixture
@@ -42,31 +42,31 @@ def test_creations_roundtrip(client: TestClient, tmp_path: Path) -> None:
                                       "result_path": str(path), "conversation_id": "c1"})
 
     client.portal.call(setup)  # type: ignore[attr-defined]
-    out = client.get("/tontolo/cloud/creations").json()
+    out = client.get("/projia/cloud/creations").json()
     assert [c["id"] for c in out["creations"]] == ["a"*32]  # la lourde reste sur l'appareil
     assert out["until"] > 0
-    assert client.get("/tontolo/cloud/creations", params={"since": out["until"]}).json()[
+    assert client.get("/projia/cloud/creations", params={"since": out["until"]}).json()[
         "creations"] == []
     item = dict(out["creations"][0], id="c"*32)
-    assert client.post("/tontolo/cloud/creations", json={"creations": [item]}).json() == {
+    assert client.post("/projia/cloud/creations", json={"creations": [item]}).json() == {
         "applied": 1}
-    assert client.post("/tontolo/cloud/creations", json={"creations": [item]}).json() == {
+    assert client.post("/projia/cloud/creations", json={"creations": [item]}).json() == {
         "applied": 0}  # jamais en double
-    job = client.get("/tontolo/media/" + "c" * 32).json()
+    job = client.get("/projia/media/" + "c" * 32).json()
     assert job["status"] == "done"
-    assert client.get("/tontolo/media/" + "c" * 32 + "/file").content == small.read_bytes()
+    assert client.get("/projia/media/" + "c" * 32 + "/file").content == small.read_bytes()
     bad = dict(item, id="../evil")
-    assert client.post("/tontolo/cloud/creations", json={"creations": [bad]}).json() == {
+    assert client.post("/projia/cloud/creations", json={"creations": [bad]}).json() == {
         "applied": 0}
     huge = dict(item, id="d"*32, data_b64=base64.b64encode(b"0" * 1_000_001).decode())
-    assert client.post("/tontolo/cloud/creations", json={"creations": [huge]}).json() == {
+    assert client.post("/projia/cloud/creations", json={"creations": [huge]}).json() == {
         "applied": 0}
 
 
 async def test_turn_progress_and_activity() -> None:
     import asyncio
 
-    from tontolo.agent.turns import TurnManager
+    from projia.agent.turns import TurnManager
 
     gate = asyncio.Event()
 
@@ -88,14 +88,14 @@ async def test_turn_progress_and_activity() -> None:
 
 
 def test_activity_endpoint(client: TestClient) -> None:
-    out = client.get("/tontolo/activity").json()
+    out = client.get("/projia/activity").json()
     assert out["tasks"] == [] and out["at"] > 0
 
 
 async def test_waiting_for_the_user() -> None:
     import asyncio
 
-    from tontolo.agent.turns import TurnManager
+    from projia.agent.turns import TurnManager
 
     async def asks() -> Any:
         yield {"type": "delta", "content": "Quelle matière ?"}
@@ -126,8 +126,8 @@ def test_conversation_list_has_dots(client: TestClient) -> None:
         return cid
 
     cid = client.portal.call(setup)  # type: ignore[attr-defined]
-    row = next(c for c in client.get("/tontolo/conversations").json() if c["id"] == cid)
+    row = next(c for c in client.get("/projia/conversations").json() if c["id"] == cid)
     assert row["running"] is False and row["waiting"] == "question"
-    act = client.get("/tontolo/activity").json()
+    act = client.get("/projia/activity").json()
     assert act["waiting"] == [{"conversation_id": cid, "reason": "question",
                                "title": "Exercice"}]

@@ -128,7 +128,7 @@ class _AgentSheetState extends State<_AgentSheet> {
 
   Future<void> _load() async {
     try {
-      final s = await AppScope.of(context).backend.getJson('/tontolo/settings') as Map<String, dynamic>;
+      final s = await AppScope.of(context).backend.getJson('/projia/settings') as Map<String, dynamic>;
       if (mounted) setState(() => paid = '${(s['paid'] as Map?)?['fallback'] ?? 'off'}');
     } catch (_) {
       if (mounted) setState(() => paid = 'off');
@@ -137,7 +137,7 @@ class _AgentSheetState extends State<_AgentSheet> {
 
   Future<void> _setPaid(String v) async {
     setState(() => paid = v);
-    await AppScope.of(context).backend.sendJson('PUT', '/tontolo/settings', {'paid': {'fallback': v}});
+    await AppScope.of(context).backend.sendJson('PUT', '/projia/settings', {'paid': {'fallback': v}});
   }
 
   @override

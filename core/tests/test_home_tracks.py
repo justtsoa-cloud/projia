@@ -8,12 +8,12 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from tontolo.catalog.service import CatalogService
-from tontolo.config import Settings
-from tontolo.home import tracks
-from tontolo.providers.fake import FakeProvider
-from tontolo.providers.registry import ProviderRegistry
-from tontolo.server.app import create_app
+from projia.catalog.service import CatalogService
+from projia.config import Settings
+from projia.home import tracks
+from projia.providers.fake import FakeProvider
+from projia.providers.registry import ProviderRegistry
+from projia.server.app import create_app
 
 NOW = 1_800_000_000.0
 DAY = 86400.0
@@ -90,16 +90,16 @@ def test_home_endpoint_proposes_and_dismisses(client: TestClient) -> None:
     """Bout en bout : un titre de discussion devient une piste ; « pas pour moi » la retire."""
     import json as _json
 
-    cid = client.post("/tontolo/import", json={"data": _json.dumps({
+    cid = client.post("/projia/import", json={"data": _json.dumps({
         "snapshot_name": "Les volcans", "chat_messages": [
             {"sender": "human", "content": [{"type": "text", "text": "Parle-moi des volcans"}]},
             {"sender": "assistant", "content": [{"type": "text", "text": "Ce sont des reliefs…"}]},
         ]})}).json()["conversations"][0]["id"]
     assert cid
-    home = client.get("/tontolo/home").json()
+    home = client.get("/projia/home").json()
     assert home["tracks"] and "volcans" in home["tracks"][0]["topic"].lower()
-    assert client.post("/tontolo/home/dismiss", json={"topic": home["tracks"][0]["topic"]}
+    assert client.post("/projia/home/dismiss", json={"topic": home["tracks"][0]["topic"]}
                        ).json() == {"ok": True}
-    assert client.get("/tontolo/home").json()["tracks"] == []
-    assert client.put("/tontolo/settings", json={"home_tracks": False}).status_code == 200
-    assert "tracks" not in client.get("/tontolo/home").json()
+    assert client.get("/projia/home").json()["tracks"] == []
+    assert client.put("/projia/settings", json={"home_tracks": False}).status_code == 200
+    assert "tracks" not in client.get("/projia/home").json()

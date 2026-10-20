@@ -1,8 +1,8 @@
 // Toutes les langues de l'interface sont complètes : aucune chaîne française restante.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tontolo/core/key_guides.dart';
-import 'package:tontolo/l10n/strings.dart';
+import 'package:projia/core/key_guides.dart';
+import 'package:projia/l10n/strings.dart';
 
 void main() {
   for (final locale in ['en', 'mg']) {

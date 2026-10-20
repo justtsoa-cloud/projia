@@ -1,25 +1,25 @@
-"""Point d'entrée du cœur Tontolo embarqué dans l'application (serious_python).
+"""Point d'entrée du cœur Projia embarqué dans l'application (serious_python).
 
 L'application Flutter fournit par variables d'environnement :
-- TONTOLO_PORT, TONTOLO_TOKEN (jeton aléatoire : aucune autre appli de
+- PROJIA_PORT, PROJIA_TOKEN (jeton aléatoire : aucune autre appli de
   l'appareil ne peut utiliser le serveur local) ;
-- TONTOLO_HOME (dossier de données inscriptible) ;
-- TONTOLO_PLATFORM (android | linux).
+- PROJIA_HOME (dossier de données inscriptible) ;
+- PROJIA_PLATFORM (android | linux).
 Les clés API ne transitent pas par ici : l'application les envoie en mémoire
-via `PUT /tontolo/keys/{fournisseur}` (persist=false), depuis son stockage sécurisé.
+via `PUT /projia/keys/{fournisseur}` (persist=false), depuis son stockage sécurisé.
 """
 
 import os
 import time
 import traceback
 
-os.environ.setdefault("TONTOLO_HOME", os.path.join(os.getcwd(), "tontolo"))
-os.environ.setdefault("TONTOLO_NO_KEYRING", "1")
+os.environ.setdefault("PROJIA_HOME", os.path.join(os.getcwd(), "projia"))
+os.environ.setdefault("PROJIA_NO_KEYRING", "1")
 _t0 = time.monotonic()
 
 
 def _log_crash() -> None:
-    home = os.environ["TONTOLO_HOME"]
+    home = os.environ["PROJIA_HOME"]
     os.makedirs(home, exist_ok=True)
     with open(os.path.join(home, "crash.log"), "a", encoding="utf-8") as fh:
         traceback.print_exc(file=fh)
@@ -29,15 +29,15 @@ def _log_crash() -> None:
 def main() -> None:
     import uvicorn
 
-    from tontolo.config import load_settings
-    from tontolo.server.app import create_app
+    from projia.config import load_settings
+    from projia.server.app import create_app
 
     settings = load_settings()
     settings.server.host = "127.0.0.1"
-    settings.server.port = int(os.environ.get("TONTOLO_PORT", "8765"))
-    settings.server.token = os.environ.get("TONTOLO_TOKEN") or None
+    settings.server.port = int(os.environ.get("PROJIA_PORT", "8765"))
+    settings.server.token = os.environ.get("PROJIA_TOKEN") or None
     app = create_app(settings)
-    print(f"[tontolo] imports en {time.monotonic() - _t0:.2f}s", flush=True)
+    print(f"[projia] imports en {time.monotonic() - _t0:.2f}s", flush=True)
     config = uvicorn.Config(app, host="127.0.0.1", port=settings.server.port,
                             log_level="warning", loop="asyncio", http="h11",
                             lifespan="on", access_log=False)

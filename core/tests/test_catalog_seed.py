@@ -7,8 +7,8 @@ from typing import Any
 
 import pytest
 
-from tontolo.catalog.service import CatalogService
-from tontolo.config import Settings
+from projia.catalog.service import CatalogService
+from projia.config import Settings
 
 
 async def test_offline_first_launch_uses_seed(settings: Settings,

@@ -54,16 +54,16 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
     final b = AppScope.of(context).backend;
     final local = AppScope.of(context).prefs.remoteUrl.isEmpty;
     if (b.state != BackendState.ready) return;
-    final s = await b.getJson('/tontolo/settings') as Map<String, dynamic>;
-    final m = await b.getJson('/tontolo/memory') as Map<String, dynamic>;
+    final s = await b.getJson('/projia/settings') as Map<String, dynamic>;
+    final m = await b.getJson('/projia/memory') as Map<String, dynamic>;
     Map<String, dynamic>? ans;
     try {
-      ans = await b.getJson('/tontolo/answers') as Map<String, dynamic>;
+      ans = await b.getJson('/projia/answers') as Map<String, dynamic>;
     } catch (_) {} // ancien cœur : pas de cache de réponses
     Map<String, dynamic>? ws;
     if (Platform.isLinux && local) {
       try {
-        ws = await b.getJson('/tontolo/workspace') as Map<String, dynamic>;
+        ws = await b.getJson('/projia/workspace') as Map<String, dynamic>;
       } catch (_) {} // ancien cœur : pas d'espace de travail
     }
     if (!mounted) return;
@@ -92,7 +92,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
     final dir = await FilePicker.getDirectoryPath();
     if (dir == null || !mounted) return;
     try {
-      await AppScope.of(context).backend.sendJson('PUT', '/tontolo/workspace', {'path': dir});
+      await AppScope.of(context).backend.sendJson('PUT', '/projia/workspace', {'path': dir});
     } catch (e) {
       messenger.showSnackBar(SnackBar(content: Text('$e')));
     }
@@ -119,10 +119,10 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
           maxLength: 40,
           textCapitalization: TextCapitalization.words,
           decoration: InputDecoration(labelText: context.t('user_name'), helperText: context.t('user_name_help'), helperMaxLines: 2),
-          onEditingComplete: () => _call('PUT', '/tontolo/settings', {'user_name': userName.text.trim()}),
+          onEditingComplete: () => _call('PUT', '/projia/settings', {'user_name': userName.text.trim()}),
           onTapOutside: (_) {
             FocusScope.of(context).unfocus();
-            _call('PUT', '/tontolo/settings', {'user_name': userName.text.trim()});
+            _call('PUT', '/projia/settings', {'user_name': userName.text.trim()});
           },
         ),
       ),
@@ -134,10 +134,10 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
           maxLines: 5,
           maxLength: 2000,
           decoration: InputDecoration(labelText: context.t('instructions'), hintText: context.t('instructions_hint')),
-          onEditingComplete: () => _call('PUT', '/tontolo/settings', {'custom_instructions': instructions.text}),
+          onEditingComplete: () => _call('PUT', '/projia/settings', {'custom_instructions': instructions.text}),
           onTapOutside: (_) {
             FocusScope.of(context).unfocus();
-            _call('PUT', '/tontolo/settings', {'custom_instructions': instructions.text});
+            _call('PUT', '/projia/settings', {'custom_instructions': instructions.text});
           },
         ),
       ),
@@ -149,7 +149,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
         value: speedFirst,
         onChanged: (v) {
           setState(() => speedFirst = v);
-          _call('PUT', '/tontolo/settings', {'speed_first': v});
+          _call('PUT', '/projia/settings', {'speed_first': v});
         },
       ),
       SwitchListTile(
@@ -159,7 +159,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
         value: homeTracks,
         onChanged: (v) {
           setState(() => homeTracks = v);
-          _call('PUT', '/tontolo/settings', {'home_tracks': v});
+          _call('PUT', '/projia/settings', {'home_tracks': v});
         },
       ),
       SwitchListTile(
@@ -181,7 +181,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
         value: economy,
         onChanged: (v) {
           setState(() => economy = v);
-          _call('PUT', '/tontolo/settings', {'economy': v});
+          _call('PUT', '/projia/settings', {'economy': v});
         },
       ),
       SwitchListTile(
@@ -191,7 +191,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
         value: teamReview,
         onChanged: (v) {
           setState(() => teamReview = v);
-          _call('PUT', '/tontolo/settings', {'team_review': v});
+          _call('PUT', '/projia/settings', {'team_review': v});
         },
       ),
       SwitchListTile(
@@ -201,7 +201,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
         value: autoCompact,
         onChanged: (v) {
           setState(() => autoCompact = v);
-          _call('PUT', '/tontolo/settings', {'auto_compact': v});
+          _call('PUT', '/projia/settings', {'auto_compact': v});
         },
       ),
       ListTile(
@@ -225,7 +225,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
               taskPlanning = m != 'off';
               orchestrate = m == 'multi';
             });
-            _call('PUT', '/tontolo/settings', {'task_planning': m != 'off', 'orchestrate': m == 'multi'});
+            _call('PUT', '/projia/settings', {'task_planning': m != 'off', 'orchestrate': m == 'multi'});
           },
         ),
       ),
@@ -243,7 +243,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
               : IconButton(
                   icon: const Icon(Icons.close),
                   tooltip: context.t('workspace_clear'),
-                  onPressed: () => _call('PUT', '/tontolo/workspace', {'path': null}),
+                  onPressed: () => _call('PUT', '/projia/workspace', {'path': null}),
                 ),
           onTap: _pickWorkspace,
         ),
@@ -258,7 +258,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
             trailing: TextButton.icon(
               icon: const Icon(Icons.undo, size: 18),
               label: Text(context.t('workspace_undo')),
-              onPressed: () => _call('POST', '/tontolo/workspace/undo'),
+              onPressed: () => _call('POST', '/projia/workspace/undo'),
             ),
           ),
       ],
@@ -268,7 +268,7 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
         title: Text(context.t('memory')),
         subtitle: Text(context.t('memory_help'), style: small),
         value: enabled,
-        onChanged: (v) => _call('PUT', '/tontolo/settings', {'memory_enabled': v}),
+        onChanged: (v) => _call('PUT', '/projia/settings', {'memory_enabled': v}),
       ),
       if (enabled) ...[
         if (memories.isEmpty)
@@ -281,14 +281,14 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
             trailing: IconButton(
               icon: const Icon(Icons.close, size: 18),
               tooltip: context.t('delete'),
-              onPressed: () => _call('DELETE', '/tontolo/memory/${m['id']}'),
+              onPressed: () => _call('DELETE', '/projia/memory/${m['id']}'),
             ),
           ),
         if (memories.isNotEmpty)
           OverflowBar(alignment: MainAxisAlignment.end, children: [
-            TextButton(onPressed: () => _call('POST', '/tontolo/memory/compact'), child: Text(context.t('memory_compact'))),
+            TextButton(onPressed: () => _call('POST', '/projia/memory/compact'), child: Text(context.t('memory_compact'))),
             TextButton(
-              onPressed: () => _call('DELETE', '/tontolo/memory'),
+              onPressed: () => _call('DELETE', '/projia/memory'),
               child: Text(context.t('memory_clear'), style: TextStyle(color: Theme.of(context).colorScheme.error)),
             ),
           ]),
@@ -299,13 +299,13 @@ class _PersonalizationSectionState extends State<PersonalizationSection> {
           title: Text(context.t('answer_cache')),
           subtitle: Text(context.t('answer_cache_help', {'n': '$answers'}), style: small),
           value: answerCache,
-          onChanged: (v) => _call('PUT', '/tontolo/settings', {'answer_cache': v}),
+          onChanged: (v) => _call('PUT', '/projia/settings', {'answer_cache': v}),
         ),
       if (answers > 0)
         Align(
           alignment: Alignment.centerRight,
           child: TextButton(
-            onPressed: () => _call('DELETE', '/tontolo/answers'),
+            onPressed: () => _call('DELETE', '/projia/answers'),
             child: Text(context.t('answer_cache_clear'), style: TextStyle(color: Theme.of(context).colorScheme.error)),
           ),
         ),

@@ -33,14 +33,14 @@ HEAD = {"Authorization": f"Bearer {TOKEN}"}
 
 class Server:
     def __init__(self) -> None:
-        self.home = Path(tempfile.mkdtemp(prefix="tontolo-e2e-"))
-        cache = Path.home() / ".local/share/tontolo/cache"
+        self.home = Path(tempfile.mkdtemp(prefix="projia-e2e-"))
+        cache = Path.home() / ".local/share/projia/cache"
         if cache.is_dir():
             shutil.copytree(cache, self.home / "cache")  # catalogue déjà connu : démarrage rapide
-        env = {**os.environ, "TONTOLO_HOME": str(self.home), "TONTOLO_PORT": str(PORT),
-               "TONTOLO_TOKEN": TOKEN, "TONTOLO_NO_KEYRING": "1"}
+        env = {**os.environ, "PROJIA_HOME": str(self.home), "PROJIA_PORT": str(PORT),
+               "PROJIA_TOKEN": TOKEN, "PROJIA_NO_KEYRING": "1"}
         self.proc = subprocess.Popen(
-            [sys.executable, "-m", "tontolo.cli", "serve", "--port", str(PORT)], cwd=ROOT,
+            [sys.executable, "-m", "projia.cli", "serve", "--port", str(PORT)], cwd=ROOT,
             env=env, stdout=open(self.home / "server.log", "w"), stderr=subprocess.STDOUT)
 
     async def wait(self) -> None:
@@ -67,7 +67,7 @@ class Api:
         self.http = httpx.AsyncClient(base_url=BASE, headers=HEAD, timeout=None)
 
     async def chat(self, content: Any, cid: str | None = None, *, limit: float = 900,
-                   path: str = "/tontolo/chat", **extra: Any) -> list[dict[str, Any]]:
+                   path: str = "/projia/chat", **extra: Any) -> list[dict[str, Any]]:
         events: list[dict[str, Any]] = []
         body = {"conversation_id": cid, "content": content, **extra} if path.endswith("chat") \
             else extra
@@ -89,7 +89,7 @@ class Api:
         return (await self.http.get(path, params=params)).json()
 
     async def conversation(self, cid: str) -> dict[str, Any]:
-        return await self.get(f"/tontolo/conversations/{cid}")
+        return await self.get(f"/projia/conversations/{cid}")
 
 
 def cid_of(events: list[dict[str, Any]]) -> str:
@@ -165,7 +165,7 @@ async def r2_complex_plan(api: Api, v: Verdict) -> None:
     for word in ("Madagascar", "Japon", "Brésil", "Maroc"):
         v.check(word.lower() in text.lower(), f"« {word} » traité")
     v.check(not errors_of(ev), f"aucune erreur ({errors_of(ev)[:1]})")
-    items = await api.get(f"/tontolo/conversations/{cid}/tasks")
+    items = await api.get(f"/projia/conversations/{cid}/tasks")
     v.note(f"résultats intermédiaires gardés : {[i['kind'] for i in items]}")
     if plans and plans[0]["plan"]["mode"] == "steps":
         ev2 = await api.chat("continuer", cid)
@@ -230,7 +230,7 @@ async def r4_revision_chain(api: Api, v: Verdict) -> None:
             v.check(bool(job["params"].get("revision")), "  … traitée comme une correction")
     v.note(f"noms : {names}")
     v.check(len(set(names)) == len(names) >= 3, "aucune version ne reprend le nom d'une autre")
-    items = await api.get(f"/tontolo/conversations/{cid}/tasks")
+    items = await api.get(f"/projia/conversations/{cid}/tasks")
     v.check(sum(i["kind"] == "draft" for i in items) >= len(names) - 1,
             "brouillons gardés dans les résultats intermédiaires")
 
@@ -245,7 +245,7 @@ async def r6_code_project(api: Api, v: Verdict) -> None:
     v.check(bool(job) and job["status"] == "done", f"archive créée ({errors_of(ev)[:1]})")
     if not job:
         return
-    r = await api.http.get(f"/tontolo/media/{job['id']}/file")
+    r = await api.http.get(f"/projia/media/{job['id']}/file")
     zpath = RESULTS / "r6_project.zip"
     zpath.write_bytes(r.content)
     with zipfile.ZipFile(zpath) as z:
@@ -280,14 +280,14 @@ async def r7_book(api: Api, v: Verdict) -> None:
     chapters = [e for e in ev if e.get("step") == "book_chapter"]
     v.note(f"chapitres signalés : {len(chapters)}")
     if job:
-        r = await api.http.get(f"/tontolo/media/{job['id']}/file")
+        r = await api.http.get(f"/projia/media/{job['id']}/file")
         (RESULTS / "r7_book.pdf").write_bytes(r.content)
         v.check(r.content[:4] == b"%PDF", f"PDF valide ({len(r.content) // 1024} Ko)")
         pdfinfo = subprocess.run(["pdfinfo", str(RESULTS / "r7_book.pdf")], capture_output=True,
                                  text=True)
         pages = [ln for ln in pdfinfo.stdout.splitlines() if ln.startswith("Pages")]
         v.note(pages[0] if pages else "pdfinfo indisponible")
-    items = await api.get(f"/tontolo/conversations/{cid}/tasks")
+    items = await api.get(f"/projia/conversations/{cid}/tasks")
     v.check(sum(i["kind"] == "part" for i in items) >= 3, "plan et chapitres visibles en direct")
 
 
@@ -364,7 +364,7 @@ async def r11_beamer_from_book(api: Api, v: Verdict) -> None:
     if not book.exists():
         v.note("livre de test absent : essai sauté")
         return
-    r = await api.http.post("/tontolo/documents", files={"file": (book.name, book.read_bytes())},
+    r = await api.http.post("/projia/documents", files={"file": (book.name, book.read_bytes())},
                             timeout=300)
     up = r.json()
     v.check(r.status_code == 200 and up.get("pages", 0) > 300, f"livre joint ({up.get('pages')} p.)")

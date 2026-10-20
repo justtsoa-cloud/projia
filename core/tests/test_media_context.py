@@ -7,10 +7,10 @@ from typing import Any
 import pytest
 from fastapi import HTTPException
 
-from tontolo.catalog.models import Category
-from tontolo.router.classifier import classify
-from tontolo.server.common import _first_image, _image_source, _media_history, _media_prompt
-from tontolo.storage.db import Database
+from projia.catalog.models import Category
+from projia.router.classifier import classify
+from projia.server.common import _first_image, _image_source, _media_history, _media_prompt
+from projia.storage.db import Database
 
 
 @pytest.mark.parametrize("text", ["anime-la", "animate it", "ampihetsiho"])

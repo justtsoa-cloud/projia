@@ -1,4 +1,4 @@
--- Notes 👍 / 👎 anonymes de Tontolo (0.5.8) : à exécuter une fois dans Supabase › SQL Editor,
+-- Notes 👍 / 👎 anonymes de Projia (0.5.8) : à exécuter une fois dans Supabase › SQL Editor,
 -- après supabase.sql. Aucun texte n'est jamais envoyé : seulement le modèle, le type de
 -- demande, la note et une raison courte.
 --

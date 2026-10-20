@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from tontolo.catalog.models import Category
-from tontolo.config import Settings
-from tontolo.router.classifier import TaskProfile
-from tontolo.router.engine import Router
-from tontolo.router.scoring import rank
+from projia.catalog.models import Category
+from projia.config import Settings
+from projia.router.classifier import TaskProfile
+from projia.router.engine import Router
+from projia.router.scoring import rank
 
 
 def _first(router: Router, cat: Category) -> str:

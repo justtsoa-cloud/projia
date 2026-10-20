@@ -3,7 +3,7 @@
 ## Signaler une vulnérabilité
 
 Merci de **ne pas ouvrir d'issue publique**. Utilisez le signalement privé de GitHub
-(onglet *Security* › *Report a vulnerability*) du dépôt `raantss18/tontolo`.
+(onglet *Security* › *Report a vulnerability*) du dépôt `justtsoa-cloud/projia`.
 Nous accusons réception sous 7 jours.
 
 ## Périmètre
@@ -47,7 +47,7 @@ manuelle. Corrigé :
   quitte jamais le domaine du Space), taille plafonnée pendant le téléchargement, URL limitée
   au domaine du Space ;
 - retouche locale : dimensions vérifiées avant décodage (image piégée de plusieurs gigapixels) ;
-- `PUT /tontolo/settings` : le dossier de travail des outils de l'agent n'est plus modifiable à
+- `PUT /projia/settings` : le dossier de travail des outils de l'agent n'est plus modifiable à
   distance (comme la configuration du serveur) ;
 - statistiques anonymes : base en insertion seule (RLS), contraintes de taille, aucune donnée
   de contenu ; désactivables.
@@ -63,7 +63,7 @@ liens ouverts limités à http(s), récepteurs Android non exportés, sauvegarde
 - Tests de concurrence : compactage sérialisé, changement d'écran pendant le chargement,
   résumé périmé après modification/suppression, modification refusée pendant génération.
 - `pip-audit` sur les dépendances installées : aucune vulnérabilité connue (distribution
-  Tontolo éditable exclue ; son code est relu et testé).
+  Projia éditable exclue ; son code est relu et testé).
 - Bandit : 16 alertes, aucune de sévérité haute. Revue : RSS borné et DTD/entités rejetées ;
   SVG/XML sans DTD/entités ; vérification XML de DOCX produit en interne avec texte échappé ;
   import d'échappement XML utilisé pour écrire et non parser ; SQL composé de fragments

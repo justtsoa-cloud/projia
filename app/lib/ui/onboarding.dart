@@ -47,7 +47,7 @@ class _OnboardingState extends State<Onboarding> {
                       onSelected: (_) {
                         final scope = AppScope.of(context);
                         scope.prefs.locale = code;
-                        scope.backend.sendJson('PUT', '/tontolo/settings', {'language': code}).catchError((_) => null);
+                        scope.backend.sendJson('PUT', '/projia/settings', {'language': code}).catchError((_) => null);
                       },
                     ),
                 ]),

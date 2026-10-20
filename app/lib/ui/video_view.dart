@@ -35,7 +35,7 @@ class _VideoBoxState extends State<VideoBox> {
 
   Future<void> _prepare() async {
     final dir = await tmpDir();
-    final f = File('${dir.path}/tontolo-video-${widget.id}.mp4');
+    final f = File('${dir.path}/projia-video-${widget.id}.mp4');
     if (!await f.exists() || await f.length() != widget.bytes.length) await f.writeAsBytes(widget.bytes);
     _file = f;
     if (!_embedded) {

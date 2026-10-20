@@ -5,11 +5,11 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from tontolo.agent.loop import ChatService
-from tontolo.config import Settings
-from tontolo.memory import MemoryService, explicit_memory, similarity
-from tontolo.router.engine import Router
-from tontolo.storage.db import Database
+from projia.agent.loop import ChatService
+from projia.config import Settings
+from projia.memory import MemoryService, explicit_memory, similarity
+from projia.router.engine import Router
+from projia.storage.db import Database
 
 
 def test_explicit_capture() -> None:
@@ -35,7 +35,7 @@ async def test_recall_relevance_and_budget(db: Database, settings: Settings) -> 
     mem = MemoryService(settings, db)
     await mem.remember("L'utilisateur enseigne les mathématiques au lycée")
     await mem.remember("L'utilisateur habite à Antananarivo")
-    await mem.remember("Le projet Tontolo utilise Flutter et Python")
+    await mem.remember("Le projet Projia utilise Flutter et Python")
     got = await mem.recall("Prépare un exercice de mathématiques")
     assert got and "mathématiques" in got[0]["text"]
     assert sum(len(m["text"]) for m in got) <= 80
@@ -140,7 +140,7 @@ async def test_automatic_memories_stay_in_their_own_thread(
 
 
 def test_name_learned_from_memory() -> None:
-    from tontolo.memory import name_from
+    from projia.memory import name_from
 
     assert name_from(["Aime le café", "L'utilisateur s'appelle Rivo"]) == "Rivo"
     assert name_from(["Je m'appelle Hery"]) == "Hery"

@@ -7,7 +7,7 @@ Deux propositions ont été étudiées (section 10 de la spécification). Choix 
 ```
 Mobile (barre du bas)                     Desktop / tablette (barre latérale)
 ┌──────────────────────────┐              ┌────┬──────────────────────────────────┐
-│ ☰  Tontolo               │              │ 💬 │ Tontolo                ⌕ Ctrl+K │
+│ ☰  Projia               │              │ 💬 │ Projia                ⌕ Ctrl+K │
 │──────────────────────────│              │ 🖼 │──────────────────────────────────│
 │                          │              │ ⚙  │  Utilisateur : Résous x²−4=0     │
 │   Bonjour 👋             │              │    │                                  │
@@ -33,7 +33,7 @@ Mobile (barre du bas)                     Desktop / tablette (barre latérale)
 
 ```
 ┌──────────────────────────┐
-│ Tontolo     [Texte|Image|Son|Vidéo] │
+│ Projia     [Texte|Image|Son|Vidéo] │
 │ Modèle : [Gemma 4 ▾]  Quotas ▮▮▮▯    │
 │──────────────────────────│
 │ conversation…            │

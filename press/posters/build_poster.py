@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Poster de version Tontolo (1080 × 1920, français / anglais / malgache).
+"""Poster de version Projia (1080 × 1920, français / anglais / malgache).
 
 Simple mais complet : le changement majeur de la version est montré par un exemple d'usage
 (capture réelle de l'application + trois étapes), puis les autres changements.
@@ -8,7 +8,7 @@ Simple mais complet : le changement majeur de la version est montré par un exem
     python3 press/posters/build_poster.py 0.5.2 --no-app   (ancienne version : posters seulement)
 
 Entrée  : press/posters/v<version>/poster.json et shots/<capture>-<langue>.png
-Sortie  : press/posters/v<version>/Tontolo-<version>-poster-<langue>.png (publication GitHub)
+Sortie  : press/posters/v<version>/Projia-<version>-poster-<langue>.png (publication GitHub)
           app/assets/posters/latest-<langue>.webp (fenêtre « Nouveautés » de l'application)
 Nécessite rsvg-convert et magick (ImageMagick)."""
 
@@ -47,7 +47,7 @@ QR_LABEL = {"fr": "Télécharger", "en": "Download", "mg": "Ampidino"}
 
 
 def release_url(version: str) -> str:
-    return f"https://github.com/raantss18/tontolo/releases/tag/v{version}"
+    return f"https://github.com/justtsoa-cloud/projia/releases/tag/v{version}"
 
 
 def qr_png(url: str) -> bytes:
@@ -84,7 +84,7 @@ def check_layout(t: dict, lang: str) -> None:
 def poster(data: dict, lang: str, version: str, shot: Path) -> str:
     t = data["lang"][lang]
     check_layout(t, lang)
-    logo = uri(ROOT / "docs/brand/tontolo-icon-512.png")
+    logo = uri(ROOT / "docs/brand/projia-icon-512.png")
     out = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">',
         '<defs>'
@@ -103,7 +103,7 @@ def poster(data: dict, lang: str, version: str, shot: Path) -> str:
         f'<circle cx="80" cy="1720" r="140" fill="{GOLD}" opacity="0.06"/>',
         # en-tête
         f'<image href="{logo}" x="60" y="64" width="124" height="124" clip-path="url(#logo)"/>',
-        text(214, 130, "Tontolo", 66, WHITE, 700),
+        text(214, 130, "Projia", 66, WHITE, 700),
         f'<rect x="214" y="150" width="190" height="52" rx="26" fill="{MINT}"/>',
         text(309, 188, version, 34, DARK, 700, "middle"),
         text(424, 188, t["tagline"] + " · " + t["date"], 26, MUTED),
@@ -140,7 +140,7 @@ def poster(data: dict, lang: str, version: str, shot: Path) -> str:
     out.append(f'<image href="{qr}" x="846" y="1326" width="168" height="168"/>')
     out.append(text(930, 1544, QR_LABEL.get(lang, QR_LABEL["en"]), 28, MINT, 700, "middle"))
     # pied
-    out.append(text(60, 1872, "github.com/raantss18/tontolo", 30, WHITE, 600))
+    out.append(text(60, 1872, "github.com/justtsoa-cloud/projia", 30, WHITE, 600))
     out.append(text(1020, 1872, t["footer"], 26, MUTED, 400, "end"))
     out.append("</svg>")
     return "".join(out)
@@ -154,7 +154,7 @@ def main(version: str, for_app: bool = True) -> None:
     for lang in ("fr", "en", "mg"):
         shot = folder / "shots" / f"{data['shot']}-{lang}.png"
         svg = folder / f"poster-{lang}.svg"
-        png = folder / f"Tontolo-{version}-poster-{lang}.png"
+        png = folder / f"Projia-{version}-poster-{lang}.png"
         svg.write_text(poster(data, lang, version, shot), encoding="utf-8")
         subprocess.run(["rsvg-convert", str(svg), "-o", str(png)], check=True)
         svg.unlink()

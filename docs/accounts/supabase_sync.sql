@@ -1,4 +1,4 @@
--- Comptes et synchronisation de Tontolo (0.3.0) : à exécuter une fois dans Supabase › SQL Editor
+-- Comptes et synchronisation de Projia (0.3.0) : à exécuter une fois dans Supabase › SQL Editor
 -- (même projet que les statistiques). Chaque utilisateur ne voit et ne modifie QUE ses lignes ;
 -- le contenu (« blob ») est chiffré sur l'appareil (AES-256-GCM) : illisible pour l'auteur.
 

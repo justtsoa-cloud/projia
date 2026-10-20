@@ -1,5 +1,5 @@
 // Travail en arrière-plan sur Android : pendant qu'une réponse est générée, un service de
-// premier plan (notification discrète « Tontolo termine votre réponse… ») empêche Android
+// premier plan (notification discrète « Projia termine votre réponse… ») empêche Android
 // d'endormir ou d'arrêter l'application quand on la quitte. Sans effet ailleurs.
 
 import 'dart:io';
@@ -7,7 +7,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 class BackgroundWork {
-  static const _channel = MethodChannel('tontolo/background');
+  static const _channel = MethodChannel('projia/background');
   static bool _running = false;
 
   static void start() {

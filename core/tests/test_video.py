@@ -9,12 +9,12 @@ from typing import Any
 import httpx
 import pytest
 
-from tontolo import http
-from tontolo.catalog.models import Category
-from tontolo.catalog.sources import hfspaces
-from tontolo.media import providers as mp
-from tontolo.providers.base import ErrorKind, ProviderError
-from tontolo.router.classifier import classify
+from projia import http
+from projia.catalog.models import Category
+from projia.catalog.sources import hfspaces
+from projia.media import providers as mp
+from projia.providers.base import ErrorKind, ProviderError
+from projia.router.classifier import classify
 
 BASE = hfspaces.VIDEO_SPACES[0].base_url
 
@@ -197,7 +197,7 @@ async def test_image_from_hf_space(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_gpu_quota_pauses_every_space() -> None:
-    from tontolo.providers.base import Scope
+    from projia.providers.base import Scope
 
     err = mp._gradio_error("You have exceeded your GPU quota (60s requested vs. 0s left)")
     assert err.kind == ErrorKind.QUOTA and err.scope == Scope.PROVIDER

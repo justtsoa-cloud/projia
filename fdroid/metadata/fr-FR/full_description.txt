@@ -1,4 +1,4 @@
-Tontolo est un assistant IA gratuit, qui garde vos données chez vous. Il choisit le meilleur modèle
+Projia est un assistant IA gratuit, qui garde vos données chez vous. Il choisit le meilleur modèle
 gratuit pour chaque demande et change tout seul quand un quota est épuisé. Vous utilisez vos propres
 clés gratuites ; aucun serveur intermédiaire.
 

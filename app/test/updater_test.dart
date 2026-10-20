@@ -5,10 +5,10 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tontolo/core/prefs.dart';
-import 'package:tontolo/core/update_key.dart';
-import 'package:tontolo/core/updater.dart';
-import 'package:tontolo/core/whats_new.dart';
+import 'package:projia/core/prefs.dart';
+import 'package:projia/core/update_key.dart';
+import 'package:projia/core/updater.dart';
+import 'package:projia/core/whats_new.dart';
 
 void main() {
   test('le CHANGELOG cumule toutes les versions sautées', () {
@@ -31,7 +31,7 @@ void main() {
   test('repli sans API : noms de fichiers stables', () {
     final rel = Updater.fallbackRelease('9.9.9');
     final names = [for (final a in rel['assets'] as List) (a as Map)['name']];
-    expect(names, containsAll(['tontolo-9.9.9-arm64-v8a.apk', 'SHA256SUMS', 'Tontolo-9.9.9-x86_64.AppImage']));
+    expect(names, containsAll(['projia-9.9.9-arm64-v8a.apk', 'SHA256SUMS', 'Projia-9.9.9-x86_64.AppImage']));
     for (final a in rel['assets'] as List) {
       expect(Uri.parse('${(a as Map)['browser_download_url']}').host, 'github.com');
     }
@@ -55,11 +55,11 @@ void main() {
     // Vecteur produit par `openssl pkeyutl -sign -rawin` avec une clé jetable (comme la CI).
     const pub = 'O6l5dFQk2gG7WSLOhlZaXWiLlsnwYcR0qqGZjvoJUkU=';
     final sig = base64Decode('APW7Dt353xmHGJxKAhL9XiGau+oAkay56kjNNiMW04jbRr+R2HMBw7rKAteASlgh+b6azvoGbPQcW8hyAHXvCA==');
-    final sums = utf8.encode('abc123  Tontolo-9.9.9-x86_64.AppImage\n');
+    final sums = utf8.encode('abc123  Projia-9.9.9-x86_64.AppImage\n');
     expect(await Updater.verifySums(sums, sig, publicKey: pub), isTrue);
-    final forged = utf8.encode('abc124  Tontolo-9.9.9-x86_64.AppImage\n');
+    final forged = utf8.encode('abc124  Projia-9.9.9-x86_64.AppImage\n');
     expect(await Updater.verifySums(forged, sig, publicKey: pub), isFalse);
-    expect(await Updater.verifySums(sums, sig), isFalse); // autre clé (celle de Tontolo)
+    expect(await Updater.verifySums(sums, sig), isFalse); // autre clé (celle de Projia)
     expect(await Updater.verifySums(sums, sig.sublist(1)), isFalse);
     // La clé embarquée est celle de .github/update-signing.pub.
     expect(File('../.github/update-signing.pub').readAsStringSync(), contains('MCowBQYDK2VwAyEA'));

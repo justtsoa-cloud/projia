@@ -1,4 +1,4 @@
-# Contribuer à Tontolo
+# Contribuer à Projia
 
 Merci ! Les contributions sont bienvenues (code, traductions, documentation, tests).
 

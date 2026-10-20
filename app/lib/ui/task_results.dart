@@ -46,7 +46,7 @@ class _TaskResultsState extends State<_TaskResults> {
 
   Future<void> _load() async {
     try {
-      final r = await AppScope.of(context).backend.getJson('/tontolo/conversations/${widget.conversationId}/tasks') as List;
+      final r = await AppScope.of(context).backend.getJson('/projia/conversations/${widget.conversationId}/tasks') as List;
       if (mounted) setState(() => items = r.cast<Map<String, dynamic>>().reversed.toList());
     } catch (_) {
       if (mounted) setState(() => items = []);
@@ -55,7 +55,7 @@ class _TaskResultsState extends State<_TaskResults> {
 
   Future<void> _open(Map<String, dynamic> item) async {
     final backend = AppScope.of(context).backend;
-    final data = await backend.getJson('/tontolo/conversations/${widget.conversationId}/tasks/${item['id']}') as Map<String, dynamic>;
+    final data = await backend.getJson('/projia/conversations/${widget.conversationId}/tasks/${item['id']}') as Map<String, dynamic>;
     if (!mounted) return;
     final text = '${data['content'] ?? ''}';
     final prose = item['kind'] == 'part' || item['kind'] == 'step';

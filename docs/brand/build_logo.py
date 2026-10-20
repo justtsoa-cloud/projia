@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""Logo Tontolo : l'Afrique et Madagascar, un logo « pas tout à fait fini ».
+"""Logo Projia : l'Afrique et Madagascar, un logo « pas tout à fait fini ».
 
     python3 docs/brand/build_logo.py
 
 Entrées : docs/brand/logo/africa-trace.svg et madagascar-trace.svg (silhouettes vectorisées
 avec potrace à partir du visuel de référence `reference-globe.webp`).
-Sorties : tontolo-icon.svg / tontolo-mark.svg, PNG (512), app/assets/icon.png, icônes Android
+Sorties : projia-icon.svg / projia-mark.svg, PNG (512), app/assets/icon.png, icônes Android
 (héritée, adaptative et monochrome). Nécessite rsvg-convert et magick (ImageMagick).
 
 Lecture du logo
 - « O » : l'anneau ouvert, aux extrémités effilées, dont le trait se prolonge en pointillés
   dans l'ouverture (ce qui reste à tracer).
-- « T » : une ligne fine posée sur l'Afrique, avec sa boucle (le petit « o » de Tontolo).
+- « T » : une ligne fine posée sur l'Afrique, avec sa boucle (le petit « o » de Projia).
 - Madagascar, en blanc lumineux : le point de départ ; l'Afrique s'estompe vers le nord, comme si
   elle était encore en train d'être dessinée."""
 
@@ -135,11 +135,11 @@ def render(svg: str, out: Path, size: int) -> None:
 
 
 def main() -> None:
-    (HERE / "tontolo-icon.svg").write_text(icon(), "utf-8")
-    (HERE / "tontolo-mark.svg").write_text(
+    (HERE / "projia-icon.svg").write_text(icon(), "utf-8")
+    (HERE / "projia-mark.svg").write_text(
         f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">'
         f'{defs()}{mark()}</svg>', "utf-8")
-    render(icon(), HERE / "tontolo-icon-512.png", 512)
+    render(icon(), HERE / "projia-icon-512.png", 512)
     render(icon(), ROOT / "app/assets/icon.png", 512)
     res = ROOT / "app/android/app/src/main/res"
     sizes = {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}

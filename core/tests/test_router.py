@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import time
 
-from tontolo.catalog.models import Category
-from tontolo.config import PaidFallback
-from tontolo.providers.registry import ProviderRegistry
-from tontolo.router.classifier import classify
-from tontolo.router.engine import Router
-from tontolo.storage.db import Database
+from projia.catalog.models import Category
+from projia.config import PaidFallback
+from projia.providers.registry import ProviderRegistry
+from projia.router.classifier import classify
+from projia.router.engine import Router
+from projia.storage.db import Database
 
 
 def user(text: str) -> list[dict[str, object]]:
@@ -115,8 +115,8 @@ async def test_first_launch_quick_catalog(settings, monkeypatch) -> None:
     """Premier lancement sans cache : les classements lents ne bloquent pas le démarrage."""
     import asyncio
 
-    from tontolo.catalog import service as svc_mod
-    from tontolo.catalog.models import ModelInfo
+    from projia.catalog import service as svc_mod
+    from projia.catalog.models import ModelInfo
 
     slow_called = asyncio.Event()
 
@@ -192,7 +192,7 @@ def test_photo_of_exercise_is_never_an_edit() -> None:
 
 async def test_quick_calls_feed_reliability(settings, catalog_service, fake) -> None:
     """Les appels courts (résumés, briefs, scénarios) apprennent quels modèles tiennent."""
-    from tontolo.router.engine import Router
+    from projia.router.engine import Router
 
     router = Router(settings, catalog_service, registry=ProviderRegistry(lambda p: fake))
     models = router._small_free_models(8)
@@ -208,7 +208,7 @@ async def test_economy_mode_runs_one_quick_call_at_a_time(settings, catalog_serv
     import asyncio
     from types import SimpleNamespace
 
-    from tontolo.router.engine import Router
+    from projia.router.engine import Router
 
     live = {"now": 0, "max": 0}
 
@@ -235,7 +235,7 @@ async def test_economy_mode_runs_one_quick_call_at_a_time(settings, catalog_serv
 
 
 def test_reliability_tracks_time_to_first_word() -> None:
-    from tontolo.router.scoring import Reliability
+    from projia.router.scoring import Reliability
 
     r = Reliability()
     assert r.ttft("m") is None

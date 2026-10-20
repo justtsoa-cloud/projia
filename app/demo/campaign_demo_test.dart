@@ -1,6 +1,6 @@
 // ignore_for_file: invalid_use_of_visible_for_testing_member
-// Banc de démonstration (développement) : fait tourner la vraie interface Tontolo en taille
-// « bureau » (1440×900), branchée sur un moteur Tontolo réel (`tontolo serve`), et enregistre
+// Banc de démonstration (développement) : fait tourner la vraie interface Projia en taille
+// « bureau » (1440×900), branchée sur un moteur Projia réel (`projia serve`), et enregistre
 // ses images pour fabriquer captures et vidéos. Lancement :
 //   flutter test demo/desktop_demo_test.dart
 // Variables : DEMO_URL (moteur), DEMO_OUT (dossier des images), DEMO_STILLS (captures fixes).
@@ -16,18 +16,18 @@ import 'package:flutter/services.dart' show FontLoader, MethodChannel;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tontolo/core/backend.dart';
-import 'package:tontolo/core/chat_controller.dart';
-import 'package:tontolo/core/prefs.dart';
-import 'package:tontolo/core/updater.dart';
-import 'package:tontolo/main.dart';
-import 'package:tontolo/core/account.dart';
-import 'package:tontolo/core/activity.dart';
-import 'package:tontolo/core/cloud_sync.dart';
+import 'package:projia/core/backend.dart';
+import 'package:projia/core/chat_controller.dart';
+import 'package:projia/core/prefs.dart';
+import 'package:projia/core/updater.dart';
+import 'package:projia/main.dart';
+import 'package:projia/core/account.dart';
+import 'package:projia/core/activity.dart';
+import 'package:projia/core/cloud_sync.dart';
 
 final _url = Platform.environment['DEMO_URL'] ?? 'http://127.0.0.1:8777';
-final _out = Platform.environment['DEMO_OUT'] ?? '/tmp/tontolo_frames';
-final _stills = Platform.environment['DEMO_STILLS'] ?? '/tmp/tontolo_stills';
+final _out = Platform.environment['DEMO_OUT'] ?? '/tmp/projia_frames';
+final _stills = Platform.environment['DEMO_STILLS'] ?? '/tmp/projia_stills';
 final _fontDir = '${Platform.environment['HOME']}/development/flutter/bin/cache/artifacts/material_fonts';
 
 Future<void> _loadFonts() async {
@@ -102,7 +102,7 @@ void main() {
     final account = Account();
     await tester.pumpWidget(RepaintBoundary(
       key: key,
-      child: AppScope(prefs: prefs, backend: backend, updater: Updater(prefs), chat: chat, account: account, cloud: CloudSync(backend, account), activity: ActivityWatcher(backend, CloudSync(backend, account), chat), child: const TontoloApp()),
+      child: AppScope(prefs: prefs, backend: backend, updater: Updater(prefs), chat: chat, account: account, cloud: CloudSync(backend, account), activity: ActivityWatcher(backend, CloudSync(backend, account), chat), child: const ProjiaApp()),
     ));
 
     // Le logo est une image d'application : on la précharge (décodage asynchrone).

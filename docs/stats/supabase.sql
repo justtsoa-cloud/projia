@@ -1,4 +1,4 @@
--- Statistiques anonymes de Tontolo : à exécuter une fois dans Supabase › SQL Editor.
+-- Statistiques anonymes de Projia : à exécuter une fois dans Supabase › SQL Editor.
 -- Les applications peuvent seulement AJOUTER des lignes (clé « anon ») ; personne d'autre que
 -- vous (tableau de bord / clé service) ne peut les lire, les modifier ou les supprimer.
 

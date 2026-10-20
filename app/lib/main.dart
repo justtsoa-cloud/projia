@@ -1,4 +1,4 @@
-// Tontolo — application Flutter (Android + Linux).
+// Projia — application Flutter (Android + Linux).
 // L'interface s'affiche immédiatement ; le cœur Python démarre en arrière-plan.
 
 import 'dart:io';
@@ -43,7 +43,7 @@ Future<void> main() async {
   final cloud = CloudSync(backend, account);
   final activity = ActivityWatcher(backend, cloud, chat);
   await Future.wait([account.load(), cloud.load()]).catchError((_) => <void>[]);
-  runApp(AppScope(prefs: prefs, backend: backend, updater: updater, chat: chat, account: account, cloud: cloud, activity: activity, child: const TontoloApp()));
+  runApp(AppScope(prefs: prefs, backend: backend, updater: updater, chat: chat, account: account, cloud: cloud, activity: activity, child: const ProjiaApp()));
   backend.start().then((_) {
     activity.start();
     syncSoon(prefs, account, cloud);
@@ -51,7 +51,7 @@ Future<void> main() async {
     Stats.maybeSend(prefs, backend: backend);
     // Langue de réponse par défaut du moteur = langue de l'interface.
     if (backend.state == BackendState.ready) {
-      backend.sendJson('PUT', '/tontolo/settings', {'language': prefs.locale}).catchError((_) => null);
+      backend.sendJson('PUT', '/projia/settings', {'language': prefs.locale}).catchError((_) => null);
     }
   });
 }
@@ -92,8 +92,8 @@ extension on BuildContext {
   T? dependOnInheritedWidgetOrNull<T extends InheritedWidget>() => dependOnInheritedWidgetOfExactType<T>();
 }
 
-class TontoloApp extends StatelessWidget {
-  const TontoloApp({super.key});
+class ProjiaApp extends StatelessWidget {
+  const ProjiaApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +101,7 @@ class TontoloApp extends StatelessWidget {
     return ListenableBuilder(
       listenable: prefs,
       builder: (context, _) => MaterialApp(
-        title: 'Tontolo',
+        title: 'Projia',
         debugShowCheckedModeBanner: false,
         themeMode: prefs.themeMode,
         theme: buildTheme(Brightness.light, reduceMotion: prefs.reduceMotion),
@@ -179,7 +179,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     final scope = AppScope.of(context);
     final label = context.t('attention_$reason', {'t': title.isEmpty ? '…' : title});
     if (!scope.activity.foreground) {
-      Notifier.attention('attention-$id', 'Tontolo', label);
+      Notifier.attention('attention-$id', 'Projia', label);
       return;
     }
     ScaffoldMessenger.of(context)
@@ -226,11 +226,11 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
     });
   }
 
-  /// Raccourci d'appui long et widget « Demander à Tontolo » (Android) : nouvelle discussion,
+  /// Raccourci d'appui long et widget « Demander à Projia » (Android) : nouvelle discussion,
   /// clavier prêt ; que l'application soit fermée (« initialAsk ») ou déjà ouverte (« ask »).
   void _listenShortcut() {
     if (kIsWeb || !Platform.isAndroid) return;
-    const channel = MethodChannel('tontolo/shortcut');
+    const channel = MethodChannel('projia/shortcut');
     channel.setMethodCallHandler((call) async {
       if (call.method == 'ask' && mounted) _ask();
     });

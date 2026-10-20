@@ -21,7 +21,7 @@ import 'backend.dart';
 import 'keys.dart';
 
 const kdfIterations = 310000;
-const _checkPlain = 'tontolo-sync-check-v1';
+const _checkPlain = 'projia-sync-check-v1';
 const maxImageChars = 500 * 1024; // images plus lourdes : non synchronisées
 const livePeriod = Duration(seconds: 20); // synchro tant que l'application est ouverte
 const liveExpiry = 120; // s : une tâche distante sans nouvelles depuis plus longtemps est oubliée
@@ -282,7 +282,7 @@ class CloudSync extends ChangeNotifier {
 
   Future<int> _push(SyncCrypto crypto) async {
     final p = backend.prefs;
-    final exp = await backend.getJson('/tontolo/cloud/export', {'since': p.cloudLastPush}) as Map<String, dynamic>;
+    final exp = await backend.getJson('/projia/cloud/export', {'since': p.cloudLastPush}) as Map<String, dynamic>;
     final rows = <Map<String, dynamic>>[];
     for (final c in (exp['conversations'] as List).cast<Map<String, dynamic>>()) {
       final slim = slimConversation(c);
@@ -291,7 +291,7 @@ class CloudSync extends ChangeNotifier {
       rows.add({'kind': 'conv', 'item_id': '${c['id']}', 'updated_at': (c['updated_at'] as num).toDouble(), 'deleted': c['deleted'] == 1, 'blob': blob});
     }
     // Mémoires (ensembles L/P/R/T).
-    final mem = (await backend.getJson('/tontolo/memory') as Map<String, dynamic>)['items'] as List;
+    final mem = (await backend.getJson('/projia/memory') as Map<String, dynamic>)['items'] as List;
     final local = {for (final m in mem.cast<Map<String, dynamic>>()) memoryId('${m['text']}'): m};
     final remoteRows = await _select({'select': 'item_id,deleted', 'kind': 'eq.memory'});
     final remote = {for (final r in remoteRows) if (r['deleted'] != true) '${r['item_id']}'};
@@ -326,7 +326,7 @@ class CloudSync extends ChangeNotifier {
     for (var round = 0; round < 10; round++) {
       final Map<String, dynamic> exp;
       try {
-        exp = await backend.getJson('/tontolo/cloud/creations', {'since': p.cloudCreationsPush}) as Map<String, dynamic>;
+        exp = await backend.getJson('/projia/cloud/creations', {'since': p.cloudCreationsPush}) as Map<String, dynamic>;
       } catch (_) {
         return sent; // cœur plus ancien : pas de créations
       }
@@ -353,7 +353,7 @@ class CloudSync extends ChangeNotifier {
     for (var round = 0; round < 10; round++) {
       final Map<String, dynamic> exp;
       try {
-        exp = await backend.getJson('/tontolo/cloud/tasks', {'since': p.cloudTasksPush}) as Map<String, dynamic>;
+        exp = await backend.getJson('/projia/cloud/tasks', {'since': p.cloudTasksPush}) as Map<String, dynamic>;
       } catch (_) {
         return sent; // cœur plus ancien
       }
@@ -378,7 +378,7 @@ class CloudSync extends ChangeNotifier {
   Future<int> _pushStatus(SyncCrypto crypto) async {
     List tasks;
     try {
-      tasks = (await backend.getJson('/tontolo/activity') as Map<String, dynamic>)['tasks'] as List;
+      tasks = (await backend.getJson('/projia/activity') as Map<String, dynamic>)['tasks'] as List;
     } catch (_) {
       return 0;
     }
@@ -451,7 +451,7 @@ class CloudSync extends ChangeNotifier {
     // Créations d'abord : la conversation qui les affiche arrive juste après.
     for (var i = 0; i < creations.length; i += 5) {
       try {
-        final res = await backend.sendJson('POST', '/tontolo/cloud/creations', {'creations': creations.sublist(i, min(i + 5, creations.length))}) as Map<String, dynamic>;
+        final res = await backend.sendJson('POST', '/projia/cloud/creations', {'creations': creations.sublist(i, min(i + 5, creations.length))}) as Map<String, dynamic>;
         applied += (res['applied'] as num).toInt();
       } catch (_) {
         break; // cœur plus ancien
@@ -459,14 +459,14 @@ class CloudSync extends ChangeNotifier {
     }
     for (var i = 0; i < taskItems.length; i += 20) {
       try {
-        final res = await backend.sendJson('POST', '/tontolo/cloud/tasks', {'items': taskItems.sublist(i, min(i + 20, taskItems.length))}) as Map<String, dynamic>;
+        final res = await backend.sendJson('POST', '/projia/cloud/tasks', {'items': taskItems.sublist(i, min(i + 20, taskItems.length))}) as Map<String, dynamic>;
         applied += (res['applied'] as num).toInt();
       } catch (_) {
         break;
       }
     }
     for (var i = 0; i < convs.length; i += 50) {
-      final res = await backend.sendJson('POST', '/tontolo/cloud/import', {'conversations': convs.sublist(i, min(i + 50, convs.length))}) as Map<String, dynamic>;
+      final res = await backend.sendJson('POST', '/projia/cloud/import', {'conversations': convs.sublist(i, min(i + 50, convs.length))}) as Map<String, dynamic>;
       applied += (res['applied'] as num).toInt();
     }
     lastImported = {for (final c in convs) '${c['id']}'};
@@ -476,19 +476,19 @@ class CloudSync extends ChangeNotifier {
 
   Future<int> _applyMemory(SyncCrypto crypto, String id, Map<String, dynamic> r) async {
     final p = backend.prefs;
-    final mem = ((await backend.getJson('/tontolo/memory') as Map<String, dynamic>)['items'] as List).cast<Map<String, dynamic>>();
+    final mem = ((await backend.getJson('/projia/memory') as Map<String, dynamic>)['items'] as List).cast<Map<String, dynamic>>();
     final local = {for (final m in mem) memoryId('${m['text']}'): m};
     if (r['deleted'] == true) {
       final m = local[id];
       if (m == null || !p.cloudMemories.contains(id)) return 0;
-      await backend.sendJson('DELETE', '/tontolo/memory/${m['id']}');
+      await backend.sendJson('DELETE', '/projia/memory/${m['id']}');
       p.cloudMemories = p.cloudMemories..remove(id);
       return 1;
     }
     if (local.containsKey(id)) return 0;
     final m = jsonDecode(await crypto.open('memory', id, '${r['blob']}')) as Map<String, dynamic>;
     try {
-      await backend.sendJson('POST', '/tontolo/memory', {'text': m['text'], 'kind': m['kind']});
+      await backend.sendJson('POST', '/projia/memory', {'text': m['text'], 'kind': m['kind']});
       p.cloudMemories = p.cloudMemories..add(id);
       return 1;
     } catch (_) {

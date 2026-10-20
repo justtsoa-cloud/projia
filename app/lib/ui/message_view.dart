@@ -532,7 +532,7 @@ class _MediaResultState extends State<MediaResult> {
     if (params['local_tts'] == true) return;
     final backend = AppScope.of(context).backend;
     final r = await http.get(
-      backend.uri('/tontolo/media/${widget.job['id']}/file'),
+      backend.uri('/projia/media/${widget.job['id']}/file'),
       headers: backend.headers,
     );
     if (r.statusCode == 200 && mounted) setState(() => bytes = r.bodyBytes);

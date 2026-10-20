@@ -1,6 +1,6 @@
 # Attributions
 
-Tontolo affiche des données issues des services suivants. Ces attributions sont aussi
+Projia affiche des données issues des services suivants. Ces attributions sont aussi
 visibles dans l'application (Réglages › À propos).
 
 - **Artificial Analysis** — indices d'intelligence, de code, de maths et de vitesse des
@@ -15,6 +15,6 @@ visibles dans l'application (Réglages › À propos).
 - **Pollinations** — génération de texte et d'images sans clé ([pollinations.ai](https://pollinations.ai/)).
 - **FLUX.1 [schnell] / [dev]** (Black Forest Labs) et **Stable Diffusion 3.5 Large Turbo** (Stability AI) — images, via leurs Spaces publics Hugging Face ; chaque modèle reste soumis à sa licence (FLUX.1 schnell : Apache-2.0 ; FLUX.1 dev : licence non commerciale FLUX.1 [dev] ; SD 3.5 : Stability AI Community License).
 
-Les noms et marques cités appartiennent à leurs propriétaires respectifs ; Tontolo n'est
+Les noms et marques cités appartiennent à leurs propriétaires respectifs ; Projia n'est
 affilié à aucun d'eux.
 - **Créations de fichiers** : LaTeX-on-HTTP (YtoTech), latexonline.cc, [Kroki](https://kroki.io/), [QuickChart](https://quickchart.io/), [Graphviz](https://graphviz.org/), [Mermaid](https://mermaid.js.org/), [Chart.js](https://www.chartjs.org/) — services et logiciels libres utilisés sans compte.

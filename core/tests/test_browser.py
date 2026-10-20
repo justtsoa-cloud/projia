@@ -13,7 +13,7 @@ from typing import Any
 
 import pytest
 
-from tontolo.agent import browser
+from projia.agent import browser
 
 PAGE = """<!doctype html><html><head><title>Accueil</title></head><body>
 <h1>Bienvenue à Antsirabe</h1><a href="/page2.html">Voir la suite</a>
@@ -36,15 +36,15 @@ def site(tmp_path: Path) -> Any:
 _EXE = browser.find_browser() or ""
 
 
-# Vrai navigateur : test lancé à la demande (TONTOLO_BROWSER_TEST=1 sans fenêtre avec
-# Chromium/Chrome, TONTOLO_BROWSER_VISIBLE_TEST=1 avec fenêtre, ex. Vivaldi).
-@pytest.mark.skipif(not _EXE or not (os.environ.get("TONTOLO_BROWSER_TEST")
-                                     or os.environ.get("TONTOLO_BROWSER_VISIBLE_TEST")),
+# Vrai navigateur : test lancé à la demande (PROJIA_BROWSER_TEST=1 sans fenêtre avec
+# Chromium/Chrome, PROJIA_BROWSER_VISIBLE_TEST=1 avec fenêtre, ex. Vivaldi).
+@pytest.mark.skipif(not _EXE or not (os.environ.get("PROJIA_BROWSER_TEST")
+                                     or os.environ.get("PROJIA_BROWSER_VISIBLE_TEST")),
                     reason="test du vrai navigateur à la demande")
 async def test_real_browser_one_tab_per_conversation(site: str, tmp_path: Path,
                                                      monkeypatch: pytest.MonkeyPatch) -> None:
-    if not os.environ.get("TONTOLO_BROWSER_VISIBLE_TEST"):
-        monkeypatch.setenv("TONTOLO_BROWSER_HEADLESS", "1")
+    if not os.environ.get("PROJIA_BROWSER_VISIBLE_TEST"):
+        monkeypatch.setenv("PROJIA_BROWSER_HEADLESS", "1")
     b = browser.CdpBrowser(tmp_path / "profil")
     try:
         page = await b.command("c1", "open", {"url": site + "/index.html"})
@@ -104,7 +104,7 @@ async def test_app_bridge_roundtrip() -> None:
 
 def test_browser_never_reaches_core_api_or_metadata() -> None:
     blocked = {8765}
-    for url in ("http://127.0.0.1:8765/tontolo/memory", "localhost:8765/health",
+    for url in ("http://127.0.0.1:8765/projia/memory", "localhost:8765/health",
                 "http://LOCALHOST:8765/", "http://169.254.169.254/latest/meta-data/",
                 "http://metadata.google.internal/", "file:///etc/passwd",
                 "javascript:alert(1)"):

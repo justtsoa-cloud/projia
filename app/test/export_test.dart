@@ -1,8 +1,8 @@
 // Export HTML : aucun script ni lien dangereux ne survit.
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tontolo/core/chat_controller.dart';
-import 'package:tontolo/core/export_html.dart';
+import 'package:projia/core/chat_controller.dart';
+import 'package:projia/core/export_html.dart';
 
 void main() {
   test('HTML brut et liens javascript neutralisés', () {

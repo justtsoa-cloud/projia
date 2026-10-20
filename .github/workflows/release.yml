@@ -12,8 +12,8 @@ env:
   SERIOUS_PYTHON_VERSION: "3.14"
   # Statistiques anonymes (docs/STATS.md) : inactives tant que les variables ne sont pas définies.
   STATS_DEFINES: >-
-    --dart-define=TONTOLO_STATS_URL=${{ vars.STATS_URL }}
-    --dart-define=TONTOLO_STATS_KEY=${{ vars.STATS_ANON_KEY }}
+    --dart-define=PROJIA_STATS_URL=${{ vars.STATS_URL }}
+    --dart-define=PROJIA_STATS_KEY=${{ vars.STATS_ANON_KEY }}
   # Budgets (section 11) — mesurés en phase 1, la release échoue s'ils sont dépassés.
   BUDGET_APK_MB: "30"
   BUDGET_APPIMAGE_MB: "55"
@@ -59,8 +59,8 @@ jobs:
           KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
           if [ -n "$KEYSTORE_B64" ]; then
-            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/tontolo.jks"
-            echo "TONTOLO_KEYSTORE=$RUNNER_TEMP/tontolo.jks" >> "$GITHUB_ENV"
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/projia.jks"
+            echo "PROJIA_KEYSTORE=$RUNNER_TEMP/projia.jks" >> "$GITHUB_ENV"
           else
             echo "::warning::Aucun keystore : APK signés avec la clé de débogage."
           fi
@@ -81,9 +81,9 @@ jobs:
           done
       - name: Construction des APK par ABI
         env:
-          TONTOLO_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          TONTOLO_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          TONTOLO_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          PROJIA_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          PROJIA_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          PROJIA_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           cd app
           export SERIOUS_PYTHON_SITE_PACKAGES=$PWD/build/site-packages-Android
@@ -96,7 +96,7 @@ jobs:
           mkdir -p ../dist
           v=${GITHUB_REF_NAME#v}
           for abi in arm64-v8a armeabi-v7a x86_64; do
-            cp build/app/outputs/flutter-apk/app-$abi-release.apk ../dist/tontolo-$v-$abi.apk
+            cp build/app/outputs/flutter-apk/app-$abi-release.apk ../dist/projia-$v-$abi.apk
           done
       - name: Budget de taille des APK
         run: |
@@ -159,7 +159,7 @@ jobs:
         run: |
           v=${GITHUB_REF_NAME#v}
           for l in fr en mg; do
-            f="press/posters/v$v/Tontolo-$v-poster-$l.png"
+            f="press/posters/v$v/Projia-$v-poster-$l.png"
             test -f "$f" || { echo "::error::Poster absent : $f (python3 press/posters/build_poster.py $v)"; exit 1; }
             cp "$f" dist/
           done
@@ -191,8 +191,8 @@ jobs:
         # les changer casserait leur mise à jour automatique.
         run: |
           v=${GITHUB_REF_NAME#v}
-          for f in "tontolo-$v-arm64-v8a.apk" "tontolo-$v-armeabi-v7a.apk" "tontolo-$v-x86_64.apk" \
-                   "Tontolo-$v-x86_64.AppImage" SHA256SUMS SHA256SUMS.sig; do
+          for f in "projia-$v-arm64-v8a.apk" "projia-$v-armeabi-v7a.apk" "projia-$v-x86_64.apk" \
+                   "Projia-$v-x86_64.AppImage" SHA256SUMS SHA256SUMS.sig; do
             test -f "dist/$f" || { echo "::error::Fichier attendu absent : $f"; exit 1; }
             case "$f" in SHA256SUMS*) ;; *) grep -q "  $f\$" dist/SHA256SUMS ;; esac
           done
@@ -214,22 +214,22 @@ jobs:
           dl="https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}"
           size() { du -h "dist/$1" | cut -f1; }
           {
-            echo "[![Tontolo $v : les nouveautés en un coup d'œil]($dl/Tontolo-$v-poster-fr.png)]($dl/Tontolo-$v-poster-fr.png)"
+            echo "[![Projia $v : les nouveautés en un coup d'œil]($dl/Projia-$v-poster-fr.png)]($dl/Projia-$v-poster-fr.png)"
             echo
-            echo "🖼️ Poster : [Français]($dl/Tontolo-$v-poster-fr.png) · [English]($dl/Tontolo-$v-poster-en.png) · [Malagasy]($dl/Tontolo-$v-poster-mg.png)"
+            echo "🖼️ Poster : [Français]($dl/Projia-$v-poster-fr.png) · [English]($dl/Projia-$v-poster-en.png) · [Malagasy]($dl/Projia-$v-poster-mg.png)"
             echo
             echo "## ⬇️ Télécharger"
             echo
             echo "| Fichier | Pour qui | Taille |"
             echo "|---|---|---|"
-            echo "| [**tontolo-$v-arm64-v8a.apk**]($dl/tontolo-$v-arm64-v8a.apk) | 📱 **Android — le bon choix dans 95 % des cas** (téléphones et tablettes depuis 2016, Android 7 à 16) | $(size tontolo-$v-arm64-v8a.apk) |"
-            echo "| [tontolo-$v-armeabi-v7a.apk]($dl/tontolo-$v-armeabi-v7a.apk) | 📱 Android ancien ou d'entrée de gamme (32 bits) — si le premier affiche « non compatible » | $(size tontolo-$v-armeabi-v7a.apk) |"
-            echo "| [tontolo-$v-x86_64.apk]($dl/tontolo-$v-x86_64.apk) | 💻 Émulateurs, Chromebooks, Android sur PC (Intel/AMD) | $(size tontolo-$v-x86_64.apk) |"
-            echo "| [**Tontolo-$v-x86_64.AppImage**]($dl/Tontolo-$v-x86_64.AppImage) | 🐧 **Linux** (Ubuntu 22.04+, Debian 12+, Fedora, Arch…) : \`chmod +x\` puis double-clic | $(size Tontolo-$v-x86_64.AppImage) |"
-            echo "| [tontolo-$v-py3-none-any.whl]($dl/tontolo-$v-py3-none-any.whl) | 🧑‍💻 Ligne de commande et serveur compatible OpenAI (Python ≥ 3.11) | $(size tontolo-$v-py3-none-any.whl) |"
+            echo "| [**projia-$v-arm64-v8a.apk**]($dl/projia-$v-arm64-v8a.apk) | 📱 **Android — le bon choix dans 95 % des cas** (téléphones et tablettes depuis 2016, Android 7 à 16) | $(size projia-$v-arm64-v8a.apk) |"
+            echo "| [projia-$v-armeabi-v7a.apk]($dl/projia-$v-armeabi-v7a.apk) | 📱 Android ancien ou d'entrée de gamme (32 bits) — si le premier affiche « non compatible » | $(size projia-$v-armeabi-v7a.apk) |"
+            echo "| [projia-$v-x86_64.apk]($dl/projia-$v-x86_64.apk) | 💻 Émulateurs, Chromebooks, Android sur PC (Intel/AMD) | $(size projia-$v-x86_64.apk) |"
+            echo "| [**Projia-$v-x86_64.AppImage**]($dl/Projia-$v-x86_64.AppImage) | 🐧 **Linux** (Ubuntu 22.04+, Debian 12+, Fedora, Arch…) : \`chmod +x\` puis double-clic | $(size Projia-$v-x86_64.AppImage) |"
+            echo "| [projia-$v-py3-none-any.whl]($dl/projia-$v-py3-none-any.whl) | 🧑‍💻 Ligne de commande et serveur compatible OpenAI (Python ≥ 3.11) | $(size projia-$v-py3-none-any.whl) |"
             echo "| [SHA256SUMS]($dl/SHA256SUMS) · [signature]($dl/SHA256SUMS.sig) | 🔒 Empreintes signées (Ed25519) pour vérifier les fichiers | |"
             echo
-            echo "> Déjà installé ? Tontolo se met à jour tout seul (depuis n'importe quelle version ≥ 0.2.0). Alerte « Play Protect » : normale hors Play Store, touchez « Analyser »."
+            echo "> Déjà installé ? Projia se met à jour tout seul (depuis n'importe quelle version ≥ 0.2.0). Alerte « Play Protect » : normale hors Play Store, touchez « Analyser »."
             echo
             echo "## ✨ Nouveautés de la version $v"
             echo
@@ -244,4 +244,4 @@ jobs:
       - name: Publication de la release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/* --title "Tontolo ${GITHUB_REF_NAME}" --notes-file notes.md
+        run: gh release create "$GITHUB_REF_NAME" dist/* --title "Projia ${GITHUB_REF_NAME}" --notes-file notes.md

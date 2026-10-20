@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tontolo/core/account.dart';
-import 'package:tontolo/core/activity.dart';
-import 'package:tontolo/core/backend.dart';
-import 'package:tontolo/core/chat_controller.dart';
-import 'package:tontolo/core/cloud_sync.dart';
-import 'package:tontolo/core/prefs.dart';
-import 'package:tontolo/l10n/strings.dart';
+import 'package:projia/core/account.dart';
+import 'package:projia/core/activity.dart';
+import 'package:projia/core/backend.dart';
+import 'package:projia/core/chat_controller.dart';
+import 'package:projia/core/cloud_sync.dart';
+import 'package:projia/core/prefs.dart';
+import 'package:projia/l10n/strings.dart';
 
 void main() {
   test('pastilles : attend > ici > autre appareil, et badge « ailleurs »', () async {

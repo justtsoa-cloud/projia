@@ -1,8 +1,8 @@
 import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tontolo/l10n/strings.dart';
-import 'package:tontolo/ui/home_view.dart';
+import 'package:projia/l10n/strings.dart';
+import 'package:projia/ui/home_view.dart';
 
 void main() {
   test('salutation selon l\'heure', () {

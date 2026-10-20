@@ -2,7 +2,7 @@
 
 import pytest
 
-from tontolo.catalog.matcher import Matcher, canonical, family
+from projia.catalog.matcher import Matcher, canonical, family
 
 
 @pytest.mark.parametrize(
@@ -77,7 +77,7 @@ def test_keyless_providers_from_live_data() -> None:
     import json
     from pathlib import Path
 
-    from tontolo.catalog.sources.freeapis import parse
+    from projia.catalog.sources.freeapis import parse
 
     data = json.loads((Path(__file__).parent / "fixtures" / "freeapis.json").read_text())
     models, providers = parse(data)

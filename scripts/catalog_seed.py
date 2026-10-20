@@ -12,10 +12,10 @@ import asyncio
 import json
 from pathlib import Path
 
-from tontolo.catalog.service import CatalogService
-from tontolo.config import load_settings
+from projia.catalog.service import CatalogService
+from projia.config import load_settings
 
-OUT = Path(__file__).resolve().parents[1] / "core" / "tontolo" / "catalog" / "seed.json"
+OUT = Path(__file__).resolve().parents[1] / "core" / "projia" / "catalog" / "seed.json"
 KEEP = ("provider", "model_id", "name", "family", "context_length", "max_output",
         "input_modalities", "output_modalities", "supports_tools", "is_free", "needs_key",
         "quality", "speed", "media")

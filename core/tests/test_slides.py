@@ -9,7 +9,7 @@ from typing import Any
 
 import pytest
 
-from tontolo.creator import slides
+from projia.creator import slides
 
 needs_tex = pytest.mark.skipif(shutil.which("pdflatex") is None and shutil.which("tectonic")
                                is None, reason="pas de moteur LaTeX local")
@@ -99,7 +99,7 @@ def test_systematic_model_mistakes_are_fixed_without_a_model() -> None:
 
 @needs_tex
 async def test_real_mistakes_compile() -> None:
-    from tontolo.creator import latex
+    from projia.creator import latex
 
     raw = ("\\section{S}\\begin{frame}{Accents}\n\\begin{lstlisting}\n# é à ç « »\n"
            "\\begin{frame}{X} \\end{frame}\n\\end{lstlisting}\n\\end{frame}\n"

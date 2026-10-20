@@ -9,17 +9,17 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from tontolo import secrets
-from tontolo.catalog.models import Category
-from tontolo.catalog.service import CatalogService
-from tontolo.config import Settings
-from tontolo.providers.fake import FakeProvider
-from tontolo.providers.registry import ProviderRegistry
-from tontolo.router.classifier import TaskProfile
-from tontolo.router.engine import Router
-from tontolo.router.scoring import rank
-from tontolo.server import common as server
-from tontolo.server.app import create_app
+from projia import secrets
+from projia.catalog.models import Category
+from projia.catalog.service import CatalogService
+from projia.config import Settings
+from projia.providers.fake import FakeProvider
+from projia.providers.registry import ProviderRegistry
+from projia.router.classifier import TaskProfile
+from projia.router.engine import Router
+from projia.router.scoring import rank
+from projia.server import common as server
+from projia.server.app import create_app
 
 
 def _client(settings: Settings, catalog_service: CatalogService, fake: FakeProvider,
@@ -74,44 +74,44 @@ def test_custom_provider_lifecycle(local: TestClient, settings: Settings,
     saved: dict[str, str] = {}
     monkeypatch.setattr(secrets, "set_key", lambda pid, v, persist=True: saved.update({pid: v}))
     monkeypatch.setattr(secrets, "delete_key", lambda pid: saved.pop(pid, None))
-    r = local.post("/tontolo/custom-providers", json={
+    r = local.post("/projia/custom-providers", json={
         "name": "Mon serveur", "base_url": "https://llm.example.org/v1/", "key": "sk-test"})
     assert r.status_code == 200 and r.json() == {"id": "custom-mon-serveur", "models": 4}
     assert saved == {"custom-mon-serveur": "sk-test"}
     assert settings.custom_providers[0].base_url == "https://llm.example.org/v1"
     # Payant sans prix : refusé (le plafond de dépense doit rester garanti).
-    paid = local.post("/tontolo/custom-providers", json={
+    paid = local.post("/projia/custom-providers", json={
         "name": "Cher", "base_url": "https://pay.example.org/v1", "key": "k", "free": False})
     assert paid.status_code == 400 and "prix" in str(paid.json())
     # Jamais modifiable par le PUT générique (même en local) : seulement ici.
-    local.put("/tontolo/settings", json={"custom_providers": []})
+    local.put("/projia/settings", json={"custom_providers": []})
     assert len(settings.custom_providers) == 1
-    exported = local.get("/tontolo/settings/export").json()
+    exported = local.get("/projia/settings/export").json()
     assert "server" not in exported["settings"] and "sk-test" not in str(exported)
-    assert local.delete("/tontolo/custom-providers/custom-mon-serveur").json() == {"ok": True}
+    assert local.delete("/projia/custom-providers/custom-mon-serveur").json() == {"ok": True}
     assert settings.custom_providers == [] and saved == {}
 
 
 def test_remote_clients_cannot_add_providers_or_import(remote: TestClient) -> None:
-    assert remote.post("/tontolo/custom-providers", json={
+    assert remote.post("/projia/custom-providers", json={
         "name": "x", "base_url": "https://x.example/v1", "key": "k"}).status_code == 403
-    assert remote.post("/tontolo/settings/import", json={
-        "tontolo_settings": 1, "settings": {}}).status_code == 403
+    assert remote.post("/projia/settings/import", json={
+        "projia_settings": 1, "settings": {}}).status_code == 403
 
 
 def test_import_validates_everything(local: TestClient, settings: Settings) -> None:
-    bad = local.post("/tontolo/settings/import", json={"tontolo_settings": 1, "settings": {
+    bad = local.post("/projia/settings/import", json={"projia_settings": 1, "settings": {
         "routing": {"stall_s": 5}}})  # hors bornes
     assert bad.status_code == 400
-    evil = local.post("/tontolo/settings/import", json={"tontolo_settings": 1, "settings": {
+    evil = local.post("/projia/settings/import", json={"projia_settings": 1, "settings": {
         "custom_providers": [{"id": "custom-x", "name": "x",
                               "base_url": "http://evil.example.com/v1"}]}})
     assert evil.status_code == 400
-    ok = local.post("/tontolo/settings/import", json={"tontolo_settings": 1, "settings": {
+    ok = local.post("/projia/settings/import", json={"projia_settings": 1, "settings": {
         "routing": {"stall_s": 45, "excluded_providers": ["fake2"]}, "server": {"port": 1}}})
     assert ok.status_code == 200 and settings.routing.stall_s == 45
     assert settings.server.port != 1  # jamais importé
-    assert local.post("/tontolo/settings/import", json={"x": 1}).status_code == 400
+    assert local.post("/projia/settings/import", json={"x": 1}).status_code == 400
 
 
 def _first(router: Router, cat: Category = Category.CHAT) -> list[str]:

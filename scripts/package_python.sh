@@ -11,14 +11,14 @@ export SERIOUS_PYTHON_APP="$ROOT/app/build/python-app-$PLATFORM"
 # Roue du cœur, construite depuis les sources
 rm -rf "$ROOT/core/dist"
 (cd "$ROOT/core" && uv build -q --wheel)
-WHEEL="$(ls "$ROOT"/core/dist/tontolo-*.whl)"
+WHEEL="$(ls "$ROOT"/core/dist/projia-*.whl)"
 
 rm -rf "$SERIOUS_PYTHON_SITE_PACKAGES" "$SERIOUS_PYTHON_APP"
 cd "$ROOT/app"
 # Android : cœur seul (replis légers intégrés pour la recherche web et MCP,
 # ≈ 30 Mo de moins par ABI). Linux : ddgs et SDK MCP officiel (stdio + HTTP).
-if [ "$PLATFORM" = "Android" ]; then REQ="tontolo @ file://$WHEEL"
-else REQ="tontolo[search,mcp] @ file://$WHEEL"; fi
+if [ "$PLATFORM" = "Android" ]; then REQ="projia @ file://$WHEEL"
+else REQ="projia[search,mcp] @ file://$WHEEL"; fi
 dart run serious_python:main package python -p "$PLATFORM" -r "$REQ" \
   --cleanup
 du -sh "$SERIOUS_PYTHON_SITE_PACKAGES" "$SERIOUS_PYTHON_APP" 2>/dev/null || true

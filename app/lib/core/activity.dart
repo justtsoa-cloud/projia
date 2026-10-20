@@ -43,7 +43,7 @@ class ActivityWatcher extends ChangeNotifier {
   Future<void> poll() async {
     if (backend.state != BackendState.ready) return;
     try {
-      final r = await backend.getJson('/tontolo/activity') as Map<String, dynamic>;
+      final r = await backend.getJson('/projia/activity') as Map<String, dynamic>;
       final nextRunning = {
         for (final t in (r['tasks'] as List? ?? const []).cast<Map<String, dynamic>>()) '${t['conversation_id']}',
       };

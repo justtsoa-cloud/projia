@@ -9,8 +9,8 @@ import zipfile
 
 import pytest
 
-from tontolo import attachments
-from tontolo.documents import DocumentError, extract_pages
+from projia import attachments
+from projia.documents import DocumentError, extract_pages
 
 
 def _zip(files: dict[str, bytes | str], method: int = zipfile.ZIP_DEFLATED) -> bytes:

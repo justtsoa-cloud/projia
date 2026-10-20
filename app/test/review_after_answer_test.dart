@@ -3,9 +3,9 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tontolo/core/backend.dart';
-import 'package:tontolo/core/chat_controller.dart';
-import 'package:tontolo/core/prefs.dart';
+import 'package:projia/core/backend.dart';
+import 'package:projia/core/chat_controller.dart';
+import 'package:projia/core/prefs.dart';
 
 class _StreamBackend extends Backend {
   _StreamBackend(super.prefs);

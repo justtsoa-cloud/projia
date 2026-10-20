@@ -2,7 +2,7 @@
 //
 // Aucun service gratuit ne retouche réellement une photo : les IA en ligne recréent une
 // image (et changent la personne). Pour une consigne comme « édite cette photo de façon
-// professionnelle sans changer la personne ni la composition », Tontolo applique donc de
+// professionnelle sans changer la personne ni la composition », Projia applique donc de
 // vraies corrections d'image (lumière, contraste, couleurs, netteté, filtres) sur la photo
 // elle-même : rien n'est envoyé nulle part, la personne et la composition sont intactes.
 

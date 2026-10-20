@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from tontolo import semantic
-from tontolo.agent.loop import ChatService
-from tontolo.config import Settings
-from tontolo.providers.fake import FakeProvider
-from tontolo.router.engine import Router
-from tontolo.storage.db import Database
+from projia import semantic
+from projia.agent.loop import ChatService
+from projia.config import Settings
+from projia.providers.fake import FakeProvider
+from projia.router.engine import Router
+from projia.storage.db import Database
 
 
 def test_similarity_across_wording_and_accents() -> None:
@@ -96,7 +96,7 @@ async def test_deleting_a_conversation_forgets_its_answers(
 
 async def test_memory_recall_by_meaning_not_only_identical_words(
         db: Database, settings: Settings) -> None:
-    from tontolo.memory import MemoryService
+    from projia.memory import MemoryService
 
     mem = MemoryService(settings, db)
     await mem.remember("L'utilisateur enseigne les mathématiques", kind="explicit")

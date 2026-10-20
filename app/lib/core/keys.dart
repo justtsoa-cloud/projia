@@ -20,7 +20,7 @@ class Keys {
 
   /// Valide la clé auprès du fournisseur (via le cœur) puis l'enregistre.
   static Future<(bool, String)> save(Backend backend, String provider, String key) async {
-    final res = await backend.sendJson('PUT', '/tontolo/keys/$provider',
+    final res = await backend.sendJson('PUT', '/projia/keys/$provider',
         {'key': key, 'persist': false, 'validate_key': true}) as Map<String, dynamic>;
     final ok = res['valid'] == true;
     if (ok) await _storage.write(key: '$_prefix$provider', value: key);
@@ -32,13 +32,13 @@ class Keys {
     await _storage.write(key: '$_prefix$provider', value: key);
     if (backend.isRemote) return;
     try {
-      await backend.sendJson('PUT', '/tontolo/keys/$provider', {'key': key, 'persist': false, 'validate_key': false});
+      await backend.sendJson('PUT', '/projia/keys/$provider', {'key': key, 'persist': false, 'validate_key': false});
     } catch (_) {}
   }
 
   static Future<void> remove(Backend backend, String provider) async {
     await _storage.delete(key: '$_prefix$provider');
-    await backend.sendJson('DELETE', '/tontolo/keys/$provider');
+    await backend.sendJson('DELETE', '/projia/keys/$provider');
   }
 
   /// Au démarrage : recharge les clés dans le cœur (mode local uniquement).
@@ -46,7 +46,7 @@ class Keys {
     if (backend.isRemote) return; // le serveur distant gère ses propres clés
     for (final e in (await all()).entries) {
       try {
-        await backend.sendJson('PUT', '/tontolo/keys/${e.key}',
+        await backend.sendJson('PUT', '/projia/keys/${e.key}',
             {'key': e.value, 'persist': false, 'validate_key': false});
       } catch (_) {}
     }

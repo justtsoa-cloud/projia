@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tontolo/core/provider_text.dart';
+import 'package:projia/core/provider_text.dart';
 
 void main() {
   test('nom et description dans la langue de l\'app, français sinon', () {

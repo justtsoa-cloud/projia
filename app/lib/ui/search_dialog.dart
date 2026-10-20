@@ -27,8 +27,8 @@ class _SearchDialogState extends State<_SearchDialog> {
       setState(() { convs = []; jobs = []; });
       return;
     }
-    final c = await b.getJson('/tontolo/conversations', {'q': q, 'limit': 30}) as List;
-    final j = await b.getJson('/tontolo/media', {'limit': 200}) as List;
+    final c = await b.getJson('/projia/conversations', {'q': q, 'limit': 30}) as List;
+    final j = await b.getJson('/projia/media', {'limit': 200}) as List;
     final ql = q.toLowerCase();
     if (!mounted) return;
     setState(() {

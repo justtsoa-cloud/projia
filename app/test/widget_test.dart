@@ -4,11 +4,11 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tontolo/core/image_prep.dart';
-import 'package:tontolo/core/speech.dart';
-import 'package:tontolo/core/updater.dart';
-import 'package:tontolo/l10n/strings.dart';
-import 'package:tontolo/ui/message_view.dart';
+import 'package:projia/core/image_prep.dart';
+import 'package:projia/core/speech.dart';
+import 'package:projia/core/updater.dart';
+import 'package:projia/l10n/strings.dart';
+import 'package:projia/ui/message_view.dart';
 
 void main() {
   notesTests();

@@ -3,18 +3,18 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tontolo/l10n/strings.dart';
+import 'package:projia/l10n/strings.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tontolo/core/account.dart';
-import 'package:tontolo/core/activity.dart';
-import 'package:tontolo/core/backend.dart';
-import 'package:tontolo/core/chat_controller.dart';
-import 'package:tontolo/core/cloud_sync.dart';
-import 'package:tontolo/core/prefs.dart';
-import 'package:tontolo/core/updater.dart';
-import 'package:tontolo/main.dart';
-import 'package:tontolo/ui/explainer_player.dart';
-import 'package:tontolo/ui/learn.dart';
+import 'package:projia/core/account.dart';
+import 'package:projia/core/activity.dart';
+import 'package:projia/core/backend.dart';
+import 'package:projia/core/chat_controller.dart';
+import 'package:projia/core/cloud_sync.dart';
+import 'package:projia/core/prefs.dart';
+import 'package:projia/core/updater.dart';
+import 'package:projia/main.dart';
+import 'package:projia/ui/explainer_player.dart';
+import 'package:projia/ui/learn.dart';
 
 final _story = {
   'title': 'Additionner des fractions',

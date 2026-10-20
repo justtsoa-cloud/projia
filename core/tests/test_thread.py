@@ -9,14 +9,14 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from tontolo.agent.loop import KEEP_IMAGES, compact_images
-from tontolo.catalog.service import CatalogService
-from tontolo.config import Settings
-from tontolo.memory import MemoryService
-from tontolo.providers.fake import FakeProvider
-from tontolo.providers.registry import ProviderRegistry
-from tontolo.server.app import create_app
-from tontolo.storage.db import Database
+from projia.agent.loop import KEEP_IMAGES, compact_images
+from projia.catalog.service import CatalogService
+from projia.config import Settings
+from projia.memory import MemoryService
+from projia.providers.fake import FakeProvider
+from projia.providers.registry import ProviderRegistry
+from projia.server.app import create_app
+from projia.storage.db import Database
 
 IMG = {"type": "image_url", "image_url": {"url": "data:image/png;base64,AAAA"}}
 
@@ -35,7 +35,7 @@ def client(settings: Settings, catalog_service: CatalogService, fake: FakeProvid
 
 
 def _chat(client: TestClient, payload: dict[str, Any]) -> list[dict[str, Any]]:
-    with client.stream("POST", "/tontolo/chat", json=payload) as s:
+    with client.stream("POST", "/projia/chat", json=payload) as s:
         return [json.loads(x[5:]) for x in s.iter_lines() if x.startswith("data:")]
 
 
@@ -121,8 +121,8 @@ def test_folder_context_only_when_shared(client: TestClient, fake: FakeProvider)
     client.portal.call(setup)  # type: ignore[attr-defined]
     _chat(client, {"conversation_id": cid, "content": "et l'écart type ?"})
     assert "Moyenne et variance" not in json.dumps(fake.last_messages, ensure_ascii=False)
-    assert client.put("/tontolo/folders/share", json={"folder": "Maths", "share": True}).json()
-    folders = client.get("/tontolo/folders").json()
+    assert client.put("/projia/folders/share", json={"folder": "Maths", "share": True}).json()
+    folders = client.get("/projia/folders").json()
     assert any(f["folder"] == "Maths" and f["shared"] for f in folders)
     _chat(client, {"conversation_id": cid, "content": "et la médiane ?"})
     text = json.dumps(fake.last_messages, ensure_ascii=False)
@@ -149,7 +149,7 @@ def test_cut_answer_continues_automatically(client: TestClient, fake: FakeProvid
     done = next(e for e in events if e["type"] == "done")
     assert done["message"]["content"] == "Début de la réponse suite 1 fin."
     cid = next(e["id"] for e in events if e["type"] == "conversation")
-    msgs = client.get(f"/tontolo/conversations/{cid}").json()["messages"]
+    msgs = client.get(f"/projia/conversations/{cid}").json()["messages"]
     assert [m["role"] for m in msgs] == ["user", "assistant"]  # un seul message fusionné
 
 
@@ -178,7 +178,7 @@ def test_agent_mode_prompt_and_tools(client: TestClient, fake: FakeProvider) -> 
     events = _chat(client, {"content": "compare deux sources", "mode": "agent",
                             "agent": "researcher"})
     cid = next(e["id"] for e in events if e["type"] == "conversation")
-    assert client.get(f"/tontolo/conversations/{cid}").json()["mode"] == "agent:researcher"
+    assert client.get(f"/projia/conversations/{cid}").json()["mode"] == "agent:researcher"
     system = fake.last_messages[0]["content"]
     assert "agent Chercheur" in system
     route = next(e for e in events if e["type"] == "route")
@@ -191,7 +191,7 @@ def test_manual_compaction(client: TestClient, fake: FakeProvider) -> None:
     core = client.app.state.core  # type: ignore[attr-defined]
     first = _chat(client, {"content": "Projet de rapport"})
     cid = next(e["id"] for e in first if e["type"] == "conversation")
-    small = client.post(f"/tontolo/conversations/{cid}/compact").json()
+    small = client.post(f"/projia/conversations/{cid}/compact").json()
     assert small["ok"] is False  # trop court : rien à compacter
 
     async def build() -> None:
@@ -206,15 +206,15 @@ def test_manual_compaction(client: TestClient, fake: FakeProvider) -> None:
         return "## Sujets\n- rapport, points 0 à 3\n## Tâches en cours\n- finir le rapport"
 
     core.chat.router.quick = quick
-    out = client.post(f"/tontolo/conversations/{cid}/compact").json()
+    out = client.post(f"/projia/conversations/{cid}/compact").json()
     assert out["ok"] is True and "## Sujets" in out["summary"] and out["summary_covered"] > 0
-    data = client.get(f"/tontolo/conversations/{cid}").json()
+    data = client.get(f"/projia/conversations/{cid}").json()
     assert len(data["messages"]) == 22 and data["summary"] == out["summary"]  # rien d'effacé
 
 
 def test_auto_compaction_can_be_disabled(client: TestClient) -> None:
     core = client.app.state.core  # type: ignore[attr-defined]
-    client.put("/tontolo/settings", json={"auto_compact": False})
+    client.put("/projia/settings", json={"auto_compact": False})
     assert core.settings.auto_compact is False
     first = _chat(client, {"content": "x"})
     cid = next(e["id"] for e in first if e["type"] == "conversation")
@@ -229,10 +229,10 @@ def test_auto_compaction_can_be_disabled(client: TestClient) -> None:
 
 
 def test_generators_and_model_details(client: TestClient) -> None:
-    kinds = client.get("/tontolo/generators").json()["kinds"]
+    kinds = client.get("/projia/generators").json()["kinds"]
     assert [m["key"] for m in kinds["image_gen"]] == ["fake:img-1"]
     assert kinds["video_gen"] == []
-    models = client.get("/tontolo/catalog", params={"free": False}).json()["models"]
+    models = client.get("/projia/catalog", params={"free": False}).json()["models"]
     by = {m["key"]: m for m in models}
     assert by["fake:coder-pro"]["agentic"] is True and by["fake:small"]["agentic"] is False
     assert by["fake:img-1"]["agentic"] is False and "inputs" in by["fake:vision-x"]

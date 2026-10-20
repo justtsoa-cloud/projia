@@ -13,7 +13,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <application
-        android:label="Tontolo"
+        android:label="Projia"
         android:networkSecurityConfig="@xml/network_security_config"
         android:allowBackup="false"
         android:name="${applicationName}"
@@ -40,16 +40,16 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="io.github.raantss18.tontolo" android:host="login-callback" android:path="/" />
+                <data android:scheme="io.github.raantss18.projia" android:host="login-callback" android:path="/" />
             </intent-filter>
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Raccourci d'appui long « Demander à Tontolo » -->
+            <!-- Raccourci d'appui long « Demander à Projia » -->
             <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
         </activity>
-        <!-- Widget d'écran d'accueil : barre « Demander à Tontolo… » -->
+        <!-- Widget d'écran d'accueil : barre « Demander à Projia… » -->
         <receiver android:name=".AskWidget" android:exported="true" android:label="@string/shortcut_ask_short">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

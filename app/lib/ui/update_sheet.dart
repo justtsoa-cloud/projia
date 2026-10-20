@@ -241,7 +241,7 @@ class _PosterView extends StatelessWidget {
         appBar: AppBar(
           backgroundColor: Colors.black,
           foregroundColor: Colors.white,
-          title: Text('Tontolo $version'),
+          title: Text('Projia $version'),
           actions: [
             IconButton(
               icon: const Icon(Icons.ios_share),
@@ -249,7 +249,7 @@ class _PosterView extends StatelessWidget {
               onPressed: () async {
                 final data = await rootBundle.load(asset);
                 await SharePlus.instance.share(ShareParams(files: [
-                  XFile.fromData(data.buffer.asUint8List(), mimeType: 'image/webp', name: 'Tontolo-$version-poster.webp'),
+                  XFile.fromData(data.buffer.asUint8List(), mimeType: 'image/webp', name: 'Projia-$version-poster.webp'),
                 ]));
               },
             ),

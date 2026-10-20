@@ -2,7 +2,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tontolo/core/voice_loop.dart';
+import 'package:projia/core/voice_loop.dart';
 
 /// Niveaux sonores simulés, un échantillon toutes les 100 ms.
 List<double> signal({int quiet = 8, int speech = 12, int pause = 20}) =>

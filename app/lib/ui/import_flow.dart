@@ -1,4 +1,4 @@
-// Continuer dans Tontolo une discussion commencée ailleurs (Claude, ChatGPT, Gemini) :
+// Continuer dans Projia une discussion commencée ailleurs (Claude, ChatGPT, Gemini) :
 // lien de partage collé dans le chat ou dans « Importer une discussion », texte collé ou
 // fichier d'export. Les pages Claude et Gemini ne livrent leurs données qu'à un vrai
 // navigateur : sur Android elles sont ouvertes dans une vue web (l'utilisateur voit la page
@@ -46,7 +46,7 @@ Future<bool> importConversation(BuildContext context, {String? url, String? data
   messenger.showSnackBar(SnackBar(content: Text(t('import_running')), duration: const Duration(seconds: 20)));
   Map<String, dynamic>? res;
   try {
-    res = await scope.backend.sendJson('POST', '/tontolo/import', {'url': ?url, 'data': ?data})
+    res = await scope.backend.sendJson('POST', '/projia/import', {'url': ?url, 'data': ?data})
         as Map<String, dynamic>;
   } catch (e) {
     messenger.hideCurrentSnackBar();
@@ -211,7 +211,7 @@ class _WebImportPageState extends State<WebImportPage> {
     super.initState();
     web = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..addJavaScriptChannel('TontoloImport', onMessageReceived: (m) => _received(m.message))
+      ..addJavaScriptChannel('ProjiaImport', onMessageReceived: (m) => _received(m.message))
       ..setNavigationDelegate(NavigationDelegate(
         // Uniquement des pages web : pas d'ouverture d'applications (intent://, market://…).
         onNavigationRequest: (r) => r.url.startsWith('https://') ? NavigationDecision.navigate : NavigationDecision.prevent,
@@ -241,9 +241,9 @@ class _WebImportPageState extends State<WebImportPage> {
     final js = switch (widget.extract) {
       'fetch_json' => "fetch(${jsonEncode(widget.apiUrl)}, {credentials: 'include'})"
           ".then(r => r.ok ? r.text() : Promise.reject(r.status))"
-          ".then(t => TontoloImport.postMessage(t)).catch(e => TontoloImport.postMessage('ERR:' + e));",
-      'script' => 'TontoloImport.postMessage(${widget.script});',
-      _ => 'TontoloImport.postMessage(document.body ? document.body.innerText : "");',
+          ".then(t => ProjiaImport.postMessage(t)).catch(e => ProjiaImport.postMessage('ERR:' + e));",
+      'script' => 'ProjiaImport.postMessage(${widget.script});',
+      _ => 'ProjiaImport.postMessage(document.body ? document.body.innerText : "");',
     };
     web.runJavaScript(js).catchError((_) {});
   }

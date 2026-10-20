@@ -28,7 +28,7 @@ jobs:
       - name: Règle de version (chiffres de 0 à 9, fichiers cohérents)
         run: python3 ../scripts/bump_version.py --check
       - name: Lint (ruff)
-        run: .venv/bin/ruff check tontolo tests
+        run: .venv/bin/ruff check projia tests
       - name: Typage (mypy)
         run: .venv/bin/mypy
       - name: Tests (pytest, fournisseurs simulés)
@@ -36,8 +36,8 @@ jobs:
       - name: Vulnérabilités des dépendances verrouillées (aucune exception silencieuse)
         if: matrix.python == '3.14'
         run: |
-          uv export --frozen --extra linux --no-dev --no-emit-project --no-hashes --output-file /tmp/tontolo-requirements.txt
-          uvx pip-audit -r /tmp/tontolo-requirements.txt --disable-pip --no-deps
+          uv export --frozen --extra linux --no-dev --no-emit-project --no-hashes --output-file /tmp/projia-requirements.txt
+          uvx pip-audit -r /tmp/projia-requirements.txt --disable-pip --no-deps
       - name: Tests de concurrence répétés 3 fois (un test instable est un bug)
         if: matrix.python == '3.14'
         run: |
@@ -59,7 +59,7 @@ jobs:
         with:
           python-version: "3.14"
       - run: uv venv && uv pip install -e . pytest pytest-asyncio respx
-      - run: .venv/bin/python -c "from tontolo.server.app import create_app; create_app()"
+      - run: .venv/bin/python -c "from projia.server.app import create_app; create_app()"
       - run: .venv/bin/pytest -q
 
   app:

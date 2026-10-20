@@ -8,8 +8,8 @@ from typing import ClassVar
 
 import pytest
 
-from tontolo import importer
-from tontolo.importer import ConversationImportError
+from projia import importer
+from projia.importer import ConversationImportError
 
 
 def test_find_link() -> None:

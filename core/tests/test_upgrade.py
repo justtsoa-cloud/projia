@@ -5,13 +5,13 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from tontolo.storage.db import Database
+from projia.storage.db import Database
 
 FIXTURE = Path(__file__).parent / "data" / "db_v0_2_0.sql"
 
 
 async def test_database_from_v0_2_0(tmp_path: Path) -> None:
-    path = tmp_path / "tontolo.db"
+    path = tmp_path / "projia.db"
     con = sqlite3.connect(path)
     con.executescript(FIXTURE.read_text())
     con.close()

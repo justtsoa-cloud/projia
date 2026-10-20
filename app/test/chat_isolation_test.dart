@@ -3,9 +3,9 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tontolo/core/backend.dart';
-import 'package:tontolo/core/chat_controller.dart';
-import 'package:tontolo/core/prefs.dart';
+import 'package:projia/core/backend.dart';
+import 'package:projia/core/chat_controller.dart';
+import 'package:projia/core/prefs.dart';
 
 class DelayedBackend extends Backend {
   DelayedBackend(super.prefs);
@@ -27,11 +27,11 @@ void main() {
     final chat = ChatController(backend);
     final first = chat.open('a');
     final second = chat.open('b');
-    backend.responses['/tontolo/conversations/b']!.complete({
+    backend.responses['/projia/conversations/b']!.complete({
       'messages': [{'role': 'user', 'content': 'Sujet B'}],
     });
     await second;
-    backend.responses['/tontolo/conversations/a']!.complete({
+    backend.responses['/projia/conversations/a']!.complete({
       'messages': [{'role': 'user', 'content': 'Sujet A'}],
     });
     await first;
@@ -46,14 +46,14 @@ void main() {
     final backend = DelayedBackend(await Prefs.load());
     final chat = ChatController(backend);
     final opening = chat.open('a');
-    backend.responses['/tontolo/conversations/a']!.complete({
+    backend.responses['/projia/conversations/a']!.complete({
       'messages': [{'role': 'assistant', 'content': '[média:aa]'}],
     });
     // La première lecture déclenche le chargement du média.
     await Future<void>.delayed(Duration.zero);
-    expect(backend.responses.containsKey('/tontolo/media/aa'), isTrue);
+    expect(backend.responses.containsKey('/projia/media/aa'), isTrue);
     chat.newChat();
-    backend.responses['/tontolo/media/aa']!.complete({'id': 'aa', 'status': 'done'});
+    backend.responses['/projia/media/aa']!.complete({'id': 'aa', 'status': 'done'});
     await opening;
     expect(chat.conversationId, isNull);
     expect(chat.messages, isEmpty);
@@ -66,7 +66,7 @@ void main() {
     final backend = DelayedBackend(await Prefs.load());
     final chat = ChatController(backend);
     final opening = chat.open('a');
-    backend.responses['/tontolo/conversations/a']!.complete({
+    backend.responses['/projia/conversations/a']!.complete({
       'total': 4,
       'messages': [
         {'role': 'user', 'content': 'trois', '_meta': {'seq': 3}},
@@ -75,7 +75,7 @@ void main() {
     });
     await opening;
     expect(chat.earlierLeft, 2);
-    backend.responses['/tontolo/conversations/a'] = Completer<dynamic>()
+    backend.responses['/projia/conversations/a'] = Completer<dynamic>()
       ..complete({
         'total': 4,
         'messages': [
@@ -94,7 +94,7 @@ void main() {
     final backend = DelayedBackend(await Prefs.load());
     final chat = ChatController(backend);
     final opening = chat.open('a');
-    backend.responses['/tontolo/conversations/a']!.complete({
+    backend.responses['/projia/conversations/a']!.complete({
       'active': false,
       'messages': [{'role': 'user', 'content': 'Quelles sont les actualités importantes aujourd\'hui ?'}],
     });

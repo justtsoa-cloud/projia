@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tontolo/ui/advanced_routing.dart';
+import 'package:projia/ui/advanced_routing.dart';
 
 void main() {
   test('message d\'erreur lisible du cœur', () {

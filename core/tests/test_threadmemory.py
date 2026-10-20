@@ -9,12 +9,12 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from tontolo.agent import threadmemory
-from tontolo.catalog.service import CatalogService
-from tontolo.config import Settings
-from tontolo.providers.fake import FakeProvider
-from tontolo.providers.registry import ProviderRegistry
-from tontolo.server.app import create_app
+from projia.agent import threadmemory
+from projia.catalog.service import CatalogService
+from projia.config import Settings
+from projia.providers.fake import FakeProvider
+from projia.providers.registry import ProviderRegistry
+from projia.server.app import create_app
 
 
 def _talk(n: int, secret_at: int = 1) -> list[dict[str, Any]]:
@@ -79,13 +79,13 @@ def test_a_long_thread_keeps_files_facts_and_style_whatever_the_model(
     snap = {"snapshot_name": "Rénovation", "chat_messages": [
         {"sender": "human" if m["role"] == "user" else "assistant",
          "content": [{"type": "text", "text": m["content"]}]} for m in _talk(90)]}
-    cid = client.post("/tontolo/import", json={"data": json.dumps(snap)}).json()[
+    cid = client.post("/projia/import", json={"data": json.dumps(snap)}).json()[
         "conversations"][0]["id"]
-    up = client.post("/tontolo/documents", data={"conversation_id": cid},
+    up = client.post("/projia/documents", data={"conversation_id": cid},
                      files={"file": ("devis-cuisine.txt", "Devis : plan de travail en chêne, "
                                      "hotte, évier double. Total 4200 euros.".encode())})
     assert up.status_code == 200
-    with client.stream("POST", "/tontolo/chat", json={
+    with client.stream("POST", "/projia/chat", json={
             "conversation_id": cid, "content": "et la suite ?"}) as r:
         assert any('"done"' in line for line in r.iter_lines())
     def answer_to(text: str) -> list[dict[str, Any]]:
@@ -98,7 +98,7 @@ def test_a_long_thread_keeps_files_facts_and_style_whatever_the_model(
     assert "Continuité" in system                        # même ton, aucun changement annoncé
     assert sent[-1]["content"] == "et la suite ?"        # la demande courante reste la dernière
     # Un fait ancien, perdu par le résumé : retrouvé quand la demande y fait référence.
-    with client.stream("POST", "/tontolo/chat", json={
+    with client.stream("POST", "/projia/chat", json={
             "conversation_id": cid, "content": "rappelle-moi mon budget pour la cuisine"}) as r:
         assert any('"done"' in line for line in r.iter_lines())
     sent = answer_to("rappelle-moi mon budget pour la cuisine")

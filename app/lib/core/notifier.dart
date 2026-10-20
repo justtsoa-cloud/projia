@@ -22,7 +22,7 @@ class Notifier {
           'availability',
           channel,
           channelDescription: description,
-          icon: 'ic_stat_tontolo',
+          icon: 'ic_stat_projia',
           importance: Importance.defaultImportance,
           priority: Priority.defaultPriority,
         ),
@@ -35,8 +35,8 @@ class Notifier {
           tzdata.initializeTimeZones();
           final ok = await _plugin.initialize(
             settings: const InitializationSettings(
-              android: AndroidInitializationSettings('ic_stat_tontolo'),
-              linux: LinuxInitializationSettings(defaultActionName: 'Ouvrir Tontolo'),
+              android: AndroidInitializationSettings('ic_stat_projia'),
+              linux: LinuxInitializationSettings(defaultActionName: 'Ouvrir Projia'),
             ),
           );
           return ok ?? false;
@@ -84,7 +84,7 @@ class Notifier {
   /// Rappel discret programmé à `when` (heure locale), jusqu'à plusieurs jours à l'avance : canal
   /// à faible importance (ni son ni vibration). Une seule par `topic`.
   static Future<bool> scheduleAt(DateTime when, String topic, String title, String body,
-      {String channel = 'Idées de Tontolo'}) async {
+      {String channel = 'Idées de Projia'}) async {
     if (!Platform.isAndroid || !await _ensure()) return false;
     try {
       final android = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
@@ -97,7 +97,7 @@ class Notifier {
         scheduledDate: tz.TZDateTime.from(when.toUtc(), tz.UTC),
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails('comeback', channel,
-              icon: 'ic_stat_tontolo', importance: Importance.low, priority: Priority.low),
+              icon: 'ic_stat_projia', importance: Importance.low, priority: Priority.low),
         ),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       );

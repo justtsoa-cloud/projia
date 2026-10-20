@@ -37,7 +37,7 @@ def check(config: Path) -> list[str]:
             # Paquets du SDK Flutter : licence commune à la racine du SDK.
             candidates += [parent / 'LICENSE' for parent in root.parents
                            if (parent / 'bin' / 'flutter').exists()]
-        if item['name'] == 'tontolo':
+        if item['name'] == 'projia':
             candidates.append(root.parent / 'LICENSE')
         text = '\n'.join(p.read_text(errors='replace') for p in candidates if p.is_file())
         kind = classify(text)

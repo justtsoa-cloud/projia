@@ -1,4 +1,4 @@
-// Compte Tontolo (facultatif) : connexion Google ou GitHub via Supabase Auth, flux PKCE.
+// Compte Projia (facultatif) : connexion Google ou GitHub via Supabase Auth, flux PKCE.
 // Le compte donne seulement l'ACCÈS à ses données synchronisées ; leur LECTURE exige la
 // phrase secrète de synchronisation (voir cloud_sync.dart) : la base ne voit que des blobs
 // chiffrés. Jetons conservés dans le stockage sécurisé du système.
@@ -15,17 +15,17 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
-const supabaseUrl = String.fromEnvironment('TONTOLO_STATS_URL');
-const supabaseKey = String.fromEnvironment('TONTOLO_STATS_KEY');
+const supabaseUrl = String.fromEnvironment('PROJIA_STATS_URL');
+const supabaseKey = String.fromEnvironment('PROJIA_STATS_KEY');
 
-/// Android revient directement dans Tontolo ; Linux utilise la boucle locale.
+/// Android revient directement dans Projia ; Linux utilise la boucle locale.
 /// Le code reçu exige le vérificateur PKCE conservé en stockage sécurisé.
 const callbackPort = 43823;
 const callbackUrl = 'http://localhost:$callbackPort/';
-const androidCallbackUrl = 'io.github.raantss18.tontolo://login-callback/';
+const androidCallbackUrl = 'io.github.raantss18.projia://login-callback/';
 
 bool isAndroidAuthCallback(Uri uri) =>
-    uri.scheme == 'io.github.raantss18.tontolo' &&
+    uri.scheme == 'io.github.raantss18.projia' &&
     uri.host == 'login-callback' && uri.path == '/' &&
     !uri.hasPort && uri.userInfo.isEmpty && uri.fragment.isEmpty;
 
@@ -85,7 +85,7 @@ class Account extends ChangeNotifier {
   final FlutterSecureStorage _storage;
   static const _key = 'account_session';
   static const _pendingKey = 'account_pending_pkce';
-  static const _links = MethodChannel('tontolo/auth');
+  static const _links = MethodChannel('projia/auth');
   Completer<void>? _signInDone;
   bool _handlingLink = false;
   bool _signingIn = false;
@@ -219,8 +219,8 @@ class Account extends ChangeNotifier {
             return valid;
           }).timeout(const Duration(minutes: 5));
           request.response.headers.contentType = ContentType.html;
-          request.response.write('<!doctype html><meta charset="utf-8"><h1>Tontolo</h1>'
-              '<p>Retour reçu. Revenez dans Tontolo pour vérifier la connexion.</p>');
+          request.response.write('<!doctype html><meta charset="utf-8"><h1>Projia</h1>'
+              '<p>Retour reçu. Revenez dans Projia pour vérifier la connexion.</p>');
           await request.response.close();
           await _exchange(request.uri, verifier);
         } finally {

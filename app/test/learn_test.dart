@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tontolo/ui/learn.dart';
+import 'package:projia/ui/learn.dart';
 
 const _quiz = '''Voici un quiz :
 ```quiz

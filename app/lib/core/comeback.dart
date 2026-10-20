@@ -1,6 +1,6 @@
-// Rappel subtil (P3) : après quelques jours sans ouvrir Tontolo, UNE notification locale avec un
+// Rappel subtil (P3) : après quelques jours sans ouvrir Projia, UNE notification locale avec un
 // titre d'actualité de votre domaine, tiré d'un flux public gratuit lu sur l'appareil. Rien
-// n'est envoyé à un serveur de Tontolo ; le profil d'intérêts ne quitte jamais l'appareil.
+// n'est envoyé à un serveur de Projia ; le profil d'intérêts ne quitte jamais l'appareil.
 //
 // Garde-fous (testés) : désactivé tant que la personne n'a pas accepté ; rien les 3 premiers
 // jours ; jamais deux rappels à moins de 4 jours ; jamais la nuit (10 h 30 locale) ; pas de
@@ -152,7 +152,7 @@ class Comeback {
     final transport = client ?? http.Client();
     try {
       final r = await transport
-          .get(Uri.parse(feedFor(domainOf(topics), lang)), headers: {'User-Agent': 'Tontolo'})
+          .get(Uri.parse(feedFor(domainOf(topics), lang)), headers: {'User-Agent': 'Projia'})
           .timeout(const Duration(seconds: 12));
       if (r.statusCode != 200) return null;
       return pick(parseFeed(utf8.decode(r.bodyBytes, allowMalformed: true)), topics, now);

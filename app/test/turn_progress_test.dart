@@ -1,7 +1,7 @@
 // Avancement d'une réponse : noms courts, pourcentage monotone, journal lisible.
 import 'package:flutter_test/flutter_test.dart';
-import 'package:tontolo/core/turn_progress.dart';
-import 'package:tontolo/l10n/strings.dart';
+import 'package:projia/core/turn_progress.dart';
+import 'package:projia/l10n/strings.dart';
 
 void main() {
   test('noms courts des modèles', () {

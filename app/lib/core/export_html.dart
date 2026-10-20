@@ -38,7 +38,7 @@ String conversationHtml(List<ChatMessage> messages, {required String title, requ
         'td,th{border:1px solid rgba(127,127,127,.35);padding:4px 8px}a{color:var(--accent)}'
         'footer{color:var(--muted);font-size:.8rem;margin-top:28px;text-align:center}')
     ..writeln('</style></head><body><main>')
-    ..writeln('<h1>${_escape(title)}</h1><div class="meta">Tontolo · ${DateTime.now().toIso8601String().substring(0, 10)}</div>');
+    ..writeln('<h1>${_escape(title)}</h1><div class="meta">Projia · ${DateTime.now().toIso8601String().substring(0, 10)}</div>');
   for (final m in messages) {
     if (m.role != 'user' && m.role != 'assistant') continue;
     if (m.text.trim().isEmpty) continue;
@@ -49,6 +49,6 @@ String conversationHtml(List<ChatMessage> messages, {required String title, requ
     }
     buf.writeln('</div>');
   }
-  buf.writeln('<footer>Tontolo — $authorName · $authorGithub</footer></main></body></html>');
+  buf.writeln('<footer>Projia — $authorName · $authorGithub</footer></main></body></html>');
   return buf.toString();
 }

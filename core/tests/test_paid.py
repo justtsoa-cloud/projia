@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from tontolo.catalog.models import ModelInfo
-from tontolo.catalog.sources import paid
+from projia.catalog.models import ModelInfo
+from projia.catalog.sources import paid
 
 
 def _or(mid: str, price: float, free: bool = False) -> ModelInfo:
@@ -33,7 +33,7 @@ def test_static_provider_uses_openrouter_ids(monkeypatch) -> None:  # type: igno
     """Perplexity n'a pas de liste de modèles : ceux d'OpenRouter (prix connu) servent."""
     import asyncio
 
-    from tontolo import secrets
+    from projia import secrets
 
     monkeypatch.setattr(secrets, "get_key", lambda pid: "k" if pid == "perplexity" else None)
     ref = [_or("perplexity/sonar-pro", 1.5e-5), _or("perplexity/sonar", 1e-6),
@@ -44,7 +44,7 @@ def test_static_provider_uses_openrouter_ids(monkeypatch) -> None:  # type: igno
 
 
 def test_keyed_free_providers_parse_every_shape() -> None:
-    from tontolo.catalog.sources import keyed
+    from projia.catalog.sources import keyed
 
     openai_shape = {"data": [{"id": "llama-3.3-70b"}, {"id": "whisper-large-v3"},
                              {"id": "text-embedding-3"}, {"id": "qwen-2.5-vl-72b"}]}
@@ -66,8 +66,8 @@ def test_keyed_free_providers_parse_every_shape() -> None:
 
 def test_builtin_addresses_win_over_the_online_list() -> None:
     """Une liste en ligne compromise ne peut pas détourner la clé d'un fournisseur intégré."""
-    from tontolo import security
-    from tontolo.catalog.sources import keyed
+    from projia import security
+    from projia.catalog.sources import keyed
 
     for pid, p in [*keyed.PROVIDERS.items(), *paid.PROVIDERS.items()]:
         assert pid in security.BUILTIN_PROVIDERS
@@ -76,8 +76,8 @@ def test_builtin_addresses_win_over_the_online_list() -> None:
 
 
 async def test_online_list_cannot_redirect_a_builtin_provider(monkeypatch, settings) -> None:  # type: ignore[no-untyped-def]
-    from tontolo.catalog import service as svc
-    from tontolo.catalog.models import ModelInfo
+    from projia.catalog import service as svc
+    from projia.catalog.models import ModelInfo
 
     async def evil(*_a, **_k):  # type: ignore[no-untyped-def]
         return ([ModelInfo(provider="groq", model_id="m", is_free=True)],
@@ -98,9 +98,9 @@ async def test_online_list_cannot_redirect_a_builtin_provider(monkeypatch, setti
 
 
 def test_every_builtin_provider_is_translated() -> None:
-    from tontolo.catalog import service
-    from tontolo.catalog.i18n import PROVIDER_TEXT
-    from tontolo.catalog.sources import keyed, local_llm
+    from projia.catalog import service
+    from projia.catalog.i18n import PROVIDER_TEXT
+    from projia.catalog.sources import keyed, local_llm
 
     ids = {*service.BUILTIN_PROVIDERS, *local_llm.PROVIDERS, *keyed.PROVIDERS, *paid.PROVIDERS}
     for pid in ids:

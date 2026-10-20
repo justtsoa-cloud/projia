@@ -95,7 +95,7 @@ class _ExplainerPlayerState extends State<ExplainerPlayer> with SingleTickerProv
 
   Future<void> _capabilities() async {
     try {
-      final r = await AppScope.of(context).backend.getJson('/tontolo/explainer/capabilities') as Map;
+      final r = await AppScope.of(context).backend.getJson('/projia/explainer/capabilities') as Map;
       if (mounted) setState(() => mp4 = r['mp4'] == true);
     } catch (_) {
       if (mounted) setState(() => mp4 = false);
@@ -169,7 +169,7 @@ class _ExplainerPlayerState extends State<ExplainerPlayer> with SingleTickerProv
     try {
       final b = scope.backend;
       final r = await http
-          .post(b.uri('/tontolo/explainer/render'),
+          .post(b.uri('/projia/explainer/render'),
               headers: {...b.headers, 'Content-Type': 'application/json'},
               body: jsonEncode({'story': widget.story.json, 'quality': 'l'}))
           .timeout(const Duration(minutes: 6));

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.raantss18.projia</id>
+  <name>Projia</name>
+  <summary>Free AI assistant that always picks the best free model</summary>
+  <summary xml:lang="fr">Assistant IA gratuit qui choisit toujours le meilleur modèle gratuit</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>Apache-2.0</project_license>
+  <developer id="io.github.raantss18">
+    <name>RANIRIAMANJAKA Antsa</name>
+  </developer>
+  <description>
+    <p>Projia chooses the best free AI model for each message and switches automatically when a quota is reached, so you can keep working without paying.</p>
+    <ul>
+      <li>Chat, code and maths with LaTeX, web search with sources</li>
+      <li>Free images, short videos and voice</li>
+      <li>Documents with page citations, folders and full-text search</li>
+      <li>Learn mode for pupils and students: step-by-step tutor, quizzes and flashcards</li>
+      <li>Optional end-to-end encrypted sync between devices</li>
+      <li>French, English and Malagasy</li>
+    </ul>
+    <p xml:lang="fr">Projia choisit le meilleur modèle d'IA gratuit pour chaque message et bascule automatiquement quand un quota est atteint.</p>
+  </description>
+  <launchable type="desktop-id">io.github.raantss18.projia.desktop</launchable>
+  <url type="homepage">https://github.com/justtsoa-cloud/projia</url>
+  <url type="bugtracker">https://github.com/justtsoa-cloud/projia/issues</url>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/justtsoa-cloud/projia/main/docs/screenshots/bureau-linux.png</image>
+    </screenshot>
+  </screenshots>
+  <content_rating type="oars-1.1"/>
+  <releases>
+    <release version="0.3.0" date="2026-10-11"/>
+  </releases>
+</component>

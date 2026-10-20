@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import httpx
 
-from tontolo.catalog.sources import local_llm
+from projia.catalog.sources import local_llm
 
 
 def _client() -> httpx.AsyncClient:

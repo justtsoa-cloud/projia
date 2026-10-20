@@ -1,4 +1,4 @@
-# Todolist Tontolo v0.1.0
+# Todolist Projia v0.1.0
 
 Légende : `[x]` fait · `[~]` en cours · `[ ]` à faire
 
@@ -66,7 +66,7 @@ personne, calculés localement ; jamais un simple « Bonjour ».
 - [~] P3.2 (v0.7.1 : titre préparé à la mise en arrière-plan, donc ≤ 4 jours ; la lecture AU MOMENT du rappel demande une tâche de fond Android, WorkManager : à faire) Contenu : « une nouvelle bien chaude de son domaine » : titre court d'une source
   publique gratuite choisie selon le centre d'intérêt (flux RSS/Atom ouverts : sciences, éducation,
   tech, nature, histoire…), récupérée sur l'appareil au moment du rappel (tâche de fond Android,
-  sans serveur à nous), avec lien et bouton « En discuter avec Tontolo » (ouvre une discussion
+  sans serveur à nous), avec lien et bouton « En discuter avec Projia » (ouvre une discussion
   pré-remplie). Si rien de pertinent : pas de notification (jamais de rappel creux).
 - [x] P3.3 (fait, v0.7.1) Consentement : proposé une fois, désactivé tant que non accepté ; réglages clairs
   (fréquence, domaines, heures calmes, tout couper) ; le profil d'intérêts ne quitte jamais
@@ -78,9 +78,9 @@ personne, calculés localement ; jamais un simple « Bonjour ».
 
 ### P4. Retours et notation de l'application
 - [x] P4.1 (fait, v0.7.1) Après plusieurs vraies discussions (≥ 5 discussions ET ≥ 7 jours), une seule carte
-  discrète à l'accueil : « Comment ça se passe avec Tontolo ? » (trois visages) ; jamais pendant
+  discrète à l'accueil : « Comment ça se passe avec Projia ? » (trois visages) ; jamais pendant
   une tâche ; si ignorée, repoussée de 30 puis 60 jours, puis plus jamais.
-- [x] P4.2 (fait, v0.7.1) Réponse positive → invitation facultative à parler de Tontolo (étoile GitHub, lien de
+- [x] P4.2 (fait, v0.7.1) Réponse positive → invitation facultative à parler de Projia (étoile GitHub, lien de
   partage, avis sur la boutique quand elle existera) ; négative → deux questions courtes (qu'est-ce
   qui manque / gêne ; vitesse, justesse, langue, interface) et champ libre facultatif.
 - [x] P4.3 (fait, v0.7.1) Stockage local d'abord ; envoi à l'auteur SEULEMENT si l'utilisateur l'accepte pour ce
@@ -105,12 +105,12 @@ personne, calculés localement ; jamais un simple « Bonjour ».
   (IBus/Fcitx) sous Flutter Linux : latence du premier événement clavier ; (c) premier lancement de
   l'AppImage (extraction, démarrage du cœur) ; (d) pilote graphique/Wayland vs X11 (Cinnamon 22 =
   X11). Reproduire sur une machine ou une VM Mint 22, relever le journal du cœur
-  (`[tontolo] cœur prêt en …`), tester avec `GTK_IM_MODULE=` vide puis `ibus`/`fcitx`. Demander au
+  (`[projia] cœur prêt en …`), tester avec `GTK_IM_MODULE=` vide puis `ibus`/`fcitx`. Demander au
   testeur : durée avant la première lettre, après combien de temps l'application était ouverte,
   méthode de saisie du bureau.
 - [ ] P6.2 **Communication** : un lecteur demande « c'est quoi comme système ? Linux quoi ? ».
   Dire clairement, partout (README, affiches, page de téléchargement, description de la release),
-  que Tontolo existe pour **Android** (APK) et **Linux** (AppImage, testé Arch ; Mint 22 en
+  que Projia existe pour **Android** (APK) et **Linux** (AppImage, testé Arch ; Mint 22 en
   cours), et pas encore Windows/macOS ; préciser « Linux » = distributions de bureau.
 - [ ] P6.3 Répondre au testeur quand le correctif est publié (mention dans le CHANGELOG et la
   carte « Nouveautés »).
@@ -120,7 +120,7 @@ P2, car il réutilise le profil d'intérêts) → P1.4/1.6/1.7/1.8. Chaque lot =
 fr/en/mg avec prompts d'usage, tests, CI verte, release vérifiée.
 
 ## Phase 0 — Cadrage
-- [x] Lire la spécification (`TONTOLO_PROMPT_CLAUDE_CODE.md`)
+- [x] Lire la spécification (`PROJIA_PROMPT_CLAUDE_CODE.md`)
 - [x] Décisions : périmètre complet, licence Apache-2.0, dépôt public, autonomie
 - [x] Outillage : Flutter stable (~/development/flutter), SDK Android 36 + émulateur
 - [x] Vérifier les sources en ligne (OpenRouter, AA, LMArena, mnfst, Pollinations, serious_python)
@@ -136,7 +136,7 @@ fr/en/mg avec prompts d'usage, tests, CI verte, release vérifiée.
 - [x] Fetchers : OpenRouter, Artificial Analysis, LMArena (datasets-server), mnfst/awesome-free-llm-apis, Pollinations
 - [x] `matcher.py` + tests sur des cas réels
 - [x] `watcher.py` : diff (new/removed/became_free…), RSS, score provisoire, fil Nouveautés
-- [x] CLI `tontolo catalog list --free --category code`
+- [x] CLI `projia catalog list --free --category code`
 
 ## Phase 3 — Routeur
 - [x] `classifier.py` (heuristiques FR/EN/MG + petit modèle en option)
@@ -257,7 +257,7 @@ Règle : chaque étape est livrée seule (tests verts, rien de cassé), puis pub
 - [~] 9. Partage d'une discussion : page web faite (0.2.11) ; image d'une réponse à faire
 - [~] 10. Dictée vocale faite (menu +, « Dicter ») ; mode conversation mains libres à faire
 - [ ] 11. Design : thème coloré enfantin-sérieux aligné sur le logo (palette, typographie, animations légères)
-- [x] 12. Android : raccourci d'appui long « Demander à Tontolo » + widget d'écran d'accueil (barre « Demander à Tontolo… », 4×1) : nouvelle discussion, curseur dans la saisie, application fermée ou ouverte. Vérifié sur l'émulateur : raccourci et widget enregistrés par le système, l'action ouvre bien l'application prête à écrire ; l'ajout du widget sur l'écran d'accueil reste à voir sur un vrai téléphone
+- [x] 12. Android : raccourci d'appui long « Demander à Projia » + widget d'écran d'accueil (barre « Demander à Projia… », 4×1) : nouvelle discussion, curseur dans la saisie, application fermée ou ouverte. Vérifié sur l'émulateur : raccourci et widget enregistrés par le système, l'action ouvre bien l'application prête à écrire ; l'ajout du widget sur l'écran d'accueil reste à voir sur un vrai téléphone
 - [x] 13. Tablette / bureau : rail de navigation (≥ 840 px), plan de travail en deuxième colonne (déjà là) et, depuis le 2026-10-13, liste des discussions permanente à gauche à partir de 1180 px (test `chat_layout_test.dart`)
 - [x] U. Mises à jour : repli sans API GitHub (limite de débit), résultat toujours affiché, notes et nouveautés cumulées des versions sautées, CI de compatibilité depuis 0.2.0, test de base 0.2.0
 - [x] Transversal : plus d'interactivité — raccourcis sous la dernière réponse (plus de détails, exemple, plus court, traduire ; sans appel de modèle), retours haptiques (envoi, réponse reçue, raccourcis), actions rapides sur les messages (copier, écouter, partager, noter, régénérer, modifier) déjà là, ligne d'avancement animée
@@ -265,7 +265,7 @@ Règle : chaque étape est livrée seule (tests verts, rien de cassé), puis pub
 ## v0.3.0 — demandes du 2026-10-11 (3e lot, version majeure)
 Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cassé, saut de mise à jour vérifié.
 - [x] R0. Vérifier la base Supabase des statistiques (insertion OK, lecture refusée à la clé publique, contrôles actifs)
-- [x] R1. Bug utilisateur : continuer dans Tontolo une discussion venant d'un lien Claude (claude.ai/share/…) ; aussi ChatGPT, Gemini, texte collé
+- [x] R1. Bug utilisateur : continuer dans Projia une discussion venant d'un lien Claude (claude.ai/share/…) ; aussi ChatGPT, Gemini, texte collé
 - [x] R2. À chaque message, réévaluer le meilleur modèle selon le contexte de la discussion (pas de modèle « collé » à la conversation)
 - [x] R3. Création d'image : ne plus rester bloqué sur Pollinations, choisir la meilleure source d'image disponible
 - [x] F1. Aide par fournisseur d'API : étapes simples et lien direct pour obtenir la clé (fr/en/mg)
@@ -314,7 +314,7 @@ Ordre : retours d'utilisateurs d'abord, puis nouvelles fonctions ; rien de cass�
 - [x] Tests ciblés PKCE et synchronisation : 5 tests réussis ; ne constitue pas un essai OAuth réel Android/Linux.
 
 ## v0.4.7 — retour Google/GitHub sur Android
-- [x] Remplacer le serveur localhost Android par un lien natif vers Tontolo, sans nouvelle dépendance.
+- [x] Remplacer le serveur localhost Android par un lien natif vers Projia, sans nouvelle dépendance.
 - [x] Conserver le PKCE temporaire dans le stockage sécurisé pour reprendre après redémarrage ; délai et suppression après usage.
 - [x] Valider le lien reçu, ignorer les retours sans demande, empêcher les doubles échanges.
 - [x] Ajouter le retour Android exact dans Supabase avec accord du propriétaire ; conserver le retour Linux et anciennes versions.
@@ -357,21 +357,21 @@ l'emploi ; bureau Linux = fichiers + commandes confirmées dans un dossier chois
 - [x] A10. Tests, émulateur, publication 0.5.1 — publiée (émulateur OK : mise à jour en place, onglet Agent, réponse continuée en arrière-plan puis rattachée ; tag v0.5.1 poussé)
 - [x] A18. Espace disque : tous les caches de l'appareil dans UN dossier, sans doublons (fichiers temporaires de partage, profil du navigateur, médias synchronisés), avec plafonds et nettoyage
 - [x] A19. Accueil d'une nouvelle discussion animé et vivant (comme Claude) : salutation selon l'heure et le prénom si connu (« Bonjour Antsa », « Bonsoir Antsa »), suggestions qui changent
-- [x] A20. Pastilles d'activité : une discussion ou tâche en cours porte une pastille dans l'historique, distincte selon le lieu (sur CET appareil / sur un AUTRE appareil) ; si une discussion attend une réponse de l'utilisateur (question du modèle, confirmation d'outil, accord payant) pendant qu'il est ailleurs (autre discussion, Créations, Réglages, ou app en arrière-plan), Tontolo le signale (pastille « attend votre réponse » + notification)
+- [x] A20. Pastilles d'activité : une discussion ou tâche en cours porte une pastille dans l'historique, distincte selon le lieu (sur CET appareil / sur un AUTRE appareil) ; si une discussion attend une réponse de l'utilisateur (question du modèle, confirmation d'outil, accord payant) pendant qu'il est ailleurs (autre discussion, Créations, Réglages, ou app en arrière-plan), Projia le signale (pastille « attend votre réponse » + notification)
 
 ## Consigne permanente (2026-10-12)
 - À chaque mise à jour publiée : un poster de changelog simple mais complet, illustré, qui montre le changement majeur de la version par un exemple simple d'utilisation (voir docs/RELEASING.md)
 
 ## Audit de sécurité et de cohérence (2026-10-12, avant le poster)
 - [x] Terminal : jeton obligatoire (sans jeton, aucun shell), processus fils récoltés (pas de zombie), commande refusée non recopiée
-- [x] Navigateur : jamais l'API de Tontolo ni les métadonnées cloud ; boutons confirmés
+- [x] Navigateur : jamais l'API de Projia ni les métadonnées cloud ; boutons confirmés
 - [x] Créations synchronisées : type de contenu validé, pages actives servies en téléchargement (CSP sandbox, nosniff)
 - [x] LaTeX : lecture/exécution de fichiers refusées (\openin5, \read, \InputIfFileExists, \directlua… ; faille de frontière de mot corrigée)
 - [x] Résultats de tâches : plafond global de 300 Mo ; planification plus sobre (plus de déclenchement sur la seule longueur)
 - [x] Sélecteur de mode : seul le mode actif affiche son nom (icônes pour les autres)
 
 ## v0.5.3 (2026-10-12)
-- [x] Bug « Tontolo demande toujours d'écrire un fichier » (livre de 200 pages) : cause = outil d'écriture de l'espace interne (fichier jamais livré, rien dans les résultats) → retiré sans dossier de travail ; les livres passent par un rédacteur dédié (plan, chapitres en parallèle, PDF/zip), résultats visibles en direct, demandes sans verbe reconnues, chapitre muet réessayé puis marqué « à refaire »
+- [x] Bug « Projia demande toujours d'écrire un fichier » (livre de 200 pages) : cause = outil d'écriture de l'espace interne (fichier jamais livré, rien dans les résultats) → retiré sans dossier de travail ; les livres passent par un rédacteur dédié (plan, chapitres en parallèle, PDF/zip), résultats visibles en direct, demandes sans verbe reconnues, chapitre muet réessayé puis marqué « à refaire »
 - [x] Poster 0.5.2 (fr, en, mg) ; système de poster par version (build_poster.py, exigé par la release, affiche embarquée dans « Nouveautés »)
 - [x] Poster 0.5.3 (captures réelles de l'émulateur en fr/en/mg) ; publication 0.5.3 en cours ; posters à ajouter à la release 0.5.2
 - [x] A20 pastilles d'activité (ici / autre appareil / attend votre réponse), badge du menu, avertissement + notification — prêt pour la version suivante
@@ -433,7 +433,7 @@ Philosophie gardée : gratuit d'abord, clés de l'utilisateur, rien ne passe par
 
 ## Notations et QR code (demande du 2026-10-12, pour 0.5.8)
 Principe : rien de ce qui est écrit ne quitte l'appareil ; seule la note (modèle, type de demande, 👍/👎, raison) est partagée, avec l'accord « Statistiques anonymes ».
-- [x] N1. Cœur : `POST /tontolo/feedback` (note d'une réponse, modifiable) ; table locale ; le modèle et le type de demande sont retrouvés à partir du message
+- [x] N1. Cœur : `POST /projia/feedback` (note d'une réponse, modifiable) ; table locale ; le modèle et le type de demande sont retrouvés à partir du message
 - [x] N2. Récompense / pénalité locale : bonus borné dans le classement du modèle pour ce type de demande (👍 +, 👎 −), visible dans « Pourquoi ce modèle »
 - [x] N3. 👎 : la réponse sort du cache des réponses ; proposition « Réessayer avec un autre modèle » (ce modèle évité pour ce tour) ; raisons rapides (inexact, hors sujet, trop long, langue, autre)
 - [x] N4. Supabase : table `ratings` (insertion seule, une note par appareil et par réponse) + fonction `model_scores()` agrégée (appareils distincts, seuil minimal) lisible par l'app ; script SQL et docs/STATS.md
@@ -464,7 +464,7 @@ Contraintes : rien ne change par défaut (`orchestrate=false`), léger (asyncio,
 - [x] S3. Limitation de débit des WebSockets (connexions et messages)
 - [x] S4. MCP durci : commandes dangereuses refusées, taille des requêtes bornée, configuration stdio réservée à l'appareil
 - [x] O1. Paquet `orchestrator/` : TaskDecomposer (regex, repli Ollama local), ResponseSynthesizer (low/medium/high), HierarchicalPipeline (cache, gather, délais, replis, routeur existant)
-- [x] O2. `/tontolo/chat` : `orchestrate: bool = false` ; complexité faible → flux normal ; métriques (durée, modèles) dans les événements
+- [x] O2. `/projia/chat` : `orchestrate: bool = false` ; complexité faible → flux normal ; métriques (durée, modèles) dans les événements
 - [x] O3. tests/test_orchestrator.py + essai « code Python + explication »
 - [x] Essai réel R10 : « code + explication » (dépendance respectée, 64 s, 2 modèles) ; 3 parties en parallèle 19 s au lieu de 23 s en série, réponses justes ; « Bonjour » non orchestré
 - [x] O4. Fusion « medium » : petit modèle, puis modèle d’écriture si la fusion perd du contenu, puis concaténation
@@ -492,7 +492,7 @@ Inexact : pièces jointes envoyées en multipart (pas en base64), historique du 
 - [x] Trouvé en route (R3) : une conversation synchronisée à moitié invalide effaçait les messages existants avant d'échouer → tout est vérifié avant d'écrire
 - [x] R4 (P1). Mises à jour Linux signées (ed25519) : la CI signe SHA256SUMS, l'application vérifie avec la clé publique intégrée (Android : déjà protégé par la signature APK vérifiée par le système)
 - [x] R5 (P1). OpenAPI local (/openapi.json avec jeton) + docs/API.md généré
-- [x] R6 (P1). Métriques locales /tontolo/metrics (format Prometheus : tours, erreurs, latences par modèle), rien n'est envoyé
+- [x] R6 (P1). Métriques locales /projia/metrics (format Prometheus : tours, erreurs, latences par modèle), rien n'est envoyé
 - [x] R7 (P1). Banc rapide en CI (régression de performance du cœur)
 - [x] R8 (P1). server/app.py (2 229 lignes) découpé : `server/common.py` (corps validés, limites, aides) + 10 routeurs `server/routes/` enregistrés dans l'ordre ; app.py = lifespan, garde d'authentification, enregistrement (95 lignes). OpenAPI identique à l'octet près et ordre des routes inchangé (vérifiés contre l'ancienne version). Budget de roue 300 → 350 Kio (297 Kio : code source seulement)
 - [x] R9 (P1). Tests Flutter des écrans : réglages (cœur simulé à partir de réponses réelles enregistrées, `test/fixtures/core_get.json` ; onglet Simple → choix « Plusieurs modèles » envoyé ; onglet Avancé en fr/en/mg), carte à plusieurs questions (choix unique/multiple, précision libre), pouces 👍/👎 (annulation), fiches (retourner, revoir les difficiles) ; quiz déjà couvert. 63 tests
@@ -504,9 +504,9 @@ Inexact : pièces jointes envoyées en multipart (pas en base64), historique du 
 ## Suivi visible d'une réponse en cours (demande du 2026-10-13)
 But : l'utilisateur ne doit jamais avoir l'impression d'attendre dans le vide.
 - [x] V1. Pourcentage d'avancement : estimation du taux d'achèvement de la demande et de chaque étape (plan, sections, outils, relecture), anticipée à partir des étapes prévues et de la durée observée des modèles ; jamais de recul, jamais 100 % avant la fin.
-- [x] V2. « Ce que fait Tontolo » : un résumé court et lisible de ce qui se passe derrière (une ligne qui se met à jour), au lieu d'un long texte qui défile ; un toucher ouvre le détail (étapes, outils, modèles, durées).
+- [x] V2. « Ce que fait Projia » : un résumé court et lisible de ce qui se passe derrière (une ligne qui se met à jour), au lieu d'un long texte qui défile ; un toucher ouvre le détail (étapes, outils, modèles, durées).
 - [x] V3. Nom court du ou des modèles en action et leur rôle dans la tâche (ex. « Llama 3.3 · rédige », « Gemini Flash · lit les images », « Qwen · relit »).
-  Fait : `app/lib/core/turn_progress.dart` (pourcentage par étapes, texte reçu et temps écoulé, jamais en recul ni à 100 % avant la fin ; journal horodaté ; noms courts) ; ligne « modèle · action · % » avec barre, toucher = journal « Ce que fait Tontolo » ; réflexion du modèle résumée en une ligne (« 230 mots de réflexion · touchez pour lire ») au lieu du texte brut qui défile ; orchestration : chaque partie relayée avec son modèle. Vérifié sur l'émulateur.
+  Fait : `app/lib/core/turn_progress.dart` (pourcentage par étapes, texte reçu et temps écoulé, jamais en recul ni à 100 % avant la fin ; journal horodaté ; noms courts) ; ligne « modèle · action · % » avec barre, toucher = journal « Ce que fait Projia » ; réflexion du modèle résumée en une ligne (« 230 mots de réflexion · touchez pour lire ») au lieu du texte brut qui défile ; orchestration : chaque partie relayée avec son modèle. Vérifié sur l'émulateur.
 
 ## Communication (demande du 2026-10-13)
 - [x] C1. README attrayant pour trois publics : entreprises, professionnels, grand public (promesse claire, cas d'usage, captures, gratuit et privé, installation en 1 minute) — en restant factuel.
@@ -526,7 +526,7 @@ Constat (PDF joint) : « transforme tout cela en un poster… » puis « je veux
 - [x] I5. Test flaky `test_child_is_reaped` (course entre kill et lecture de /proc) corrigé.
 
 ## Vidéos explicatives dans le mode Apprendre (Manim) — demande du 2026-10-14
-Principe : le grand public n'écrit pas de prompts parfaits et n'est pas rigoureux. Tontolo complète la demande à sa place, choisit un plan pédagogique, et produit une vidéo. Deux rendus d'un même scénario (« storyboard » JSON, des DONNÉES et jamais du code d'un modèle) :
+Principe : le grand public n'écrit pas de prompts parfaits et n'est pas rigoureux. Projia complète la demande à sa place, choisit un plan pédagogique, et produit une vidéo. Deux rendus d'un même scénario (« storyboard » JSON, des DONNÉES et jamais du code d'un modèle) :
 - lecteur animé intégré à l'application (Android et Linux, hors ligne, gratuit, voix du système) ;
 - vidéo MP4 par Manim quand le cœur tourne sur un Linux qui l'a (application bureau ou serveur personnel) : code Manim produit par des GABARITS fixes, exécuté en bac à sable.
 Pourquoi pas du code Manim écrit par un modèle : du code arbitraire exécuté sur l'appareil de l'utilisateur est inacceptable (sécurité) et les modèles gratuits le cassent une fois sur deux. Pourquoi pas un modèle de vidéo générative : il ne sait ni écrire une formule ni tenir un raisonnement.

@@ -9,7 +9,7 @@ import '../core/feedback.dart';
 import '../core/prefs.dart';
 import '../main.dart';
 
-const _repoUrl = 'https://github.com/raantss18/tontolo';
+const _repoUrl = 'https://github.com/justtsoa-cloud/projia';
 
 class FeedbackCard extends StatefulWidget {
   const FeedbackCard({super.key, required this.prefs, required this.onClose});

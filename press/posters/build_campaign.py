@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Affiches de campagne Tontolo (1080 × 1440, fr / en / mg) : des prompts courts et usuels à
+"""Affiches de campagne Projia (1080 × 1440, fr / en / mg) : des prompts courts et usuels à
 copier, la façon la plus efficace de s'en servir, un QR code vers la dernière version.
 
     python3 press/posters/build_campaign.py 2026-10-14
@@ -22,7 +22,7 @@ from build_poster import (DARK, FONT, GOLD, MINT, MUTED, ROOT, WHITE, qr_png,  #
                           text, uri, width)
 
 W, H = 1080, 1440
-LATEST = "https://github.com/raantss18/tontolo/releases/latest"
+LATEST = "https://github.com/justtsoa-cloud/projia/releases/latest"
 LABELS = {
     "fr": {"say": "Dites-lui", "tip": "La façon la plus efficace", "get": "Télécharger",
            "free": "Gratuit · Android · Linux"},
@@ -69,7 +69,7 @@ def build(poster: dict, lang: str) -> str:
     poster = wrap_prompts(poster)
     check(poster, lang)
     lab = LABELS[lang]
-    logo = uri(ROOT / "docs/brand/tontolo-icon-512.png")
+    logo = uri(ROOT / "docs/brand/projia-icon-512.png")
     qr = "data:image/png;base64," + base64.b64encode(qr_png(LATEST)).decode()
     o = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" '
@@ -84,7 +84,7 @@ def build(poster: dict, lang: str) -> str:
         f'<rect width="{W}" height="{H}" fill="url(#bg)"/>',
         f'<rect width="{W}" height="{H}" fill="url(#glow)"/>',
         f'<image href="{logo}" x="60" y="56" width="96" height="96" clip-path="url(#logo)"/>',
-        text(182, 120, "Tontolo", 56, WHITE, 700),
+        text(182, 120, "Projia", 56, WHITE, 700),
         text(1020, 118, poster["kicker"], 28, MINT, 600, "end"),
     ]
     y = 262
@@ -113,7 +113,7 @@ def build(poster: dict, lang: str) -> str:
     o.append(f'<rect x="866" y="1208" width="154" height="154" rx="16" fill="{WHITE}"/>')
     o.append(f'<image href="{qr}" x="874" y="1216" width="138" height="138"/>')
     o.append(text(943, 1394, lab["get"], 24, MINT, 700, "middle"))
-    o.append(text(60, 1380, "github.com/raantss18/tontolo", 30, WHITE, 600))
+    o.append(text(60, 1380, "github.com/justtsoa-cloud/projia", 30, WHITE, 600))
     o.append(text(60, 1418, lab["free"], 24, MUTED))
     o.append("</svg>")
     return "".join(o)

@@ -9,16 +9,16 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from tontolo.agent import imagebrief
-from tontolo.catalog.models import Category
-from tontolo.catalog.service import CatalogService
-from tontolo.config import Settings
-from tontolo.creator import intent as file_intent
-from tontolo.providers.fake import FakeProvider
-from tontolo.providers.registry import ProviderRegistry
-from tontolo.router.classifier import classify
-from tontolo.router.imageintent import resolve
-from tontolo.server.app import create_app
+from projia.agent import imagebrief
+from projia.catalog.models import Category
+from projia.catalog.service import CatalogService
+from projia.config import Settings
+from projia.creator import intent as file_intent
+from projia.providers.fake import FakeProvider
+from projia.providers.registry import ProviderRegistry
+from projia.router.classifier import classify
+from projia.router.imageintent import resolve
+from projia.server.app import create_app
 
 PDF_REQUESTS = [  # les trois phrases de la discussion d'origine
     ("transforme tout cela en un poster détaillé, sans faute et bien compact mais aussi très "
@@ -173,7 +173,7 @@ def client(settings: Settings, catalog_service: CatalogService, fake: FakeProvid
 
 def test_the_job_prompt_comes_from_the_discussion(client: TestClient,
                                                   monkeypatch: pytest.MonkeyPatch) -> None:
-    from tontolo.media.service import MediaService
+    from projia.media.service import MediaService
 
     submitted: list[tuple[str, str]] = []
 
@@ -189,9 +189,9 @@ def test_the_job_prompt_comes_from_the_discussion(client: TestClient,
     snap = {"snapshot_name": "Groupes", "chat_messages": [
         {"sender": "human", "content": [{"type": "text", "text": _thread()[0]["content"]}]},
         {"sender": "assistant", "content": [{"type": "text", "text": _thread()[1]["content"]}]}]}
-    cid = client.post("/tontolo/import", json={"data": json.dumps(snap)}).json()[
+    cid = client.post("/projia/import", json={"data": json.dumps(snap)}).json()[
         "conversations"][0]["id"]
-    with client.stream("POST", "/tontolo/chat", json={
+    with client.stream("POST", "/projia/chat", json={
             "conversation_id": cid, "content": "je veux ça en image"}) as r:
         events = [json.loads(x[5:]) for x in r.iter_lines() if x.startswith("data:")]
     assert any(e.get("step") == "image_brief" for e in events)
@@ -199,7 +199,7 @@ def test_the_job_prompt_comes_from_the_discussion(client: TestClient,
     assert kind == "image_gen"
     assert "veux" not in prompt and ("représentation" in prompt or "group" in prompt.lower())
     # Un sujet explicite reste inchangé.
-    with client.stream("POST", "/tontolo/chat", json={
+    with client.stream("POST", "/projia/chat", json={
             "conversation_id": cid, "content": "dessine un baobab au coucher du soleil"}) as r:
         list(r.iter_lines())
     assert "baobab" in submitted[-1][1].lower()
@@ -209,7 +209,7 @@ async def test_quick_calls_survive_a_model_that_requires_sign_in(
         router: Any, fake: FakeProvider, monkeypatch: pytest.MonkeyPatch) -> None:
     """Régression : `quick` (résumés de fil, mémoire, brief d'image) n'essayait qu'UN modèle ;
     un modèle gratuit qui exige une connexion le faisait échouer en silence."""
-    from tontolo.providers.base import ErrorKind, ProviderError
+    from projia.providers.base import ErrorKind, ProviderError
 
     calls: list[str] = []
 

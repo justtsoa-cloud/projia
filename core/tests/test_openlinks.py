@@ -9,12 +9,12 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from tontolo.agent import openlinks
-from tontolo.catalog.service import CatalogService
-from tontolo.config import Settings
-from tontolo.providers.fake import FakeProvider
-from tontolo.providers.registry import ProviderRegistry
-from tontolo.server.app import create_app
+from projia.agent import openlinks
+from projia.catalog.service import CatalogService
+from projia.config import Settings
+from projia.providers.fake import FakeProvider
+from projia.providers.registry import ProviderRegistry
+from projia.server.app import create_app
 
 
 @pytest.mark.parametrize("text", [
@@ -60,7 +60,7 @@ def client(settings: Settings, catalog_service: CatalogService, fake: FakeProvid
 
 
 def _chat(client: TestClient, body: dict[str, Any]) -> list[dict[str, Any]]:
-    with client.stream("POST", "/tontolo/chat", json=body) as r:
+    with client.stream("POST", "/projia/chat", json=body) as r:
         return [json.loads(x[5:]) for x in r.iter_lines() if x.startswith("data:")]
 
 

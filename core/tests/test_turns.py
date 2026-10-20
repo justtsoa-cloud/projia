@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from tontolo.agent.turns import TurnManager
+from projia.agent.turns import TurnManager
 
 
 async def slow_events(n: int = 5, delay: float = 0.02) -> Any:
@@ -62,7 +62,7 @@ async def test_error_inside_turn_is_reported() -> None:
 
 
 async def test_finished_turns_do_not_accumulate(monkeypatch: pytest.MonkeyPatch) -> None:
-    from tontolo.agent import turns as turns_mod
+    from projia.agent import turns as turns_mod
 
     monkeypatch.setattr(turns_mod, "KEEP_FINISHED", 0.05)
 

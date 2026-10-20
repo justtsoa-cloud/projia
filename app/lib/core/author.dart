@@ -1,4 +1,4 @@
-// Auteur de Tontolo : affiché dans « À propos », les crédits et chaque annonce de mise à jour.
+// Auteur de Projia : affiché dans « À propos », les crédits et chaque annonce de mise à jour.
 
 const authorName = 'RANIRIAMANJAKA Antsa';
 const authorGithub = 'github.com/raantss18';

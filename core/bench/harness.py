@@ -14,16 +14,16 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-os.environ.setdefault("TONTOLO_NO_KEYRING", "1")
+os.environ.setdefault("PROJIA_NO_KEYRING", "1")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
+from projia.app_state import Core
+from projia.catalog.catalog import Catalog
+from projia.catalog.service import CatalogService
+from projia.config import Settings
+from projia.providers.fake import FakeProvider
+from projia.providers.registry import ProviderRegistry
 from tests.conftest import make_models
-from tontolo.app_state import Core
-from tontolo.catalog.catalog import Catalog
-from tontolo.catalog.service import CatalogService
-from tontolo.config import Settings
-from tontolo.providers.fake import FakeProvider
-from tontolo.providers.registry import ProviderRegistry
 
 
 def rss_mb() -> float:
@@ -55,10 +55,10 @@ class Timer:
 async def core(fake: FakeProvider | None = None, home: Path | None = None
                ) -> AsyncIterator[tuple[Core, FakeProvider, Path]]:
     fake = fake or FakeProvider()
-    home = home or Path(tempfile.mkdtemp(prefix="tontolo-bench-"))
-    previous_home = os.environ.get("TONTOLO_HOME")
+    home = home or Path(tempfile.mkdtemp(prefix="projia-bench-"))
+    previous_home = os.environ.get("PROJIA_HOME")
     previous_load = CatalogService.load
-    os.environ["TONTOLO_HOME"] = str(home)
+    os.environ["PROJIA_HOME"] = str(home)
     settings = Settings()
     svc = CatalogService(settings)
     cat = Catalog(providers={"fake": {"id": "fake", "name": "Fake", "base_url": "http://x",
@@ -85,9 +85,9 @@ async def core(fake: FakeProvider | None = None, home: Path | None = None
         # Rien ne déborde du banc (utilisé aussi par les tests de performance de la CI).
         CatalogService.load = previous_load  # type: ignore[method-assign]
         if previous_home is None:
-            os.environ.pop("TONTOLO_HOME", None)
+            os.environ.pop("PROJIA_HOME", None)
         else:
-            os.environ["TONTOLO_HOME"] = previous_home
+            os.environ["PROJIA_HOME"] = previous_home
 
 
 async def drain(gen: AsyncIterator[dict[str, Any]]) -> list[dict[str, Any]]:

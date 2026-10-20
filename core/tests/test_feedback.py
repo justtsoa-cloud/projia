@@ -5,11 +5,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from tontolo.agent.loop import ChatService
-from tontolo.config import Settings
-from tontolo.providers.fake import FakeProvider
-from tontolo.router.engine import Router
-from tontolo.storage.db import Database
+from projia.agent.loop import ChatService
+from projia.config import Settings
+from projia.providers.fake import FakeProvider
+from projia.router.engine import Router
+from projia.storage.db import Database
 
 
 async def _ask(chat: ChatService, text: str) -> list[dict[str, Any]]:

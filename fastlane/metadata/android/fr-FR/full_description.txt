@@ -1,4 +1,4 @@
-Tontolo choisit pour chaque message le meilleur modèle d'intelligence artificielle gratuit, et bascule automatiquement vers un autre quand un quota est atteint : vous continuez sans payer et sans configurer.
+Projia choisit pour chaque message le meilleur modèle d'intelligence artificielle gratuit, et bascule automatiquement vers un autre quand un quota est atteint : vous continuez sans payer et sans configurer.
 
 • Discussion, code et mathématiques (formules LaTeX), recherche sur le web avec les sources
 • Images, courtes vidéos et voix, gratuitement

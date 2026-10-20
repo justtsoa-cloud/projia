@@ -10,7 +10,7 @@ import '../main.dart';
 import 'feedback_card.dart';
 
 /// Page de la dernière version (APK, AppImage) : même adresse que le QR code embarqué.
-const downloadUrl = 'https://github.com/raantss18/tontolo/releases/latest';
+const downloadUrl = 'https://github.com/justtsoa-cloud/projia/releases/latest';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -30,15 +30,15 @@ class AboutScreen extends StatelessWidget {
         body: ListView(padding: const EdgeInsets.all(16), children: [
           Center(child: Image.asset('assets/icon.png', width: 80, height: 80)),
           const SizedBox(height: 8),
-          Center(child: Text('Tontolo $appVersion', style: Theme.of(context).textTheme.titleLarge)),
+          Center(child: Text('Projia $appVersion', style: Theme.of(context).textTheme.titleLarge)),
           const SizedBox(height: 4),
           Center(child: Text(context.t('about_tagline'), textAlign: TextAlign.center)),
           TextButton(
             onPressed: () => launchUrl(Uri.parse('https://github.com/$repo')),
-            child: const Text('github.com/raantss18/tontolo'),
+            child: const Text('github.com/justtsoa-cloud/projia'),
           ),
           const Divider(),
-          // QR code vers la dernière version : pour installer Tontolo sur un autre téléphone.
+          // QR code vers la dernière version : pour installer Projia sur un autre téléphone.
           Center(
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
@@ -78,7 +78,7 @@ class AboutScreen extends StatelessWidget {
           ListTile(
             title: Text(context.t('license')),
             subtitle: Text(context.t('oss_licenses')),
-            onTap: () => showLicensePage(context: context, applicationName: 'Tontolo', applicationVersion: appVersion),
+            onTap: () => showLicensePage(context: context, applicationName: 'Projia', applicationVersion: appVersion),
           ),
         ]),
       );

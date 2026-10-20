@@ -200,7 +200,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     if (account.isNotEmpty && _name.isEmpty) setState(() => _name = account);
     if (scope.backend.state != BackendState.ready) return;
     try {
-      final home = await scope.backend.getJson('/tontolo/home') as Map<String, dynamic>;
+      final home = await scope.backend.getJson('/projia/home') as Map<String, dynamic>;
       // Ordre : prénom du réglage, puis du compte, puis appris dans la mémoire.
       final fromSettings = home['name_from'] == 'settings' ? '${home['name']}' : '';
       final name = fromSettings.isNotEmpty ? fromSettings.split(' ').first : (account.isNotEmpty ? account : '${home['name'] ?? ''}');
@@ -243,7 +243,7 @@ class _HomeViewState extends State<HomeView> with TickerProviderStateMixin {
     final topic = '${t['topic']}';
     setState(() => _tracks.removeWhere((x) => x['topic'] == topic));
     try {
-      await AppScope.of(context).backend.sendJson('POST', '/tontolo/home/dismiss', {'topic': topic});
+      await AppScope.of(context).backend.sendJson('POST', '/projia/home/dismiss', {'topic': topic});
     } catch (_) {} // ancien cœur : le thème reviendra, sans conséquence
   }
 
@@ -521,7 +521,7 @@ class _ComebackAsk extends StatelessWidget {
   }
 }
 
-/// L'actualité du rappel, à l'ouverture : en discuter avec Tontolo ou ouvrir l'article.
+/// L'actualité du rappel, à l'ouverture : en discuter avec Projia ou ouvrir l'article.
 class _NewsCard extends StatelessWidget {
   const _NewsCard({required this.news, required this.onTalk, required this.onClose});
   final Map<String, dynamic> news;

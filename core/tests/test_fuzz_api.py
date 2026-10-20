@@ -8,11 +8,11 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from tontolo.catalog.service import CatalogService
-from tontolo.config import Settings
-from tontolo.providers.fake import FakeProvider
-from tontolo.providers.registry import ProviderRegistry
-from tontolo.server.app import create_app
+from projia.catalog.service import CatalogService
+from projia.config import Settings
+from projia.providers.fake import FakeProvider
+from projia.providers.registry import ProviderRegistry
+from projia.server.app import create_app
 
 
 @pytest.fixture
@@ -29,7 +29,7 @@ def client(settings: Settings, catalog_service: CatalogService, fake: FakeProvid
 
 
 def _post(client: TestClient, payload: Any) -> tuple[int, list[dict[str, Any]]]:
-    with client.stream("POST", "/tontolo/chat", content=json.dumps(payload),
+    with client.stream("POST", "/projia/chat", content=json.dumps(payload),
                        headers={"content-type": "application/json"}) as r:
         events = [json.loads(x[5:]) for x in r.iter_lines() if x.startswith("data:")]
         return r.status_code, events
@@ -58,9 +58,9 @@ def test_nasty_text_never_breaks_a_turn(client: TestClient, text: str) -> None:
     assert all(isinstance(e, dict) and "type" in e for e in events)
     cid = next((e["id"] for e in events if e["type"] == "conversation"), None)
     if cid:
-        conv = client.get(f"/tontolo/conversations/{cid}")
+        conv = client.get(f"/projia/conversations/{cid}")
         assert conv.status_code == 200
-        client.get(f"/tontolo/conversations/{cid}/export", params={"format": "markdown"})
+        client.get(f"/projia/conversations/{cid}/export", params={"format": "markdown"})
 
 
 def test_oversized_message_is_refused_cleanly(client: TestClient) -> None:
@@ -79,7 +79,7 @@ def test_oversized_message_is_refused_cleanly(client: TestClient) -> None:
     {"content": "ok", "mode": "root"}, {"content": "ok", "level": "A" * 100},
 ])
 def test_malformed_payloads_give_4xx_not_500(client: TestClient, payload: Any) -> None:
-    with client.stream("POST", "/tontolo/chat", content=json.dumps(payload),
+    with client.stream("POST", "/projia/chat", content=json.dumps(payload),
                        headers={"content-type": "application/json"}) as r:
         assert r.status_code < 500, (payload, r.status_code)
         list(r.iter_lines())
@@ -87,18 +87,18 @@ def test_malformed_payloads_give_4xx_not_500(client: TestClient, payload: Any) -
 
 def test_garbage_bodies(client: TestClient) -> None:
     for body in (b"", b"{", b"\xff\xfe\x00", b"null", b"[]", b'{"content": "\\ud800"}'):
-        r = client.post("/tontolo/chat", content=body,
+        r = client.post("/projia/chat", content=body,
                         headers={"content-type": "application/json"})
         assert r.status_code < 500, (body, r.status_code)
 
 
 def test_weird_ids_and_paths(client: TestClient) -> None:
-    for path in ("/tontolo/conversations/%00", "/tontolo/conversations/" + "a" * 5000,
-                 "/tontolo/media/..%2f..%2fetc%2fpasswd/file", "/tontolo/media/%00",
-                 "/tontolo/conversations/x/tasks/..%2f..%2findex",
-                 "/tontolo/folders/share", "/tontolo/conversations?limit=-5&offset=-1",
-                 "/tontolo/conversations?limit=999999999", "/tontolo/catalog?limit=-1",
-                 "/tontolo/catalog?category=nimportequoi"):
+    for path in ("/projia/conversations/%00", "/projia/conversations/" + "a" * 5000,
+                 "/projia/media/..%2f..%2fetc%2fpasswd/file", "/projia/media/%00",
+                 "/projia/conversations/x/tasks/..%2f..%2findex",
+                 "/projia/folders/share", "/projia/conversations?limit=-5&offset=-1",
+                 "/projia/conversations?limit=999999999", "/projia/catalog?limit=-1",
+                 "/projia/catalog?category=nimportequoi"):
         r = client.get(path)
         assert r.status_code < 500, (path, r.status_code)
 
@@ -112,6 +112,6 @@ def test_model_output_with_lone_surrogate_is_saved(client: TestClient, fake: Fak
     status, events = _post(client, {"content": "bonjour"})
     assert status == 200 and any(e["type"] == "done" for e in events)
     cid = next(e["id"] for e in events if e["type"] == "conversation")
-    msgs = client.get(f"/tontolo/conversations/{cid}").json()["messages"]
+    msgs = client.get(f"/projia/conversations/{cid}").json()["messages"]
     assert [m["role"] for m in msgs] == ["user", "assistant"]
     assert "réponse" in msgs[1]["content"] and "fin" in msgs[1]["content"]

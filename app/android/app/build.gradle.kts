@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "io.github.raantss18.tontolo"
+    namespace = "io.github.raantss18.projia"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -17,7 +17,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "io.github.raantss18.tontolo"
+        applicationId = "io.github.raantss18.projia"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 24
@@ -32,14 +32,14 @@ android {
 
     // Signature de release : clés fournies par l'environnement (CI) ou key.properties,
     // jamais versionnées. Sans clé, la release est signée avec la clé de débogage.
-    val keystorePath = System.getenv("TONTOLO_KEYSTORE")
+    val keystorePath = System.getenv("PROJIA_KEYSTORE")
     signingConfigs {
         if (keystorePath != null) {
             create("release") {
                 storeFile = file(keystorePath)
-                storePassword = System.getenv("TONTOLO_KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("TONTOLO_KEY_ALIAS")
-                keyPassword = System.getenv("TONTOLO_KEY_PASSWORD")
+                storePassword = System.getenv("PROJIA_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("PROJIA_KEY_ALIAS")
+                keyPassword = System.getenv("PROJIA_KEY_PASSWORD")
             }
         }
     }

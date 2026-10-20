@@ -6,7 +6,7 @@ import asyncio
 
 import pytest
 
-from tontolo.router.hedge import race_streams
+from projia.router.hedge import race_streams
 
 
 def source(name: str, delay: float, n: int = 3, fail: bool = False, log: list | None = None):

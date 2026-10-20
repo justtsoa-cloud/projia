@@ -11,15 +11,15 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from tontolo.catalog.models import Category
-from tontolo.catalog.service import CatalogService
-from tontolo.config import Settings
-from tontolo.orchestrator import HierarchicalPipeline, PartResult, ResponseSynthesizer
-from tontolo.orchestrator.decomposer import TaskDecomposer
-from tontolo.providers.fake import FakeProvider
-from tontolo.providers.registry import ProviderRegistry
-from tontolo.router.engine import Router
-from tontolo.server.app import create_app
+from projia.catalog.models import Category
+from projia.catalog.service import CatalogService
+from projia.config import Settings
+from projia.orchestrator import HierarchicalPipeline, PartResult, ResponseSynthesizer
+from projia.orchestrator.decomposer import TaskDecomposer
+from projia.providers.fake import FakeProvider
+from projia.providers.registry import ProviderRegistry
+from projia.router.engine import Router
+from projia.server.app import create_app
 
 
 @pytest.fixture
@@ -170,7 +170,7 @@ async def test_failed_subtask_never_loses_the_rest(router: Router, fake: FakePro
 def test_default_chat_is_unchanged_and_orchestration_is_opt_in(
         client: TestClient) -> None:
     def chat(body: dict[str, Any]) -> list[dict[str, Any]]:
-        with client.stream("POST", "/tontolo/chat", json=body) as s:
+        with client.stream("POST", "/projia/chat", json=body) as s:
             return [json.loads(x[5:]) for x in s.iter_lines() if x.startswith("data:")]
 
     composed = "Écris un code Python pour fibonacci ; traduis bonjour en anglais"
@@ -196,9 +196,9 @@ def test_default_chat_is_unchanged_and_orchestration_is_opt_in(
 
 
 def test_orchestration_setting_applies_to_every_chat(client: TestClient) -> None:
-    client.put("/tontolo/settings", json={"orchestrate": True})
-    with client.stream("POST", "/tontolo/chat", json={
+    client.put("/projia/settings", json={"orchestrate": True})
+    with client.stream("POST", "/projia/chat", json={
             "content": "Calcule 12 * 7 ; traduis bonjour en anglais"}) as s:
         events = [json.loads(x[5:]) for x in s.iter_lines() if x.startswith("data:")]
     assert any(e["type"] == "orchestration" for e in events)
-    client.put("/tontolo/settings", json={"orchestrate": False})
+    client.put("/projia/settings", json={"orchestrate": False})

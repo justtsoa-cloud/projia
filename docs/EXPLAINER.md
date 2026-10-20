@@ -14,7 +14,7 @@ demande ──► intention ──► demande COMPLÉTÉE ──► scénario (J
    vidéo explicative (un modèle de vidéo générative ne sait ni écrire une formule ni tenir un
    raisonnement). Hors mode Apprendre : « vidéo explicative », « vidéo pédagogique », « manim »…
    Le sujet peut venir de la discussion (« fais-moi une vidéo de ça »).
-2. **Complétion des demandes naïves** : la personne n'a rien à préciser. Tontolo choisit le
+2. **Complétion des demandes naïves** : la personne n'a rien à préciser. Projia choisit le
    niveau (celui du mode Apprendre), la durée (75 s ; « courte » 45 s ; « détaillée » 120 s ;
    « 2 minutes » respecté, borné à 30–180 s), la langue, et impose le plan : accroche → idée
    centrale → UN exemple chiffré résolu → erreur fréquente → récapitulation. Un sujet trop
@@ -31,7 +31,7 @@ demande ──► intention ──► demande COMPLÉTÉE ──► scénario (J
    suivante. Le bloc ```` ```explainer ```` reste dans la discussion (revoir, partager).
 6. **MP4 (facultatif)** (`explainer/manim_render.py`) : sur un Linux qui a Manim et ffmpeg
    (application bureau, ou serveur personnel auquel le téléphone se connecte), le bouton
-   « Exporter en vidéo MP4 » produit une vidéo sous-titrée (480p). `GET /tontolo/explainer/capabilities`
+   « Exporter en vidéo MP4 » produit une vidéo sous-titrée (480p). `GET /projia/explainer/capabilities`
    dit ce qui est possible ; sans Manim le bouton n'apparaît pas.
 
 ## Sécurité : pas de code venu d'un modèle
@@ -48,7 +48,7 @@ sont limitées à un jeu de caractères sûr, sans commande de lecture, d'écrit
 ```bash
 pip install manim          # ou : uv pip install manim
 sudo pacman -S ffmpeg texlive-latex texlive-binextra   # Arch ; équivalents ailleurs
-export TONTOLO_MANIM_PYTHON=/chemin/vers/python        # si Manim est dans un autre environnement
+export PROJIA_MANIM_PYTHON=/chemin/vers/python        # si Manim est dans un autre environnement
 ```
 
 ## Limites connues

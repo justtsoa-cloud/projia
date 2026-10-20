@@ -8,13 +8,13 @@ Mesures reproductibles ; à refaire à chaque changement du démarrage ou du rou
 |---|---|
 | Imports du cœur Python | 3,0 s |
 | Démarrage du cœur (catalogue du cache ou de l'instantané embarqué) | 1,9 s |
-| **Cœur prêt (journal `[tontolo] cœur prêt en …`)** | **≈ 5 s** |
+| **Cœur prêt (journal `[projia] cœur prêt en …`)** | **≈ 5 s** |
 | Classements (LMArena…) | en arrière-plan, jamais bloquants |
 
 Les « ~150 s » constatés plus tôt venaient de machines chargées (compilation en parallèle, premier
 passage ART/dex2oat après installation par-dessus une ancienne version), pas du cœur. Si un
 téléphone réel est lent au premier lancement, relever ces deux lignes avec
-`adb logcat -d | grep "\[tontolo\]"` et les ajouter ici.
+`adb logcat -d | grep "\[projia\]"` et les ajouter ici.
 
 ## Appels courts (résumés, briefs, scénarios)
 
@@ -34,7 +34,7 @@ téléphone réel est lent au premier lancement, relever ces deux lignes avec
 
 Banc : `core/bench/speed_bench.py` (15 questions fixes fr/en/mg, vrais modèles gratuits ; mesure
 préparation, premier mot, durée jusqu'à la réponse complète, justesse). Comparaison :
-`uv run python -m bench.speed_bench --compare base2 hedge2` (`TONTOLO_NO_HEDGE=1` pour la référence).
+`uv run python -m bench.speed_bench --compare base2 hedge2` (`PROJIA_NO_HEDGE=1` pour la référence).
 
 | | Référence (sans course) | Course couverte |
 |---|---|---|

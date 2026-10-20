@@ -5,10 +5,10 @@ import random
 
 import pytest
 
-from tontolo import importer
-from tontolo.agent import openlinks
-from tontolo.explainer import storyboard
-from tontolo.router import imageintent
+from projia import importer
+from projia.agent import openlinks
+from projia.explainer import storyboard
+from projia.router import imageintent
 
 
 @pytest.mark.parametrize('obj', [

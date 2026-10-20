@@ -381,10 +381,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _export(ChatController chat) async {
     final b = AppScope.of(context).backend;
-    final r = await http.get(b.uri('/tontolo/conversations/${chat.conversationId}/export'), headers: b.headers);
+    final r = await http.get(b.uri('/projia/conversations/${chat.conversationId}/export'), headers: b.headers);
     if (r.statusCode != 200) return;
     await SharePlus.instance.share(ShareParams(files: [
-      XFile.fromData(r.bodyBytes, mimeType: 'text/markdown', name: 'tontolo-conversation.md'),
+      XFile.fromData(r.bodyBytes, mimeType: 'text/markdown', name: 'projia-conversation.md'),
     ]));
   }
 
@@ -392,26 +392,26 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _exportPdf(ChatController chat) async {
     final b = AppScope.of(context).backend;
     final lang = AppScope.of(context).prefs.locale;
-    final r = await http.get(b.uri('/tontolo/conversations/${chat.conversationId}/export', {'format': 'pdf', 'lang': lang}), headers: b.headers);
+    final r = await http.get(b.uri('/projia/conversations/${chat.conversationId}/export', {'format': 'pdf', 'lang': lang}), headers: b.headers);
     if (r.statusCode != 200) return;
     await SharePlus.instance.share(ShareParams(files: [
-      XFile.fromData(r.bodyBytes, mimeType: 'application/pdf', name: 'tontolo-discussion.pdf'),
+      XFile.fromData(r.bodyBytes, mimeType: 'application/pdf', name: 'projia-discussion.pdf'),
     ]));
   }
 
   /// Page web autonome et sûre (sans script) de toute la discussion, à partager.
   Future<void> _exportHtml(ChatController chat) async {
     final prefs = AppScope.of(context).prefs;
-    final first = chat.messages.firstWhere((m) => m.role == 'user', orElse: () => ChatMessage(role: 'user', text: 'Tontolo'));
+    final first = chat.messages.firstWhere((m) => m.role == 'user', orElse: () => ChatMessage(role: 'user', text: 'Projia'));
     final title = first.text.length > 60 ? '${first.text.substring(0, 60)}…' : first.text;
     final html = conversationHtml(chat.messages, title: title, locale: prefs.locale);
     await SharePlus.instance.share(ShareParams(files: [
-      XFile.fromData(utf8.encode(html), mimeType: 'text/html', name: 'tontolo-discussion.html'),
+      XFile.fromData(utf8.encode(html), mimeType: 'text/html', name: 'projia-discussion.html'),
     ]));
   }
 
   Future<void> _pin(ChatController chat) async {
-    await AppScope.of(context).backend.sendJson('PUT', '/tontolo/conversations/${chat.conversationId}/pin', {'pinned': true});
+    await AppScope.of(context).backend.sendJson('PUT', '/projia/conversations/${chat.conversationId}/pin', {'pinned': true});
   }
 
   /// Suivi du bas : jamais pendant que le doigt est posé ou que le fil défile (inertie
@@ -984,7 +984,7 @@ class _Notice extends StatelessWidget {
   }
 }
 
-/// Bandeau de la conversation vocale : ce que Tontolo fait (écoute, comprend, répond) + arrêt.
+/// Bandeau de la conversation vocale : ce que Projia fait (écoute, comprend, répond) + arrêt.
 class _VoiceBanner extends StatelessWidget {
   const _VoiceBanner(this.voice, {required this.onStop});
   final VoiceLoop voice;
@@ -1044,7 +1044,7 @@ String progressText(BuildContext context, String status) {
   };
 }
 
-/// Une ligne qui dit ce que fait Tontolo (modèle · action · pourcentage) avec une barre
+/// Une ligne qui dit ce que fait Projia (modèle · action · pourcentage) avec une barre
 /// d'avancement ; un toucher ouvre le détail. Remplace le long texte qui défile.
 class _ProgressLine extends StatefulWidget {
   const _ProgressLine(this.chat);
@@ -1357,10 +1357,10 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
   Future<void> _load() async {
     final b = AppScope.of(context).backend;
     if (b.state != BackendState.ready) return;
-    final data = await b.getJson('/tontolo/conversations', {'limit': 200, if (folder != null) 'folder': folder}) as List;
+    final data = await b.getJson('/projia/conversations', {'limit': 200, if (folder != null) 'folder': folder}) as List;
     List<dynamic> f = const [];
     try {
-      f = await b.getJson('/tontolo/folders') as List;
+      f = await b.getJson('/projia/folders') as List;
     } catch (_) {} // ancien cœur distant sans dossiers
     if (mounted) {
       setState(() {
@@ -1402,7 +1402,7 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
       ),
     );
     if (chosen == null || !mounted) return;
-    await AppScope.of(context).backend.sendJson('PATCH', '/tontolo/conversations/${c['id']}', {'folder': chosen});
+    await AppScope.of(context).backend.sendJson('PATCH', '/projia/conversations/${c['id']}', {'folder': chosen});
     _load();
   }
 
@@ -1487,7 +1487,7 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
             subtitle: Text(context.t('folder_share_help')),
             value: folders.any((f) => f['folder'] == folder && f['shared'] == true),
             onChanged: (v) async {
-              await scope.backend.sendJson('PUT', '/tontolo/folders/share', {'folder': folder, 'share': v});
+              await scope.backend.sendJson('PUT', '/projia/folders/share', {'folder': folder, 'share': v});
               _load();
             },
           ),
@@ -1516,12 +1516,12 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
             trailing: PopupMenuButton<String>(
               onSelected: (v) async {
                 if (v == 'pin') {
-                  await scope.backend.sendJson('PUT', '/tontolo/conversations/${c['id']}/pin', {'pinned': c['pinned'] != 1});
+                  await scope.backend.sendJson('PUT', '/projia/conversations/${c['id']}/pin', {'pinned': c['pinned'] != 1});
                 } else if (v == 'folder') {
                   await _moveToFolder(c);
                   return;
                 } else if (v == 'delete') {
-                  await scope.backend.sendJson('DELETE', '/tontolo/conversations/${c['id']}');
+                  await scope.backend.sendJson('DELETE', '/projia/conversations/${c['id']}');
                   if (scope.chat.conversationId == c['id']) scope.chat.newChat();
                 } else {
                   final ctrl = TextEditingController(text: '${c['title']}');
@@ -1537,7 +1537,7 @@ class _HistoryDrawerState extends State<HistoryDrawer> {
                     ),
                   );
                   if (title != null) {
-                    await scope.backend.sendJson('PATCH', '/tontolo/conversations/${c['id']}', {'title': title});
+                    await scope.backend.sendJson('PATCH', '/projia/conversations/${c['id']}', {'title': title});
                   }
                 }
                 _load();

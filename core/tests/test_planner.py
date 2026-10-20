@@ -9,12 +9,12 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from tontolo.agent import planner
-from tontolo.catalog.service import CatalogService
-from tontolo.config import Settings
-from tontolo.providers.fake import FakeProvider
-from tontolo.providers.registry import ProviderRegistry
-from tontolo.server.app import create_app
+from projia.agent import planner
+from projia.catalog.service import CatalogService
+from projia.config import Settings
+from projia.providers.fake import FakeProvider
+from projia.providers.registry import ProviderRegistry
+from projia.server.app import create_app
 
 COMPLEX = ("Fais-moi un cours complet sur les probabilités : 1) définitions 2) lois "
            "usuelles 3) exercices corrigés")
@@ -34,7 +34,7 @@ def client(settings: Settings, catalog_service: CatalogService, fake: FakeProvid
 
 
 def _chat(client: TestClient, payload: dict[str, Any]) -> list[dict[str, Any]]:
-    with client.stream("POST", "/tontolo/chat", json=payload) as s:
+    with client.stream("POST", "/projia/chat", json=payload) as s:
         return [json.loads(x[5:]) for x in s.iter_lines() if x.startswith("data:")]
 
 
@@ -90,7 +90,7 @@ def test_step_by_step_with_continue(client: TestClient, fake: FakeProvider) -> N
     events = _chat(client, {"content": COMPLEX})
     cid = next(e["id"] for e in events if e["type"] == "conversation")
     assert "étape 1/3" in json.dumps(seen[-1], ensure_ascii=False)
-    assert client.get(f"/tontolo/conversations/{cid}").json()["plan"]["current"] == 0
+    assert client.get(f"/projia/conversations/{cid}").json()["plan"]["current"] == 0
     _chat(client, {"conversation_id": cid, "content": "continuer", "model": "fake:chatty"})
     assert "étape 2/3" in json.dumps(seen[-1], ensure_ascii=False)  # même après un changement
     events = _chat(client, {"conversation_id": cid, "content": "continuer"})
@@ -105,8 +105,8 @@ def test_plan_can_be_dropped_or_disabled(client: TestClient, fake: FakeProvider)
     _script(fake, "steps", seen)
     events = _chat(client, {"content": COMPLEX})
     cid = next(e["id"] for e in events if e["type"] == "conversation")
-    assert client.delete(f"/tontolo/conversations/{cid}/plan").json() == {"ok": True}
-    assert client.get(f"/tontolo/conversations/{cid}").json()["plan"] is None
-    client.put("/tontolo/settings", json={"task_planning": False})
+    assert client.delete(f"/projia/conversations/{cid}/plan").json() == {"ok": True}
+    assert client.get(f"/projia/conversations/{cid}").json()["plan"] is None
+    client.put("/projia/settings", json={"task_planning": False})
     events = _chat(client, {"content": COMPLEX})
     assert not any(e["type"] == "plan" for e in events)

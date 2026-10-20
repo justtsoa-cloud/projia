@@ -7,13 +7,13 @@ from pathlib import Path
 
 import pytest
 
-from tontolo import secrets, vault
+from projia import secrets, vault
 
 
 @pytest.fixture
 def home(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    monkeypatch.setenv("TONTOLO_HOME", str(tmp_path))
-    monkeypatch.setenv("TONTOLO_NO_KEYRING", "1")
+    monkeypatch.setenv("PROJIA_HOME", str(tmp_path))
+    monkeypatch.setenv("PROJIA_NO_KEYRING", "1")
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.delenv("GROQ_API_KEY", raising=False)
     secrets._memory.clear()

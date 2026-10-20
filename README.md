@@ -1,39 +1,39 @@
 <p align="center">
-  <img src="docs/brand/tontolo-icon-512.png" width="120" alt="Logo Tontolo">
+  <img src="docs/brand/projia-icon-512.png" width="120" alt="Logo Projia">
 </p>
 
-<h1 align="center">Tontolo</h1>
+<h1 align="center">Projia</h1>
 
 <p align="center">
   <b>Une seule app. Les meilleures IA gratuites.</b><br>
-  Tontolo choisit pour vous le meilleur modèle d'IA gratuit selon ce que vous demandez,<br>
+  Projia choisit pour vous le meilleur modèle d'IA gratuit selon ce que vous demandez,<br>
   et en change tout seul quand l'un est saturé. Gratuit, privé, open source.
 </p>
 
 <p align="center">
-  <a href="https://github.com/raantss18/tontolo/releases/latest"><b>📲 Télécharger pour Android</b></a> ·
-  <a href="https://github.com/raantss18/tontolo/releases/latest"><b>🐧 Télécharger pour Linux</b></a> ·
+  <a href="https://github.com/justtsoa-cloud/projia/releases/latest"><b>📲 Télécharger pour Android</b></a> ·
+  <a href="https://github.com/justtsoa-cloud/projia/releases/latest"><b>🐧 Télécharger pour Linux</b></a> ·
   <a href="#in-english">English</a> ·
   <a href="#aminny-teny-malagasy">Malagasy</a>
 </p>
 
 <p align="center">
   <a href="LICENSE"><img src="https://img.shields.io/badge/licence-Apache--2.0-blue" alt="Licence Apache-2.0"></a>
-  <a href="https://github.com/raantss18/tontolo/actions/workflows/ci.yml"><img src="https://github.com/raantss18/tontolo/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/raantss18/tontolo/releases/latest"><img src="https://img.shields.io/github/v/release/raantss18/tontolo" alt="Dernière version"></a>
+  <a href="https://github.com/justtsoa-cloud/projia/actions/workflows/ci.yml"><img src="https://github.com/justtsoa-cloud/projia/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/justtsoa-cloud/projia/releases/latest"><img src="https://img.shields.io/github/v/release/justtsoa-cloud/projia" alt="Dernière version"></a>
   <img src="https://img.shields.io/badge/prix-0%20%E2%82%AC-67e5be" alt="Gratuit">
   <img src="https://img.shields.io/badge/langues-fr%20%C2%B7%20en%20%C2%B7%20mg-8a7dff" alt="Français, anglais, malgache">
 </p>
 
 <p align="center">
-  <img src="docs/brand/tontolo-affiche.png" alt="Tontolo : apprendre, produire, garder la main" width="560">
+  <img src="docs/brand/projia-affiche.png" alt="Projia : apprendre, produire, garder la main" width="560">
 </p>
 
 ---
 
-## Pourquoi Tontolo ?
+## Pourquoi Projia ?
 
-Les IA gratuites sont nombreuses, mais chacune a ses forces, ses quotas et ses pannes. **Tontolo
+Les IA gratuites sont nombreuses, mais chacune a ses forces, ses quotas et ses pannes. **Projia
 les réunit dans une seule application** : il lit votre demande, choisit le modèle gratuit le
 mieux classé pour cette tâche (d'après les classements publics d'Artificial Analysis et de
 LMArena), et s'il est saturé, passe au suivant **sans perdre le fil**, puis revient au meilleur.
@@ -55,7 +55,7 @@ LMArena), et s'il est saturé, passe au suivant **sans perdre le fil**, puis rev
   à votre place, avec indices et correction d'exercice en photo.
 - **Votre cours devient un quiz interactif** ou des fiches de révision : joignez le PDF,
   demandez « crée un quiz de 5 questions ».
-- **Vos vidéos comprises** : Tontolo écoute le son et regarde les images (tableau,
+- **Vos vidéos comprises** : Projia écoute le son et regarde les images (tableau,
   diapositives, formules), même dans une vidéo muette.
 - Recherche web sourcée, images générées gratuitement, retouche fidèle de vos photos, lecture
   à voix haute, dictée.
@@ -97,12 +97,12 @@ LMArena), et s'il est saturé, passe au suivant **sans perdre le fil**, puis rev
 
 Sur Linux, la même application avec une barre latérale :
 
-<img src="docs/screenshots/bureau-linux.png" alt="Tontolo sur Linux" width="760">
+<img src="docs/screenshots/bureau-linux.png" alt="Projia sur Linux" width="760">
 
 ## Comment ça marche
 
 1. **Vous écrivez** (ou dictez, ou joignez un fichier).
-2. **Tontolo classe la demande** (code, maths, rédaction, traduction, vision, recherche…) et
+2. **Projia classe la demande** (code, maths, rédaction, traduction, vision, recherche…) et
    choisit le meilleur modèle gratuit disponible pour ce type de tâche.
 3. **Si le modèle tarde ou atteint son quota**, il bascule sur le suivant en gardant toute la
    conversation, puis revient au meilleur dès qu'il est libre.
@@ -115,7 +115,7 @@ plateformes en ligne, et un catalogue de secours embarqué permet de démarrer m
 ## Installation en une minute
 
 ### Android (7.0 à 16)
-Téléchargez l'APK depuis la [dernière version](https://github.com/raantss18/tontolo/releases/latest)
+Téléchargez l'APK depuis la [dernière version](https://github.com/justtsoa-cloud/projia/releases/latest)
 et ouvrez-le. L'application se met ensuite à jour toute seule.
 
 | Fichier | Appareils |
@@ -131,16 +131,16 @@ et ouvrez-le. L'application se met ensuite à jour toute seule.
 
 ### Linux (application)
 ```bash
-chmod +x Tontolo-*-x86_64.AppImage
-./Tontolo-*-x86_64.AppImage
+chmod +x Projia-*-x86_64.AppImage
+./Projia-*-x86_64.AppImage
 ```
 
 ### Linux (ligne de commande et serveur)
 ```bash
-pip install "tontolo[linux] @ https://github.com/raantss18/tontolo/releases/download/v0.6.1/tontolo-0.6.1-py3-none-any.whl"
-tontolo catalog list --free --category code
-tontolo chat "Explique-moi les intégrales"
-tontolo serve            # API compatible OpenAI sur http://127.0.0.1:8765/v1
+pip install "projia[linux] @ https://github.com/justtsoa-cloud/projia/releases/download/v0.6.1/projia-0.6.1-py3-none-any.whl"
+projia catalog list --free --category code
+projia chat "Explique-moi les intégrales"
+projia serve            # API compatible OpenAI sur http://127.0.0.1:8765/v1
 ```
 
 Avec n'importe quel client OpenAI :
@@ -155,12 +155,12 @@ print(r.model, r.choices[0].message.content)   # modèle réellement utilisé
 Référence complète de l'API : [docs/API.md](docs/API.md).
 
 ### Pour une équipe (client-serveur)
-Lancez `TONTOLO_TOKEN=un-secret tontolo serve --host 0.0.0.0` sur une machine Linux, puis dans
+Lancez `PROJIA_TOKEN=un-secret projia serve --host 0.0.0.0` sur une machine Linux, puis dans
 chaque application : **Réglages › Avancé › Serveur distant** (adresse + jeton).
 
 ### Modèles locaux, sans Internet
 Si [Ollama](https://ollama.com) (port 11434) ou `llama-server` de
-[llama.cpp](https://github.com/ggml-org/llama.cpp) (port 8080) tourne sur l'appareil, Tontolo le
+[llama.cpp](https://github.com/ggml-org/llama.cpp) (port 8080) tourne sur l'appareil, Projia le
 détecte et s'en sert en dernier recours, et tout de suite quand le réseau est coupé. La
 détection n'interroge que `127.0.0.1`.
 
@@ -170,7 +170,7 @@ ollama pull llama3.2:3b
 
 ## Clés gratuites (facultatif)
 
-Tontolo fonctionne sans aucune clé. Pour débloquer davantage de modèles, ajoutez vos clés
+Projia fonctionne sans aucune clé. Pour débloquer davantage de modèles, ajoutez vos clés
 gratuites (OpenRouter, Groq, Gemini, Mistral, NVIDIA…) dans **Réglages › Simple › Clés
 gratuites** : lien direct vers chaque fournisseur, validation immédiate. Les clés restent sur
 votre appareil, dans le stockage sécurisé du système.
@@ -191,7 +191,7 @@ de 1 500 messages), budgets de taille.
 
 ## In English
 
-**One app. The best free AI models.** Tontolo picks the best free AI model for each request
+**One app. The best free AI models.** Projia picks the best free AI model for each request
 (studies, code, writing, translation, vision, search…) according to public rankings, and
 switches by itself when one is busy, without losing the conversation.
 
@@ -203,12 +203,12 @@ switches by itself when one is busy, without losing the conversation.
   self-hosted Linux server, local models when offline, open source under Apache-2.0.
 
 Free, no subscription, no ads. Android and Linux:
-[download the latest release](https://github.com/raantss18/tontolo/releases/latest).
+[download the latest release](https://github.com/justtsoa-cloud/projia/releases/latest).
 
 ## Amin'ny teny malagasy
 
 **App iray monja. Ireo IA maimaim-poana tsara indrindra.** Mifidy ny modely IA maimaim-poana
-tsara indrindra isaky ny fangatahana i Tontolo (lesona, kaody, fanoratana, fandikan-teny,
+tsara indrindra isaky ny fangatahana i Projia (lesona, kaody, fanoratana, fandikan-teny,
 sary…), ary miova ho azy raha feno ny iray, nefa tsy very ny resaka.
 
 - **Ho an'ny rehetra**: mpampianatra dingana tsirairay, lasa quiz mifandray ny lesonao, azo
@@ -219,7 +219,7 @@ sary…), ary miova ho azy raha feno ny iray, nefa tsy very ny resaka.
   OpenAI, mpizara Linux, kaody misokatra.
 
 Maimaim-poana, tsy misy famandrihana, tsy misy doka. Android sy Linux:
-[ampidino ny dikan-teny farany](https://github.com/raantss18/tontolo/releases/latest).
+[ampidino ny dikan-teny farany](https://github.com/justtsoa-cloud/projia/releases/latest).
 
 ## Documentation
 

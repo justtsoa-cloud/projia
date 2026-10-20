@@ -3,7 +3,7 @@
 # générer une seule fois. Relu par zbarimg : jamais un code faux.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-URL="https://github.com/raantss18/tontolo/releases/latest"
+URL="https://github.com/justtsoa-cloud/projia/releases/latest"
 OUT="$ROOT/app/assets/qr/download.png"
 qrencode -o "$OUT" -s 8 -m 2 -l M "$URL"
 test "$(zbarimg -q --raw "$OUT")" = "$URL" || { echo "QR illisible" >&2; exit 1; }

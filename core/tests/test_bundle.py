@@ -7,8 +7,8 @@ import zipfile
 
 import pytest
 
-from tontolo.creator import bundle, intent, latex
-from tontolo.creator.pipeline import CreationError, Creator, Output
+from projia.creator import bundle, intent, latex
+from projia.creator.pipeline import CreationError, Creator, Output
 
 BOOK = """=== FICHIER: main.tex ===
 \\documentclass{book}

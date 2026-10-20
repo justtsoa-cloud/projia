@@ -9,8 +9,8 @@ from typing import Any
 
 import pytest
 
-from tontolo.creator import diagram, docx, intent, latex, office, pipeline, textfile
-from tontolo.creator.pipeline import CreationError, Creator, Output
+from projia.creator import diagram, docx, intent, latex, office, pipeline, textfile
+from projia.creator.pipeline import CreationError, Creator, Output
 
 
 def test_docx_is_valid_word_file() -> None:
@@ -160,8 +160,8 @@ async def test_service_down_is_reported(monkeypatch: pytest.MonkeyPatch) -> None
 async def test_reviewer_is_never_the_same_model_from_another_provider() -> None:
     from types import SimpleNamespace
 
-    from tontolo.catalog.models import ModelInfo
-    from tontolo.creator.service import CreatorService
+    from projia.catalog.models import ModelInfo
+    from projia.creator.service import CreatorService
 
     writer = ModelInfo(provider="openrouter", model_id="nvidia/nemotron-ultra:free",
                        family="Nemotron")
@@ -180,7 +180,7 @@ async def test_reviewer_is_never_the_same_model_from_another_provider() -> None:
 
 
 def test_same_model_detection() -> None:
-    from tontolo.creator.pipeline import same_model
+    from projia.creator.pipeline import same_model
 
     assert same_model("openrouter:nvidia/nemotron-3-ultra:free", "kilo:nvidia/nemotron-3-ultra")
     assert not same_model("groq:qwen/qwen3-32b", "openrouter:nvidia/nemotron-3-ultra:free")
@@ -227,7 +227,7 @@ def test_feedback_after_a_file_is_a_revision() -> None:
 
 
 def test_text_tool_calls_become_real_calls() -> None:
-    from tontolo.agent.tools import extract_text_tool_calls
+    from projia.agent.tools import extract_text_tool_calls
 
     text = ('Je détaille avec les sources\n<tool_call>web_search\n<arg_key>query</arg_key>\n'
             '<arg_value>Einstein letter to Born 1926</arg_value>\n</tool_call>\n'
@@ -262,7 +262,7 @@ def test_beamer_and_explicit_formats_win() -> None:
 
 
 def test_beamer_checks() -> None:
-    from tontolo.creator.pipeline import beamer_problems
+    from projia.creator.pipeline import beamer_problems
 
     frames = "".join(f"\\begin{{frame}}{{T{i}}}x\\end{{frame}}" for i in range(16))
     ok = "\\documentclass{beamer}\\begin{document}" + frames + (

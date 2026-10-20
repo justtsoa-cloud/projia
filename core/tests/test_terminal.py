@@ -12,13 +12,13 @@ import pytest
 from fastapi.testclient import TestClient
 from starlette.websockets import WebSocketDisconnect
 
-from tontolo.agent.terminal import TerminalManager
-from tontolo.agent.workspace import is_desktop
-from tontolo.catalog.service import CatalogService
-from tontolo.config import Settings
-from tontolo.providers.fake import FakeProvider
-from tontolo.providers.registry import ProviderRegistry
-from tontolo.server.app import create_app
+from projia.agent.terminal import TerminalManager
+from projia.agent.workspace import is_desktop
+from projia.catalog.service import CatalogService
+from projia.config import Settings
+from projia.providers.fake import FakeProvider
+from projia.providers.registry import ProviderRegistry
+from projia.server.app import create_app
 
 pytestmark = pytest.mark.skipif(not is_desktop(), reason="terminal du bureau Linux")
 
@@ -66,7 +66,7 @@ def client(settings: Settings, catalog_service: CatalogService, fake: FakeProvid
 
 
 def _ws(cid: str, token: str | None = TOKEN) -> str:
-    return f"/tontolo/terminal/{cid}/ws" + (f"?token={token}" if token else "")
+    return f"/projia/terminal/{cid}/ws" + (f"?token={token}" if token else "")
 
 
 def test_websocket_local_only(client: TestClient) -> None:
@@ -126,12 +126,12 @@ async def test_child_is_reaped(tmp_path: Path) -> None:
 
 def test_agent_reads_terminal_and_sees_its_commands(client: TestClient, fake: FakeProvider,
                                                     tmp_path: Path) -> None:
-    from tontolo import sandbox
+    from projia import sandbox
 
     if not sandbox.available():
         pytest.skip("bubblewrap requis pour la commande de l'agent")
     core = client.app.state.core  # type: ignore[attr-defined]
-    assert client.put("/tontolo/workspace", json={"path": str(tmp_path)}).status_code == 200
+    assert client.put("/projia/workspace", json={"path": str(tmp_path)}).status_code == 200
     (tmp_path / "notes.txt").write_text("x")
     state = {"n": 0}
 
@@ -154,10 +154,10 @@ def test_agent_reads_terminal_and_sees_its_commands(client: TestClient, fake: Fa
         with client.stream("POST", url, json=payload) as s:
             return [json.loads(x[5:]) for x in s.iter_lines() if x.startswith("data:")]
 
-    ev = events("/tontolo/chat", {"content": "liste les fichiers", "mode": "agent"})
+    ev = events("/projia/chat", {"content": "liste les fichiers", "mode": "agent"})
     conf = next(e for e in ev if e["type"] == "tool_confirmation")
     cid = conf["conversation_id"]
-    ev = events(f"/tontolo/chat/{cid}/resume", {"approved": True})
+    ev = events(f"/projia/chat/{cid}/resume", {"approved": True})
     read = [e for e in ev if e["type"] == "tool_result" and e["name"] == "terminal_read"]
     assert read and "[agent] $ ls" in read[0]["preview"]
     assert "notes.txt" in core.chat.terminals.existing(cid).text()
@@ -166,7 +166,7 @@ def test_agent_reads_terminal_and_sees_its_commands(client: TestClient, fake: Fa
 
 
 def test_oversized_terminal_message_closes_the_socket(client: TestClient) -> None:
-    from tontolo.server.common import TERM_MAX_MESSAGE
+    from projia.server.common import TERM_MAX_MESSAGE
 
     with client.websocket_connect(_ws("gros")) as ws:
         ws.receive_bytes()
@@ -177,7 +177,7 @@ def test_oversized_terminal_message_closes_the_socket(client: TestClient) -> Non
 
 
 def test_rate_limiter() -> None:
-    from tontolo.server.common import RateLimiter
+    from projia.server.common import RateLimiter
 
     rl = RateLimiter(3, 60)
     assert [rl.allow("a") for _ in range(4)] == [True, True, True, False]

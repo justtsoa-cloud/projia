@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import pytest
 
-from tontolo import documents
-from tontolo.agent.loop import ChatService
-from tontolo.config import Settings
-from tontolo.router.engine import Router
-from tontolo.storage.db import Database
+from projia import documents
+from projia.agent.loop import ChatService
+from projia.config import Settings
+from projia.router.engine import Router
+from projia.storage.db import Database
 
 
 def tiny_pdf(pages: list[str]) -> bytes:
@@ -87,7 +87,7 @@ def _book(chapters: int = 30) -> list[str]:
 
 
 def test_digest_covers_the_whole_book_compactly() -> None:
-    from tontolo.documents import DIGEST_CHARS, digest
+    from projia.documents import DIGEST_CHARS, digest
 
     pages = _book()
     text = "\n".join(pages)
@@ -100,7 +100,7 @@ def test_digest_covers_the_whole_book_compactly() -> None:
 
 
 def test_toc_leaders_are_dropped() -> None:
-    from tontolo.documents import digest
+    from projia.documents import digest
 
     pages = ["Chapitre 1 Début\n" + "Une phrase utile et assez longue pour compter ici. " * 30,
              "Table des matières\n1.1 Installation . . . . . . . . . 3\n" * 20,
