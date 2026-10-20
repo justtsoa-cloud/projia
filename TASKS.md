@@ -97,6 +97,24 @@ personne, calculés localement ; jamais un simple « Bonjour ».
 - [ ] P5.2 Exécuter `docs/stats/supabase_minimal.sql` dans Supabase (à faire par l'utilisateur).
 - [ ] P5.3 Valider les termes malgaches en attente (`docs/A_FAIRE_UTILISATEUR.md`).
 
+### P6. Retours de testeurs (2026-10-20, retour reçu sur un réseau social)
+- [ ] P6.1 **AppImage sur Linux Mint 22 (Cinnamon)** : en tapant au clavier, rien ne s'affiche
+  pendant plusieurs secondes, puis la saisie apparaît ; reproduit à chaque tentative. Pistes à
+  vérifier : (a) champ de saisie désactivé ou non focalisé tant que le cœur Python n'est pas prêt
+  (afficher l'état « démarrage » et garder la frappe en mémoire tampon) ; (b) méthode de saisie
+  (IBus/Fcitx) sous Flutter Linux : latence du premier événement clavier ; (c) premier lancement de
+  l'AppImage (extraction, démarrage du cœur) ; (d) pilote graphique/Wayland vs X11 (Cinnamon 22 =
+  X11). Reproduire sur une machine ou une VM Mint 22, relever le journal du cœur
+  (`[tontolo] cœur prêt en …`), tester avec `GTK_IM_MODULE=` vide puis `ibus`/`fcitx`. Demander au
+  testeur : durée avant la première lettre, après combien de temps l'application était ouverte,
+  méthode de saisie du bureau.
+- [ ] P6.2 **Communication** : un lecteur demande « c'est quoi comme système ? Linux quoi ? ».
+  Dire clairement, partout (README, affiches, page de téléchargement, description de la release),
+  que Tontolo existe pour **Android** (APK) et **Linux** (AppImage, testé Arch ; Mint 22 en
+  cours), et pas encore Windows/macOS ; préciser « Linux » = distributions de bureau.
+- [ ] P6.3 Répondre au testeur quand le correctif est publié (mention dans le CHANGELOG et la
+  carte « Nouveautés »).
+
 Ordre conseillé : P5.1 (rapide) → P1.1 mesure → P1.3/P1.5/P1.2 (gros gains) → P2 → P4 → P3 (après
 P2, car il réutilise le profil d'intérêts) → P1.4/1.6/1.7/1.8. Chaque lot = une version, affiches
 fr/en/mg avec prompts d'usage, tests, CI verte, release vérifiée.
