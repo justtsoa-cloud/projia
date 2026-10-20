@@ -13,10 +13,13 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import base64
 import getpass
 import logging
+import mimetypes
 import sys
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from tontolo import __version__, secrets
@@ -104,12 +107,23 @@ async def cmd_route(args: argparse.Namespace) -> int:
     return 0
 
 
+def _image_content(prompt: str, paths: list[str]) -> list[dict[str, Any]]:
+    content: list[dict[str, Any]] = [{"type": "text", "text": prompt}]
+    for p in paths:
+        data = Path(p).read_bytes()
+        mime = mimetypes.guess_type(p)[0] or "image/jpeg"
+        url = f"data:{mime};base64,{base64.b64encode(data).decode()}"
+        content.append({"type": "image_url", "image_url": {"url": url}})
+    return content
+
+
 async def cmd_chat(args: argparse.Namespace) -> int:
     core = await Core.start(refresh=False)
     code = 0
     try:
         forced = Category(args.category) if args.category else None
-        async for ev in core.chat.send(args.conversation, args.prompt, model=args.model,
+        content = _image_content(args.prompt, args.image) if args.image else args.prompt
+        async for ev in core.chat.send(args.conversation, content, model=args.model,
                                        forced=forced, use_tools=not args.no_tools,
                                        auto_approve=args.yes):
             t = ev["type"]
@@ -187,6 +201,8 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--model")
     c.add_argument("--conversation")
     c.add_argument("--category", choices=[c.value for c in Category])
+    c.add_argument("--image", action="append", default=None,
+                   help="chemin d'une image à joindre (répétable)")
     c.add_argument("--no-tools", action="store_true")
     c.add_argument("--yes", action="store_true", help="approuve les outils à effet de bord")
     c.set_defaults(func=cmd_chat)
