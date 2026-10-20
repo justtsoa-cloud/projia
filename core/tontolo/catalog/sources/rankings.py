@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -25,13 +26,12 @@ LMARENA_FILTER = "https://datasets-server.huggingface.co/filter"
 LMARENA_DATASET = "lmarena-ai/leaderboard-dataset"
 
 # (config, catégorie LMArena) récupérées ; les catégories manquantes sont ignorées.
+# Réduit à l'usage réel (chat général, vision, image) : moins de tranches = moins
+# d'appels réseau par cycle de rafraîchissement, et donc moins de temps perdu si une
+# tranche échoue côté serveur (LMArena/Hugging Face).
 LMARENA_SLICES: tuple[tuple[str, str], ...] = (
-    ("text", "overall"), ("text", "coding"), ("text", "math"), ("text", "creative_writing"),
-    ("text", "hard_prompts"), ("text", "longer_query"), ("text", "french"),
-    ("text", "non_english"), ("text", "multi_turn"), ("text", "instruction_following"),
-    ("vision", "overall"), ("webdev", "overall"), ("search", "overall"),
-    ("agent", "overall"), ("text_to_image", "overall"), ("image_edit", "overall"),
-    ("text_to_video", "overall"),
+    ("text", "overall"), ("vision", "overall"),
+    ("text_to_image", "overall"), ("image_edit", "overall"),
 )
 
 AA_MEDIA = {
@@ -123,18 +123,27 @@ def parse_lmarena(payload: Any, config: str, category: str) -> list[RankingEntry
     return out
 
 
+COOLDOWN_S = 300.0  # une tranche en échec n'est pas retentée avant ce délai : sans ça, un
+                    # rafraîchissement déclenché à chaque conversation retape un serveur en
+                    # panne (ex. datasets-server HF) en boucle plutôt que d'attendre qu'il
+                    # se rétablisse.
+
+
 async def fetch_lmarena(
     cache: SourceCache, ttl: float, force: bool = False, concurrency: int = 4
 ) -> list[RankingEntry]:
     sem = asyncio.Semaphore(concurrency)
 
     async def one(config: str, category: str) -> list[RankingEntry]:
+        name = f"lmarena_{config}_{category}"
+        cooldown = cache.get(f"{name}_cooldown")
+        if not force and cooldown and cooldown.age() < COOLDOWN_S:
+            return []
         params = {
             "dataset": LMARENA_DATASET, "config": config, "split": "latest",
             "where": f"\"category\"='{category}'", "orderby": "\"rating\" DESC",
             "length": "100",
         }
-        name = f"lmarena_{config}_{category}"
         async with sem:
             entry = None
             for attempt in range(3):  # l'API datasets-server est parfois instable
@@ -145,7 +154,10 @@ async def fetch_lmarena(
                 ):
                     break
                 await asyncio.sleep(1.5 * (attempt + 1))
-        if entry and isinstance(entry.data, dict) and "rows" in entry.data:
+        ok = bool(entry and isinstance(entry.data, dict) and "rows" in entry.data)
+        if not ok and not cache.offline:
+            cache.put(f"{name}_cooldown", {"failed_at": time.time()})
+        if ok:
             return parse_lmarena(entry.data, config, category)
         return []
 
