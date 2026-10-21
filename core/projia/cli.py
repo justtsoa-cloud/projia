@@ -3,6 +3,7 @@
     projia catalog list --free --category code
     projia catalog refresh
     projia changes
+    projia conversations
     projia route "Écris une fonction Python"
     projia chat "Bonjour !"
     projia keys set openrouter
@@ -83,6 +84,18 @@ async def cmd_changes(args: argparse.Namespace) -> int:
     try:
         for c in await core.db.list_changes(args.limit):
             print(f"{_fmt_ts(c['ts'])}  {c['kind']:<22} {c['model_id']}")
+    finally:
+        await core.stop()
+    return 0
+
+
+async def cmd_conversations(args: argparse.Namespace) -> int:
+    core = await Core.start(refresh=False)
+    try:
+        convs = await core.db.list_conversations(limit=args.limit)
+        for i, c in enumerate(convs, 1):
+            title = (c["title"] or "(sans titre)").replace("\t", " ").replace("\n", " ")
+            print(f"{i}\t{c['id']}\t{_fmt_ts(c['updated_at'])}\t{title}")
     finally:
         await core.stop()
     return 0
@@ -190,6 +203,10 @@ def build_parser() -> argparse.ArgumentParser:
     ch = sub.add_parser("changes", help="fil des nouveautés")
     ch.add_argument("--limit", type=int, default=50)
     ch.set_defaults(func=cmd_changes)
+
+    cv = sub.add_parser("conversations", help="liste les discussions enregistrées")
+    cv.add_argument("--limit", type=int, default=10)
+    cv.set_defaults(func=cmd_conversations)
 
     rt = sub.add_parser("route", help="montre le modèle choisi et pourquoi")
     rt.add_argument("prompt")
