@@ -5,6 +5,7 @@ import { toast } from "./toast.js";
 import { ConversationList } from "./history.js";
 import { Recorder } from "./media_record.js";
 import { speakText } from "./speak.js";
+import { shortModelName } from "./modelname.js";
 
 const MEDIA_KIND_TAG = {
   image_gen: "image", image_edit: "image",
@@ -151,7 +152,7 @@ export class ChatView {
       meta.className = "meta";
       if (msg._meta && msg._meta.model) {
         const span = document.createElement("span");
-        span.textContent = msg._meta.model;
+        span.textContent = shortModelName(msg._meta.model);
         meta.appendChild(span);
       }
       const listenBtn = document.createElement("button");
@@ -165,10 +166,11 @@ export class ChatView {
     return el;
   }
 
-  appendBanner(cls, html) {
+  appendBanner(cls, text, title) {
     const el = document.createElement("div");
     el.className = "banner " + cls;
-    el.innerHTML = html;
+    el.textContent = text;
+    if (title && title !== text) el.title = title;
     this.messagesEl.appendChild(el);
     this.scrollToBottom();
     return el;
@@ -271,14 +273,21 @@ export class ChatView {
             assistantEl.setText(assistantText);
             this.scrollToBottom();
             break;
-          case "route":
-            this.progressEl.textContent = ev.name ? `${ev.name} · ${ev.reason || ""}` : "";
+          case "route": {
+            const label = ev.name ? shortModelName(ev.name) : shortModelName(ev.model);
+            this.progressEl.textContent = label ? `${label} · ${ev.reason || ""}` : "";
             break;
-          case "model_switched":
-            this.appendBanner("switch", `🔁 ${t("banner_switched")}: ${ev.from} → ${ev.to} (${ev.reason || ""})`);
+          }
+          case "model_switched": {
+            const from = shortModelName(ev.from);
+            const to = shortModelName(ev.to);
+            const short = `🔁 ${from} → ${to}`;
+            const full = ev.reason ? `${t("banner_switched")}: ${from} → ${to} (${ev.reason})` : short;
+            this.appendBanner("switch", short, full);
             break;
+          }
           case "model_returned":
-            this.appendBanner("ok", `↩️ ${t("banner_returned")}: ${ev.name || ev.model}`);
+            this.appendBanner("ok", `↩️ ${shortModelName(ev.name || ev.model)}`, t("banner_returned"));
             break;
           case "waiting":
           case "step":

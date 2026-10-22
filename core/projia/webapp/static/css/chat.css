@@ -87,22 +87,23 @@
 .msg audio.media { margin-top: 6px; }
 
 .banner {
-  align-self: stretch;
-  max-width: 720px;
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--bg-card);
+  align-self: flex-start;
+  max-width: 420px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-dim);
+  background: transparent;
   border: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
 }
 .banner.switch { border-color: var(--accent-2); }
 .banner.error { border-color: var(--danger); color: var(--danger); }
 .banner.ok { border-color: var(--success); }
-.banner .spacer { flex: 1; }
-.banner button { padding: 3px 10px; font-size: 12px; }
 
 #composer {
   flex: none;

@@ -4,6 +4,7 @@ import { toast } from "./toast.js";
 import { ChatView } from "./chat.js";
 import { CreationsView } from "./creations.js";
 import { SettingsView } from "./settings.js";
+import { shortModelName } from "./modelname.js";
 
 const viewEl = document.getElementById("view");
 const navButtons = document.querySelectorAll("#main-nav button");
@@ -55,7 +56,7 @@ async function pollHealth() {
   try {
     const h = await api.getHealth();
     healthDot.dataset.state = h.state === "green" || h.state === "orange" ? h.state : h.offline ? "red" : "";
-    modelLabel.textContent = h.best || t("model_auto");
+    modelLabel.textContent = h.best ? shortModelName(h.best) : t("model_auto");
   } catch {
     healthDot.dataset.state = "";
   }
