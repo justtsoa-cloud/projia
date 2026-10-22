@@ -6,6 +6,7 @@ import { ConversationList } from "./history.js";
 import { Recorder } from "./media_record.js";
 import { speakText } from "./speak.js";
 import { shortModelName } from "./modelname.js";
+import { openLightbox } from "./lightbox.js";
 
 const MEDIA_KIND_TAG = {
   image_gen: "image", image_edit: "image",
@@ -68,6 +69,9 @@ export class ChatView {
     this.attachStrip.hidden = true;
     main.appendChild(this.attachStrip);
 
+    this.imageOptsPanel = this.buildImageOptsPanel();
+    main.appendChild(this.imageOptsPanel);
+
     const composer = document.createElement("div");
     composer.id = "composer";
 
@@ -94,6 +98,13 @@ export class ChatView {
     this.micBtn.textContent = "🎙";
     this.micBtn.onclick = () => this.toggleRecording();
     composer.appendChild(this.micBtn);
+
+    this.imageOptsBtn = document.createElement("button");
+    this.imageOptsBtn.className = "icon-btn";
+    this.imageOptsBtn.textContent = "🖼️";
+    this.imageOptsBtn.title = "Choisir orientation et résolution d'image";
+    this.imageOptsBtn.onclick = () => this.toggleImageOpts();
+    composer.appendChild(this.imageOptsBtn);
 
     this.textarea = document.createElement("textarea");
     this.textarea.placeholder = t("composer_placeholder");
@@ -124,6 +135,70 @@ export class ChatView {
 
     this.showEmpty();
     this.textarea.focus();
+  }
+
+  buildImageOptsPanel() {
+    const panel = document.createElement("div");
+    panel.className = "image-opts-panel";
+    panel.hidden = true;
+
+    const label1 = document.createElement("span");
+    label1.textContent = "Format :";
+    panel.appendChild(label1);
+    this.orientationSelect = document.createElement("select");
+    for (const [value, label] of [["16:9", "Paysage"], ["9:16", "Portrait"], ["1:1", "Carré"]]) {
+      const opt = document.createElement("option");
+      opt.value = value;
+      opt.textContent = label;
+      this.orientationSelect.appendChild(opt);
+    }
+    panel.appendChild(this.orientationSelect);
+
+    const label2 = document.createElement("span");
+    label2.textContent = "Résolution :";
+    panel.appendChild(label2);
+    this.resolutionSelect = document.createElement("select");
+    for (const px of [720, 1080, 1440]) {
+      const opt = document.createElement("option");
+      opt.value = String(px);
+      opt.textContent = px + " px";
+      if (px === 1080) opt.selected = true;
+      this.resolutionSelect.appendChild(opt);
+    }
+    panel.appendChild(this.resolutionSelect);
+
+    const hint = document.createElement("span");
+    hint.className = "hint";
+    hint.textContent = "— décrivez l'image puis Envoyer";
+    panel.appendChild(hint);
+
+    return panel;
+  }
+
+  toggleImageOpts() {
+    this.imageOptsPanel.hidden = !this.imageOptsPanel.hidden;
+    this.imageOptsBtn.classList.toggle("active", !this.imageOptsPanel.hidden);
+    if (!this.imageOptsPanel.hidden) this.textarea.focus();
+  }
+
+  async sendImageRequest() {
+    const prompt = this.textarea.value.trim();
+    if (!prompt) return;
+    this.textarea.value = "";
+    this.resizeTextarea();
+    if (this.messagesEl.querySelector(".empty-state")) this.messagesEl.innerHTML = "";
+    this.appendMessageBubble({ role: "user", content: prompt });
+
+    const params = { aspect_ratio: this.orientationSelect.value, width: Number(this.resolutionSelect.value) };
+    this.setBusy(true);
+    try {
+      const job = await api.submitMedia({ kind: "image_gen", prompt, conversation_id: this.cid, params });
+      this.appendMediaCard(job);
+    } catch (e) {
+      toast(e.message, { error: true });
+    } finally {
+      this.setBusy(false);
+    }
   }
 
   addAttachments(files) {
@@ -207,8 +282,10 @@ export class ChatView {
     el.className = "msg " + (msg.role === "user" ? "user" : "assistant");
     for (const url of imageUrlsOf(msg.content)) {
       const img = document.createElement("img");
-      img.className = "media";
+      img.className = "media media-clickable";
       img.src = url;
+      img.title = "Cliquer pour agrandir";
+      img.onclick = () => openLightbox(url, "image", "projia-piece-jointe.png");
       el.appendChild(img);
     }
     const body = document.createElement("span");
@@ -234,6 +311,7 @@ export class ChatView {
       el.appendChild(meta);
     }
     this.messagesEl.appendChild(el);
+    this.scrollToBottom();
     return el;
   }
 
@@ -266,15 +344,24 @@ export class ChatView {
     } else if (job.status === "failed") {
       wrap.textContent = "⚠️ " + (job.error || job.kind);
     } else if (kind === "image") {
+      const url = api.mediaFileUrl(job.id);
       const img = document.createElement("img");
-      img.className = "media";
-      img.src = api.mediaFileUrl(job.id);
+      img.className = "media media-clickable";
+      img.src = url;
+      img.title = "Cliquer pour agrandir";
+      img.onclick = () => openLightbox(url, "image", `projia-${job.id}.png`);
       wrap.appendChild(img);
     } else if (kind === "video") {
+      const url = api.mediaFileUrl(job.id);
       const video = document.createElement("video");
-      video.className = "media";
-      video.src = api.mediaFileUrl(job.id);
+      video.className = "media media-clickable";
+      video.src = url;
       video.controls = true;
+      video.title = "Cliquer pour agrandir";
+      video.addEventListener("click", (e) => {
+        // Ne pas ouvrir le lightbox quand on clique sur les contrôles natifs du lecteur.
+        if (e.offsetY < video.clientHeight - 32) openLightbox(url, "video", `projia-${job.id}.mp4`);
+      });
       wrap.appendChild(video);
     } else if (kind === "audio") {
       const audio = document.createElement("audio");
@@ -318,6 +405,7 @@ export class ChatView {
   }
 
   async send() {
+    if (this.imageOptsPanel && !this.imageOptsPanel.hidden) return this.sendImageRequest();
     const text = this.textarea.value.trim();
     const attachments = this.attachments;
     if (!text && !attachments.length) return;

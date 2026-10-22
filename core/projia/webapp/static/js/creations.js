@@ -1,6 +1,7 @@
 import * as api from "./api.js";
 import { t } from "./i18n.js";
 import { toast } from "./toast.js";
+import { openLightbox } from "./lightbox.js";
 
 const FILTERS = [
   { key: "all", label: "gallery_all", kinds: null },
@@ -71,14 +72,19 @@ export class CreationsView {
     const thumb = document.createElement("div");
     thumb.className = "thumb";
     if (job.status === "done") {
+      const url = api.mediaFileUrl(job.id);
       if (job.kind.startsWith("image")) {
         const img = document.createElement("img");
-        img.src = api.mediaFileUrl(job.id);
+        img.src = url;
+        img.title = "Cliquer pour agrandir";
+        img.onclick = () => openLightbox(url, "image", `projia-${job.id}.png`);
         thumb.appendChild(img);
       } else if (job.kind === "video_gen") {
         const video = document.createElement("video");
-        video.src = api.mediaFileUrl(job.id);
+        video.src = url;
         video.muted = true;
+        video.title = "Cliquer pour agrandir";
+        video.onclick = () => openLightbox(url, "video", `projia-${job.id}.mp4`);
         thumb.appendChild(video);
       } else {
         const span = document.createElement("span");

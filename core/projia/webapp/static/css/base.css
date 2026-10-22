@@ -33,6 +33,9 @@
 }
 
 * { box-sizing: border-box; }
+/* L'attribut `hidden` doit toujours gagner, même sur un élément dont une règle
+   plus bas dans la cascade fixe `display` (ex. `.attach-strip { display: flex }`). */
+[hidden] { display: none !important; }
 html, body { height: 100%; }
 body {
   margin: 0;
@@ -184,3 +187,40 @@ a { color: var(--accent-2); }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
 ::-webkit-scrollbar-track { background: transparent; }
+
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 7, 16, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+.lightbox-media {
+  max-width: 92vw;
+  max-height: 82vh;
+  border-radius: var(--radius);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+.lightbox-bar {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 8px;
+}
+.lightbox-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 13px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.lightbox-btn:hover { background: rgba(255, 255, 255, 0.2); }
+.media-clickable { cursor: zoom-in; }
