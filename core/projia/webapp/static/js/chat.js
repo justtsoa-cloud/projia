@@ -183,16 +183,28 @@ export class ChatView {
 
   async sendImageRequest() {
     const prompt = this.textarea.value.trim();
-    if (!prompt) return;
+    const attachments = this.attachments;
+    if (!prompt && !attachments.length) return;
     this.textarea.value = "";
     this.resizeTextarea();
+    this.attachments = [];
+    this.renderAttachStrip();
     if (this.messagesEl.querySelector(".empty-state")) this.messagesEl.innerHTML = "";
-    this.appendMessageBubble({ role: "user", content: prompt });
+
+    const content = attachments.length
+      ? [{ type: "text", text: prompt }, ...attachments.map((a) => ({ type: "image_url", image_url: { url: a.dataUrl } }))]
+      : prompt;
+    this.appendMessageBubble({ role: "user", content });
 
     const params = { aspect_ratio: this.orientationSelect.value, width: Number(this.resolutionSelect.value) };
+    // Une pièce jointe → c'est une retouche/variation de CETTE image, pas une création
+    // à partir de rien : on l'envoie comme image de référence et on bascule en image_edit.
+    if (attachments.length) params.image = attachments[0].dataUrl;
+    const kind = attachments.length ? "image_edit" : "image_gen";
+
     this.setBusy(true);
     try {
-      const job = await api.submitMedia({ kind: "image_gen", prompt, conversation_id: this.cid, params });
+      const job = await api.submitMedia({ kind, prompt, conversation_id: this.cid, params });
       this.appendMediaCard(job);
     } catch (e) {
       toast(e.message, { error: true });
