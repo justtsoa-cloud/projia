@@ -10,9 +10,13 @@ Images (vérifié le 2026-10-11, point d'entrée Gradio `infer`) : FLUX.1-schnel
 (Black Forest Labs) et Stable Diffusion 3.5 Large Turbo (Stability AI). Le quota ZeroGPU est
 commun à tous les Spaces : quand il est épuisé, Pollinations prend le relais.
 
-Qwen/Qwen-Image (ajouté le 2026-10-22) : PAS vérifié en direct (pas d'accès réseau sortant
-disponible à l'ajout) — nom de Space et URL déduits par convention, appel Gradio supposé
-identique à FLUX.1-dev. À confirmer/corriger après un premier essai réel.
+Qwen/Qwen-Image et Tongyi-MAI/Z-Image-Turbo (ajoutés le 2026-10-22, signatures vérifiées en
+direct par `GET /config` le jour même) : chacun a sa propre forme d'appel, bien différente de
+FLUX/SD — voir les branches dédiées dans `media/providers.py::_space_image`. Qwen-Image :
+`infer(prompt, seed, randomize_seed, aspect_ratio, guidance_scale, steps, prompt_enhance)`.
+Z-Image-Turbo : point d'entrée `generate` (PAS `infer`), résolution choisie parmi une liste
+fixe de chaînes "WxH ( ratio )" plutôt que des pixels, sortie en liste (gallery) et non en
+image unique.
 """
 
 from __future__ import annotations
@@ -55,13 +59,11 @@ IMAGE_SPACES: tuple[ImageSpace, ...] = (
                "Stable Diffusion 3.5 Large Turbo", 0.66, 0.7, 4),
     ImageSpace("black-forest-labs/FLUX.1-dev",
                "https://black-forest-labs-flux-1-dev.hf.space", "FLUX.1 dev", 0.8, 0.3, 28),
-    # NON vérifié en direct (pas d'accès réseau sortant disponible au moment de l'ajout,
-    # 2026-10-22) : nom du Space officiel Qwen et URL *.hf.space déduits par la même
-    # convention que les 3 lignes ci-dessus (org/repo → minuscules, « / » et « . » → « - »).
-    # Même branche d'appel Gradio que FLUX.1-dev (steps > 4 → prompt/seed/rand/w/h/guidance/
-    # steps) : à confirmer/corriger après un premier essai réel (voir _space_image).
+    # URL et signature Gradio vérifiées en direct (GET /config, 2026-10-22).
     ImageSpace("Qwen/Qwen-Image", "https://qwen-qwen-image.hf.space", "Qwen Image", 0.74,
-               0.5, 20),
+               0.5, 50),
+    ImageSpace("Tongyi-MAI/Z-Image-Turbo", "https://tongyi-mai-z-image-turbo.hf.space",
+               "Z-Image Turbo", 0.7, 0.8, 8),
 )
 
 

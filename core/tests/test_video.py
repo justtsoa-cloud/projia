@@ -196,6 +196,56 @@ async def test_image_from_hf_space(monkeypatch: pytest.MonkeyPatch) -> None:
         await mp.generate_image(model, {}, "x", {})
 
 
+async def test_qwen_image_signature(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Signature vérifiée en direct (GET /config) le 2026-10-22 :
+    infer(prompt, seed, randomize_seed, aspect_ratio, guidance_scale, steps, prompt_enhance)."""
+    space = next(s for s in hfspaces.IMAGE_SPACES if s.space == "Qwen/Qwen-Image")
+    model = next(m for m in hfspaces.models() if m.model_id == space.space)
+    seen: dict[str, object] = {}
+
+    async def fake_queue(base: str, api: str, data: list[object], headers: object,
+                         timeout: float = 0) -> object:  # noqa: ASYNC109
+        seen.update(api=api, data=data)
+        return [{"url": f"{base}/gradio_api/file=/tmp/x.png"}, 7]
+
+    async def fake_dl(url: str, headers: object, limit: int = 0) -> bytes:
+        return b"\x89PNG\r\n\x1a\n"
+
+    monkeypatch.setattr(mp, "_gradio_queue", fake_queue)
+    monkeypatch.setattr(mp, "_download_limited", fake_dl)
+    await mp.generate_image(model, {}, "a red tram", {"aspect_ratio": "9:16", "seed": 11})
+    assert seen["api"] == "infer"
+    assert seen["data"] == ["a red tram", 11, False, "9:16", 4.0, space.steps, True]
+    # ratio hors liste connue -> repli "1:1", jamais une valeur inventée envoyée au Space.
+    await mp.generate_image(model, {}, "x", {"aspect_ratio": "2.35:1"})
+    assert seen["data"][3] == "1:1"
+
+
+async def test_z_image_turbo_signature(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Signature vérifiée en direct (GET /config) le 2026-10-22 : point d'entrée
+    "generate" (PAS "infer"), résolution en chaîne "WxH ( ratio )", sortie en gallery."""
+    space = next(s for s in hfspaces.IMAGE_SPACES if s.space == "Tongyi-MAI/Z-Image-Turbo")
+    model = next(m for m in hfspaces.models() if m.model_id == space.space)
+    seen: dict[str, object] = {}
+
+    async def fake_queue(base: str, api: str, data: list[object], headers: object,
+                         timeout: float = 0) -> object:  # noqa: ASYNC109
+        seen.update(api=api, data=data)
+        return [[{"image": {"url": f"{base}/gradio_api/file=/tmp/x.webp"}, "caption": None}],
+               "123", 123]
+
+    async def fake_dl(url: str, headers: object, limit: int = 0) -> bytes:
+        return b"RIFF\x00\x00\x00\x00WEBPVP8 "
+
+    monkeypatch.setattr(mp, "_gradio_queue", fake_queue)
+    monkeypatch.setattr(mp, "_download_limited", fake_dl)
+    out = await mp.generate_image(model, {}, "a red tram",
+                                  {"aspect_ratio": "16:9", "width": 1000})
+    assert seen["api"] == "generate"
+    assert seen["data"][1] == "1536x864 ( 16:9 )"  # palier « 1000px » -> le second des 3
+    assert out.mime == "image/webp"
+
+
 def test_gpu_quota_pauses_every_space() -> None:
     from projia.providers.base import Scope
 

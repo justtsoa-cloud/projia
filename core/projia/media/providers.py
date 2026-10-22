@@ -140,9 +140,31 @@ async def _gemini_image(
 
 IMAGE_MAX_BYTES = 20 * 1024 * 1024
 
+# Z-Image-Turbo (vérifié le 2026-10-22 par GET /config) n'accepte pas de largeur/hauteur
+# en pixels : un choix parmi une liste fixe de chaînes "WxH ( ratio )". On retrouve le
+# palier le plus proche de la largeur demandée pour chacun des 3 ratios exposés par
+# Projia (webapp : Format Paysage/Portrait/Carré).
+_Z_IMAGE_RATIO_TIERS = {
+    "16:9": ("1280x720 ( 16:9 )", "1536x864 ( 16:9 )", "2048x1152 ( 16:9 )"),
+    "9:16": ("720x1280 ( 9:16 )", "864x1536 ( 9:16 )", "1152x2048 ( 9:16 )"),
+    "1:1": ("1024x1024 ( 1:1 )", "1280x1280 ( 1:1 )", "1536x1536 ( 1:1 )"),
+}
+
+
+def _z_image_resolution_choice(params: dict[str, Any]) -> str:
+    tiers = _Z_IMAGE_RATIO_TIERS.get(str(params.get("aspect_ratio")), _Z_IMAGE_RATIO_TIERS["1:1"])
+    width = int(params.get("width") or 1024)
+    return tiers[0] if width <= 900 else tiers[1] if width <= 1200 else tiers[2]
+
+
+_QWEN_IMAGE_RATIOS = {"1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3"}
+
 
 async def _space_image(model: ModelInfo, prompt: str, params: dict[str, Any]) -> MediaOutput:
-    """Image par un Space Hugging Face public (FLUX, Stable Diffusion), sans clé."""
+    """Image par un Space Hugging Face public (FLUX, Stable Diffusion, Qwen-Image,
+    Z-Image-Turbo), sans clé. Chaque Space a sa propre signature Gradio — celles de
+    Qwen-Image et Z-Image-Turbo ont été vérifiées en direct (GET /config) le 2026-10-22 ;
+    les autres restent telles que vérifiées le 2026-10-11 (voir catalog/sources/hfspaces.py)."""
     space = hfspaces.image_by_id(model.model_id)
     if space is None:
         raise ProviderError("Space inconnu", ErrorKind.UNAVAILABLE)
@@ -153,6 +175,7 @@ async def _space_image(model: ModelInfo, prompt: str, params: dict[str, Any]) ->
     h = max(256, min(int(params.get("height", 1024)), 1440)) // 32 * 32
     seed = int(params.get("seed") or 0)
     rand = params.get("seed") is None
+    api_name = "infer"
     if "Kontext" in space.space:
         # Retouche guidée : la photo est envoyée au Space, puis la consigne est appliquée.
         source = params.get("image")
@@ -168,14 +191,30 @@ async def _space_image(model: ModelInfo, prompt: str, params: dict[str, Any]) ->
                            seed, rand, 2.5, space.steps]
     elif "stable-diffusion" in space.space:
         data = [prompt, "", seed, rand, w, h, 0.0, space.steps]
-    elif space.steps > 4:  # FLUX.1-dev (et Qwen-Image, même forme supposée) : échelle de guidage
+    elif "Qwen-Image" in space.space:
+        # infer(prompt, seed, randomize_seed, aspect_ratio, guidance_scale, steps,
+        # prompt_enhance).
+        ratio = str(params.get("aspect_ratio"))
+        data = [prompt, seed, rand, ratio if ratio in _QWEN_IMAGE_RATIOS else "1:1",
+               4.0, space.steps, True]
+    elif "Z-Image-Turbo" in space.space:
+        # generate(prompt, width_height_ratio, seed, steps, time_shift, randomize_seed,
+        # gallery_state) — api_name="generate", pas "infer".
+        data = [prompt, _z_image_resolution_choice(params), seed, space.steps, 3.0, rand, []]
+        api_name = "generate"
+    elif space.steps > 4:  # FLUX.1-dev : échelle de guidage
         data = [prompt, seed, rand, w, h, 3.5, space.steps]
     else:
         data = [prompt, seed, rand, w, h, space.steps]
     # File GPU saturée : mieux vaut passer vite à la source suivante (Pollinations).
-    result = await _gradio_queue(space.base_url, "infer", data, headers,
+    result = await _gradio_queue(space.base_url, api_name, data, headers,
                                  timeout=150.0 if "Kontext" in space.space else 90.0)
     item = result[0] if isinstance(result, list) and result else result
+    if "Z-Image-Turbo" in space.space:
+        # Sortie "gallery" (liste d'images), pas un fichier image direct comme les
+        # autres Spaces : [{"image": {"url": ...}, "caption": ...}, ...].
+        item = item[0] if isinstance(item, list) and item else item
+        item = item.get("image") if isinstance(item, dict) else None
     url = item.get("url") if isinstance(item, dict) else None
     if not isinstance(url, str) or not url.startswith(space.base_url + "/"):
         raise ProviderError("Réponse image inattendue", ErrorKind.SERVER)
