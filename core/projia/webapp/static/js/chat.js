@@ -25,12 +25,21 @@ function textOf(content) {
   return "";
 }
 
+function imageUrlsOf(content) {
+  if (!Array.isArray(content)) return [];
+  return content
+    .filter((part) => part && part.type === "image_url" && part.image_url)
+    .map((part) => part.image_url.url)
+    .filter(Boolean);
+}
+
 export class ChatView {
   constructor(root) {
     this.root = root;
     this.cid = null;
     this.recorder = new Recorder();
     this.jobPolls = new Map();
+    this.attachments = [];
     this.render();
   }
 
@@ -54,8 +63,32 @@ export class ChatView {
     this.progressEl.className = "progress-line";
     main.appendChild(this.progressEl);
 
+    this.attachStrip = document.createElement("div");
+    this.attachStrip.className = "attach-strip";
+    this.attachStrip.hidden = true;
+    main.appendChild(this.attachStrip);
+
     const composer = document.createElement("div");
     composer.id = "composer";
+
+    this.fileInput = document.createElement("input");
+    this.fileInput.type = "file";
+    this.fileInput.accept = "image/*";
+    this.fileInput.multiple = true;
+    this.fileInput.hidden = true;
+    this.fileInput.onchange = () => {
+      this.addAttachments(Array.from(this.fileInput.files || []));
+      this.fileInput.value = "";
+    };
+    composer.appendChild(this.fileInput);
+
+    this.attachBtn = document.createElement("button");
+    this.attachBtn.className = "icon-btn";
+    this.attachBtn.textContent = "📎";
+    this.attachBtn.title = "Joindre une image";
+    this.attachBtn.onclick = () => this.fileInput.click();
+    composer.appendChild(this.attachBtn);
+
     this.micBtn = document.createElement("button");
     this.micBtn.className = "icon-btn";
     this.micBtn.textContent = "🎙";
@@ -65,10 +98,7 @@ export class ChatView {
     this.textarea = document.createElement("textarea");
     this.textarea.placeholder = t("composer_placeholder");
     this.textarea.rows = 1;
-    this.textarea.addEventListener("input", () => {
-      this.textarea.style.height = "auto";
-      this.textarea.style.height = Math.min(160, this.textarea.scrollHeight) + "px";
-    });
+    this.textarea.addEventListener("input", () => this.resizeTextarea());
     this.textarea.addEventListener("keydown", (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
@@ -93,6 +123,40 @@ export class ChatView {
     });
 
     this.showEmpty();
+    this.textarea.focus();
+  }
+
+  addAttachments(files) {
+    for (const file of files) {
+      if (!file.type.startsWith("image/")) continue;
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.attachments.push({ name: file.name, dataUrl: reader.result });
+        this.renderAttachStrip();
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  renderAttachStrip() {
+    this.attachStrip.innerHTML = "";
+    this.attachStrip.hidden = this.attachments.length === 0;
+    this.attachments.forEach((a, i) => {
+      const chip = document.createElement("div");
+      chip.className = "attach-chip";
+      const img = document.createElement("img");
+      img.src = a.dataUrl;
+      chip.appendChild(img);
+      const remove = document.createElement("button");
+      remove.className = "ghost";
+      remove.textContent = "×";
+      remove.onclick = () => {
+        this.attachments.splice(i, 1);
+        this.renderAttachStrip();
+      };
+      chip.appendChild(remove);
+      this.attachStrip.appendChild(chip);
+    });
   }
 
   showEmpty() {
@@ -135,11 +199,18 @@ export class ChatView {
     } catch (e) {
       toast(e.message, { error: true });
     }
+    this.textarea.focus();
   }
 
   appendMessageBubble(msg) {
     const el = document.createElement("div");
     el.className = "msg " + (msg.role === "user" ? "user" : "assistant");
+    for (const url of imageUrlsOf(msg.content)) {
+      const img = document.createElement("img");
+      img.className = "media";
+      img.src = url;
+      el.appendChild(img);
+    }
     const body = document.createElement("span");
     body.className = "body";
     body.textContent = textOf(msg.content);
@@ -248,17 +319,24 @@ export class ChatView {
 
   async send() {
     const text = this.textarea.value.trim();
-    if (!text) return;
+    const attachments = this.attachments;
+    if (!text && !attachments.length) return;
     this.textarea.value = "";
-    this.textarea.style.height = "auto";
+    this.resizeTextarea();
+    this.attachments = [];
+    this.renderAttachStrip();
     if (this.messagesEl.querySelector(".empty-state")) this.messagesEl.innerHTML = "";
-    this.appendMessageBubble({ role: "user", content: text });
+
+    const content = attachments.length
+      ? [{ type: "text", text }, ...attachments.map((a) => ({ type: "image_url", image_url: { url: a.dataUrl } }))]
+      : text;
+    this.appendMessageBubble({ role: "user", content });
     this.setBusy(true);
 
     let assistantEl = null;
     let assistantText = "";
     try {
-      const resp = await api.chat({ conversation_id: this.cid, content: text });
+      const resp = await api.chat({ conversation_id: this.cid, content });
       for await (const ev of parseSSE(resp)) {
         switch (ev.type) {
           case "conversation":
@@ -352,7 +430,10 @@ export class ChatView {
       form.append("model", "auto");
       try {
         const res = await api.transcribe(form);
-        this.textarea.value = (this.textarea.value + " " + (res.text || "")).trim();
+        // Remplace plutôt que d'accumuler : chaque dictée reflète exactement ce qui vient
+        // d'être dit, pour éviter d'envoyer un texte reste d'une tentative précédente.
+        this.textarea.value = res.text || "";
+        this.resizeTextarea();
         this.textarea.focus();
       } catch (e) {
         toast(e.message, { error: true });
@@ -369,6 +450,11 @@ export class ChatView {
 
   scrollToBottom() {
     this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
+  }
+
+  resizeTextarea() {
+    this.textarea.style.height = "auto";
+    this.textarea.style.height = Math.min(160, this.textarea.scrollHeight) + "px";
   }
 
   openFromHash(cid) {
