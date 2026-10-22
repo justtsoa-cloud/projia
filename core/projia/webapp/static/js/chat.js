@@ -1,0 +1,368 @@
+import * as api from "./api.js";
+import { parseSSE } from "./sse.js";
+import { t } from "./i18n.js";
+import { toast } from "./toast.js";
+import { ConversationList } from "./history.js";
+import { Recorder } from "./media_record.js";
+import { speakText } from "./speak.js";
+
+const MEDIA_KIND_TAG = {
+  image_gen: "image", image_edit: "image",
+  video_gen: "video",
+  tts: "audio", music_sfx: "audio",
+  stt: "text",
+};
+
+function textOf(content) {
+  if (typeof content === "string") return content;
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => (typeof part === "string" ? part : part && part.text))
+      .filter(Boolean)
+      .join("\n");
+  }
+  return "";
+}
+
+export class ChatView {
+  constructor(root) {
+    this.root = root;
+    this.cid = null;
+    this.recorder = new Recorder();
+    this.jobPolls = new Map();
+    this.render();
+  }
+
+  render() {
+    this.root.innerHTML = "";
+    const wrap = document.createElement("div");
+    wrap.className = "chat-view";
+
+    const sidebar = document.createElement("div");
+    sidebar.id = "sidebar";
+    wrap.appendChild(sidebar);
+
+    const main = document.createElement("div");
+    main.id = "chat-main";
+
+    this.messagesEl = document.createElement("div");
+    this.messagesEl.id = "messages";
+    main.appendChild(this.messagesEl);
+
+    this.progressEl = document.createElement("div");
+    this.progressEl.className = "progress-line";
+    main.appendChild(this.progressEl);
+
+    const composer = document.createElement("div");
+    composer.id = "composer";
+    this.micBtn = document.createElement("button");
+    this.micBtn.className = "icon-btn";
+    this.micBtn.textContent = "🎙";
+    this.micBtn.onclick = () => this.toggleRecording();
+    composer.appendChild(this.micBtn);
+
+    this.textarea = document.createElement("textarea");
+    this.textarea.placeholder = t("composer_placeholder");
+    this.textarea.rows = 1;
+    this.textarea.addEventListener("input", () => {
+      this.textarea.style.height = "auto";
+      this.textarea.style.height = Math.min(160, this.textarea.scrollHeight) + "px";
+    });
+    this.textarea.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        this.send();
+      }
+    });
+    composer.appendChild(this.textarea);
+
+    this.sendBtn = document.createElement("button");
+    this.sendBtn.className = "primary";
+    this.sendBtn.textContent = t("send");
+    this.sendBtn.onclick = () => this.send();
+    composer.appendChild(this.sendBtn);
+
+    main.appendChild(composer);
+    wrap.appendChild(main);
+    this.root.appendChild(wrap);
+
+    this.convList = new ConversationList(sidebar, {
+      onSelect: (cid) => this.open(cid),
+      activeId: this.cid,
+    });
+
+    this.showEmpty();
+  }
+
+  showEmpty() {
+    this.messagesEl.innerHTML = "";
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.innerHTML = `
+      <img src="/assets/mark.svg" alt="">
+      <h2>${t("empty_title")}</h2>
+      <p>${t("empty_hint")}</p>
+      <div class="chips">
+        <button class="chip" data-s="${t("sugg_image")}">${t("sugg_image")}</button>
+        <button class="chip" data-s="${t("sugg_video")}">${t("sugg_video")}</button>
+        <button class="chip" data-s="${t("sugg_explain")}">${t("sugg_explain")}</button>
+        <button class="chip" data-s="${t("sugg_translate")}">${t("sugg_translate")}</button>
+      </div>`;
+    empty.querySelectorAll(".chip").forEach((btn) => {
+      btn.onclick = () => {
+        this.textarea.value = btn.dataset.s;
+        this.textarea.focus();
+      };
+    });
+    this.messagesEl.appendChild(empty);
+  }
+
+  async open(cid) {
+    this.cid = cid;
+    this.convList.setActive(cid);
+    if (!cid) {
+      this.showEmpty();
+      location.hash = "#chat";
+      return;
+    }
+    location.hash = "#chat/" + cid;
+    this.messagesEl.innerHTML = "";
+    try {
+      const data = await api.getConversation(cid, { limit: 500 });
+      for (const msg of data.messages || []) this.appendMessageBubble(msg);
+      this.scrollToBottom();
+    } catch (e) {
+      toast(e.message, { error: true });
+    }
+  }
+
+  appendMessageBubble(msg) {
+    const el = document.createElement("div");
+    el.className = "msg " + (msg.role === "user" ? "user" : "assistant");
+    const body = document.createElement("span");
+    body.className = "body";
+    body.textContent = textOf(msg.content);
+    el.appendChild(body);
+    el.setText = (text) => {
+      body.textContent = text;
+    };
+    if (msg.role === "assistant") {
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      if (msg._meta && msg._meta.model) {
+        const span = document.createElement("span");
+        span.textContent = msg._meta.model;
+        meta.appendChild(span);
+      }
+      const listenBtn = document.createElement("button");
+      listenBtn.className = "ghost";
+      listenBtn.textContent = "🔊 " + t("listen");
+      listenBtn.onclick = () => speakText(body.textContent).catch((e) => toast(e.message, { error: true }));
+      meta.appendChild(listenBtn);
+      el.appendChild(meta);
+    }
+    this.messagesEl.appendChild(el);
+    return el;
+  }
+
+  appendBanner(cls, html) {
+    const el = document.createElement("div");
+    el.className = "banner " + cls;
+    el.innerHTML = html;
+    this.messagesEl.appendChild(el);
+    this.scrollToBottom();
+    return el;
+  }
+
+  appendMediaCard(job) {
+    const el = document.createElement("div");
+    el.className = "msg assistant";
+    el.dataset.jobId = job.id;
+    el.appendChild(this.renderMediaBody(job));
+    this.messagesEl.appendChild(el);
+    this.scrollToBottom();
+    if (job.status !== "done" && job.status !== "failed") this.pollJob(job.id, el);
+    return el;
+  }
+
+  renderMediaBody(job) {
+    const wrap = document.createElement("div");
+    const kind = MEDIA_KIND_TAG[job.kind] || "file";
+    if (job.status === "queued" || job.status === "running") {
+      wrap.textContent = "⏳ " + (job.prompt || job.kind);
+    } else if (job.status === "failed") {
+      wrap.textContent = "⚠️ " + (job.error || job.kind);
+    } else if (kind === "image") {
+      const img = document.createElement("img");
+      img.className = "media";
+      img.src = api.mediaFileUrl(job.id);
+      wrap.appendChild(img);
+    } else if (kind === "video") {
+      const video = document.createElement("video");
+      video.className = "media";
+      video.src = api.mediaFileUrl(job.id);
+      video.controls = true;
+      wrap.appendChild(video);
+    } else if (kind === "audio") {
+      const audio = document.createElement("audio");
+      audio.className = "media";
+      audio.src = api.mediaFileUrl(job.id);
+      audio.controls = true;
+      wrap.appendChild(audio);
+    } else {
+      wrap.textContent = job.params?.text || job.prompt || job.kind;
+    }
+    return wrap;
+  }
+
+  pollJob(id, el) {
+    if (this.jobPolls.has(id)) return;
+    let delay = 800;
+    const tick = async () => {
+      try {
+        const job = await api.getMediaJob(id);
+        if (job.status === "done" || job.status === "failed") {
+          el.innerHTML = "";
+          el.appendChild(this.renderMediaBody(job));
+          this.jobPolls.delete(id);
+          this.scrollToBottom();
+          return;
+        }
+      } catch {
+        this.jobPolls.delete(id);
+        return;
+      }
+      delay = Math.min(1500, delay + 200);
+      this.jobPolls.set(id, setTimeout(tick, delay));
+    };
+    this.jobPolls.set(id, setTimeout(tick, delay));
+  }
+
+  setBusy(busy) {
+    this.sendBtn.textContent = busy ? t("stop") : t("send");
+    this.sendBtn.onclick = busy ? () => api.chatStop(this.cid).catch(() => {}) : () => this.send();
+    this.textarea.disabled = busy && !this.cid;
+  }
+
+  async send() {
+    const text = this.textarea.value.trim();
+    if (!text) return;
+    this.textarea.value = "";
+    this.textarea.style.height = "auto";
+    if (this.messagesEl.querySelector(".empty-state")) this.messagesEl.innerHTML = "";
+    this.appendMessageBubble({ role: "user", content: text });
+    this.setBusy(true);
+
+    let assistantEl = null;
+    let assistantText = "";
+    try {
+      const resp = await api.chat({ conversation_id: this.cid, content: text });
+      for await (const ev of parseSSE(resp)) {
+        switch (ev.type) {
+          case "conversation":
+            this.cid = ev.id;
+            this.convList.setActive(ev.id);
+            this.convList.reload();
+            location.hash = "#chat/" + ev.id;
+            break;
+          case "delta":
+            if (!assistantEl) assistantEl = this.appendMessageBubble({ role: "assistant", content: "" });
+            assistantText += ev.content || "";
+            assistantEl.setText(assistantText);
+            this.scrollToBottom();
+            break;
+          case "route":
+            this.progressEl.textContent = ev.name ? `${ev.name} · ${ev.reason || ""}` : "";
+            break;
+          case "model_switched":
+            this.appendBanner("switch", `🔁 ${t("banner_switched")}: ${ev.from} → ${ev.to} (${ev.reason || ""})`);
+            break;
+          case "model_returned":
+            this.appendBanner("ok", `↩️ ${t("banner_returned")}: ${ev.name || ev.model}`);
+            break;
+          case "waiting":
+          case "step":
+          case "orchestration":
+          case "plan":
+            this.progressEl.textContent = ev.step || ev.status || "…";
+            break;
+          case "review":
+            this.appendBanner("ok", `✓ ${t("banner_reviewed")}`);
+            break;
+          case "job":
+          case "media_switch":
+            this.appendMediaCard(ev);
+            break;
+          case "offline":
+            this.appendBanner("error", `📡 ${t("banner_offline")}`);
+            break;
+          case "error":
+            this.appendBanner("error", `⚠️ ${t("banner_error")}: ${ev.message || ""}`);
+            break;
+          case "question":
+            this.renderQuestion(ev);
+            break;
+          case "done":
+            this.progressEl.textContent = "";
+            if (assistantEl && ev.message) {
+              assistantText = textOf(ev.message.content);
+              assistantEl.setText(assistantText);
+            } else if (ev.message && textOf(ev.message.content)) {
+              this.appendMessageBubble(ev.message);
+            }
+            break;
+          default:
+            break;
+        }
+      }
+    } catch (e) {
+      toast(e.message, { error: true });
+    } finally {
+      this.setBusy(false);
+      this.progressEl.textContent = "";
+    }
+  }
+
+  renderQuestion(ev) {
+    const wrap = document.createElement("div");
+    wrap.className = "banner";
+    const label = document.createElement("span");
+    label.textContent = (ev.questions && ev.questions[0] && ev.questions[0].text) || "?";
+    wrap.appendChild(label);
+    this.messagesEl.appendChild(wrap);
+    this.scrollToBottom();
+  }
+
+  async toggleRecording() {
+    if (this.recorder.active) {
+      this.micBtn.classList.remove("recording");
+      const blob = await this.recorder.stop();
+      if (!blob) return;
+      const form = new FormData();
+      form.append("file", blob, "dictation.webm");
+      form.append("model", "auto");
+      try {
+        const res = await api.transcribe(form);
+        this.textarea.value = (this.textarea.value + " " + (res.text || "")).trim();
+        this.textarea.focus();
+      } catch (e) {
+        toast(e.message, { error: true });
+      }
+    } else {
+      try {
+        await this.recorder.start();
+        this.micBtn.classList.add("recording");
+      } catch (e) {
+        toast(e.message, { error: true });
+      }
+    }
+  }
+
+  scrollToBottom() {
+    this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
+  }
+
+  openFromHash(cid) {
+    if (cid) this.open(cid);
+  }
+}

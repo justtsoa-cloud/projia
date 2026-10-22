@@ -11,10 +11,12 @@ import hmac
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 
 from projia import __version__
 from projia.app_state import Core
@@ -32,6 +34,15 @@ from projia.server.common import (
     RateLimiter,
 )
 from projia.server.routes import ROUTERS
+
+STATIC_DIR = Path(__file__).resolve().parent.parent / "webapp" / "static"
+# Chemins de la webapp statique, exemptés du jeton (page/JS/CSS en lecture seule,
+# sans donnée privée) ; tout le reste de l'API continue d'exiger le jeton normalement.
+STATIC_GET_PREFIXES = ("/js/", "/css/", "/assets/")
+
+
+def _is_static_shell_request(path: str) -> bool:
+    return path == "/" or path.startswith(STATIC_GET_PREFIXES)
 
 
 def create_app(
@@ -72,7 +83,9 @@ def create_app(
         bind = core.settings.server.host if core else "127.0.0.1"
         if bind in LOOPBACK and host_of(request.headers.get("host", "")) not in LOOPBACK_NAMES:
             return JSONResponse({"error": {"message": "Hôte refusé"}}, status_code=403)
-        if token and request.url.path not in ("/health",):
+        if token and request.url.path != "/health" and not (
+            request.method == "GET" and _is_static_shell_request(request.url.path)
+        ):
             given = request.headers.get("authorization", "").removeprefix("Bearer ").strip()
             if not hmac.compare_digest(given, token):
                 return JSONResponse({"error": {"message": "Jeton invalide"}}, status_code=401)
@@ -81,6 +94,10 @@ def create_app(
 
     for router in ROUTERS:
         router.register(app, hub, ws_connects)
+
+    # Webapp statique (HTML/CSS/JS) : montée en dernier pour ne jamais passer avant
+    # les routeurs ci-dessus (Starlette essaie les routes dans l'ordre d'enregistrement).
+    app.mount("/", StaticFiles(directory=STATIC_DIR, html=True), name="webapp")
 
     return app
 

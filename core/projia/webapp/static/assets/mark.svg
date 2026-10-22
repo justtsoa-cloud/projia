@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024"><defs>
+<radialGradient id="bg" cx="0.28" cy="0.2" r="0.95">
+<stop offset="0" stop-color="#2E2142"/><stop offset="1" stop-color="#120D1C"/>
+</radialGradient>
+<linearGradient id="stem" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="#FFD166"/><stop offset="1" stop-color="#FF6B4A"/>
+</linearGradient>
+<linearGradient id="bowl" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0" stop-color="#9A8CFF"/><stop offset="1" stop-color="#7C6CF0"/>
+</linearGradient>
+<linearGradient id="spark" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0" stop-color="#6BE6C8"/><stop offset="1" stop-color="#2FBE9C"/>
+</linearGradient>
+</defs><rect x="368" y="300" width="132" height="560" rx="66" fill="url(#stem)"/><rect x="388" y="230" width="300" height="300" rx="68" fill="url(#bowl)" transform="rotate(45 538 380)"/><path d="M722.0 150.0 L734.0 198.0 L782.0 210.0 L734.0 222.0 L722.0 270.0 L710.0 222.0 L662.0 210.0 L710.0 198.0 Z" fill="url(#spark)"/><circle cx="600" cy="300" r="14" fill="#2FBE9C" opacity="0.85"/></svg>
