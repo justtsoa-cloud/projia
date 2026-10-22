@@ -10,7 +10,7 @@ Simple mais complet : le changement majeur de la version est montré par un exem
 Entrée  : press/posters/v<version>/poster.json et shots/<capture>-<langue>.png
 Sortie  : press/posters/v<version>/Projia-<version>-poster-<langue>.png (publication GitHub)
           app/assets/posters/latest-<langue>.webp (fenêtre « Nouveautés » de l'application)
-Nécessite rsvg-convert et magick (ImageMagick)."""
+Nécessite le paquet Python `cairosvg` (groupe dev) et `convert` (ImageMagick)."""
 
 from __future__ import annotations
 
@@ -20,6 +20,8 @@ import json
 import subprocess
 import sys
 from pathlib import Path
+
+import cairosvg
 
 ROOT = Path(__file__).resolve().parents[2]
 W, H = 1080, 1920
@@ -51,11 +53,19 @@ def release_url(version: str) -> str:
 
 
 def qr_png(url: str) -> bytes:
-    """QR code (qrencode), relu aussitôt (zbarimg) : jamais un code illisible ou faux."""
-    png = subprocess.run(["qrencode", "-o", "-", "-s", "10", "-m", "2", "-l", "M", url],
-                         check=True, capture_output=True).stdout
-    read = subprocess.run(["zbarimg", "-q", "--raw", "-"], input=png, capture_output=True)
-    if read.stdout.decode().strip() != url:
+    """QR code (qrcode), relu aussitôt (pyzbar) : jamais un code illisible ou faux."""
+    import io
+
+    import qrcode
+    from PIL import Image
+    from pyzbar.pyzbar import decode
+
+    img = qrcode.make(url, box_size=10, border=2, error_correction=qrcode.constants.ERROR_CORRECT_M)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    png = buf.getvalue()
+    read = decode(Image.open(io.BytesIO(png)))
+    if not read or read[0].data.decode() != url:
         raise SystemExit(f"QR code illisible ou faux pour {url}")
     return png
 
@@ -155,11 +165,13 @@ def main(version: str, for_app: bool = True) -> None:
         shot = folder / "shots" / f"{data['shot']}-{lang}.png"
         svg = folder / f"poster-{lang}.svg"
         png = folder / f"Projia-{version}-poster-{lang}.png"
-        svg.write_text(poster(data, lang, version, shot), encoding="utf-8")
-        subprocess.run(["rsvg-convert", str(svg), "-o", str(png)], check=True)
+        svg_text = poster(data, lang, version, shot)
+        svg.write_text(svg_text, encoding="utf-8")
+        cairosvg.svg2png(bytestring=svg_text.encode(), write_to=str(png),
+                         output_width=W, output_height=H)
         svg.unlink()
         if for_app:  # version légère pour l'application (une seule affiche : la dernière)
-            subprocess.run(["magick", str(png), "-resize", "810x", "-quality", "82",
+            subprocess.run(["convert", str(png), "-resize", "810x", "-quality", "82",
                             str(assets / f"latest-{lang}.webp")], check=True)
         print(png.relative_to(ROOT), png.stat().st_size // 1024, "Ko")
     if for_app:
