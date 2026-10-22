@@ -38,7 +38,12 @@ function authHeaders(extra) {
 
 class ApiError extends Error {
   constructor(status, body) {
-    super((body && body.error && body.error.message) || `Erreur ${status}`);
+    // Deux formes de corps d'erreur selon la route : {"error":{"message":...}} (garde
+    // perso) ou {"detail": "..."} (HTTPException FastAPI par défaut, ex. le 409 de
+    // "/projia/chat" quand un tour est déjà en cours).
+    const message = (body && body.error && body.error.message) || (body && body.detail)
+      || `Erreur ${status}`;
+    super(message);
     this.status = status;
     this.body = body;
   }

@@ -8,6 +8,10 @@ import { speakText } from "./speak.js";
 import { shortModelName } from "./modelname.js";
 import { openLightbox } from "./lightbox.js";
 
+// Format exact du marqueur persisté pour un tour média (server/common.py,
+// agent/loop.py:_MEDIA_NOTE) — même regex que chat_controller.dart côté Flutter.
+const MEDIA_NOTE_RE = /^\[média:([0-9a-f]+)\]$/;
+
 const MEDIA_KIND_TAG = {
   image_gen: "image", image_edit: "image",
   video_gen: "video",
@@ -40,7 +44,10 @@ export class ChatView {
     this.cid = null;
     this.recorder = new Recorder();
     this.jobPolls = new Map();
+    this.mediaCardsByJobId = new Map();
     this.attachments = [];
+    this.busy = false;
+    this.lastFailureText = null;
     this.render();
   }
 
@@ -182,6 +189,8 @@ export class ChatView {
   }
 
   async sendImageRequest() {
+    if (this.busy) return;
+    this.lastFailureText = null;
     const prompt = this.textarea.value.trim();
     const attachments = this.attachments;
     if (!prompt && !attachments.length) return;
@@ -290,6 +299,13 @@ export class ChatView {
   }
 
   appendMessageBubble(msg) {
+    // Un tour média (image/audio/vidéo) est persisté comme un message assistant dont
+    // le contenu est LITTÉRALEMENT "[média:<id du job>]" (voir server/common.py et
+    // chat.py) : jamais du texte à afficher tel quel, toujours à résoudre en vrai média.
+    const mediaMatch = MEDIA_NOTE_RE.exec(typeof msg.content === "string" ? msg.content.trim() : "");
+    if (msg.role === "assistant" && mediaMatch) {
+      return this.appendMediaNoteBubble(mediaMatch[1]);
+    }
     const el = document.createElement("div");
     el.className = "msg " + (msg.role === "user" ? "user" : "assistant");
     for (const url of imageUrlsOf(msg.content)) {
@@ -337,12 +353,42 @@ export class ChatView {
     return el;
   }
 
-  appendMediaCard(job) {
+  appendMediaNoteBubble(jobId) {
+    const existing = this.mediaCardsByJobId.get(jobId);
+    if (existing) return existing;
     const el = document.createElement("div");
     el.className = "msg assistant";
-    el.dataset.jobId = job.id;
-    el.appendChild(this.renderMediaBody(job));
+    el.dataset.jobId = jobId;
+    const placeholder = document.createElement("div");
+    placeholder.textContent = "⏳";
+    el.appendChild(placeholder);
     this.messagesEl.appendChild(el);
+    this.mediaCardsByJobId.set(jobId, el);
+    this.scrollToBottom();
+    api.getMediaJob(jobId)
+      .then((job) => this.appendMediaCard(job))
+      .catch(() => {
+        placeholder.textContent = "⚠️ média introuvable";
+      });
+    return el;
+  }
+
+  appendMediaCard(job) {
+    if (!job.id) return null;
+    // Un même job traverse plusieurs événements (job "queued" puis job "done", et le
+    // "done" du tour rappelle encore le même job) : mettre à jour LA carte existante,
+    // jamais en créer une nouvelle pour le même id (sinon le média apparaît en double).
+    const existing = this.mediaCardsByJobId.get(job.id);
+    const el = existing || document.createElement("div");
+    if (!existing) {
+      el.className = "msg assistant";
+      el.dataset.jobId = job.id;
+      this.messagesEl.appendChild(el);
+      this.mediaCardsByJobId.set(job.id, el);
+    } else {
+      el.innerHTML = "";
+    }
+    el.appendChild(this.renderMediaBody(job));
     this.scrollToBottom();
     if (job.status !== "done" && job.status !== "failed") this.pollJob(job.id, el);
     return el;
@@ -411,13 +457,19 @@ export class ChatView {
   }
 
   setBusy(busy) {
+    this.busy = busy;
     this.sendBtn.textContent = busy ? t("stop") : t("send");
     this.sendBtn.onclick = busy ? () => api.chatStop(this.cid).catch(() => {}) : () => this.send();
     this.textarea.disabled = busy && !this.cid;
   }
 
   async send() {
+    // Garde-fou : une 2e requête pendant qu'un tour tourne déjà donne un 409
+    // côté serveur ("Une réponse est déjà en cours dans cette conversation") —
+    // on l'évite ici plutôt que de laisser l'utilisateur voir l'erreur.
+    if (this.busy) return;
     if (this.imageOptsPanel && !this.imageOptsPanel.hidden) return this.sendImageRequest();
+    this.lastFailureText = null;
     const text = this.textarea.value.trim();
     const attachments = this.attachments;
     if (!text && !attachments.length) return;
@@ -476,22 +528,44 @@ export class ChatView {
           case "review":
             this.appendBanner("ok", `✓ ${t("banner_reviewed")}`);
             break;
-          case "job":
-          case "media_switch":
+          case "job": {
+            // Un job en échec répète parfois le même message agrégé sur deux
+            // événements consécutifs (ex. toutes les sources d'image épuisées) :
+            // éviter d'afficher deux cartes quasi identiques l'une sous l'autre.
+            if (ev.status === "failed") {
+              const raw = ev.error || ev.kind || "";
+              if (raw && raw === this.lastFailureText) break;
+              this.lastFailureText = raw;
+            }
             this.appendMediaCard(ev);
+            break;
+          }
+          case "media_switch":
+            // {"type":"media_switch"} ne porte aucune donnée de job : un simple
+            // indicateur de progression, pas une carte média à part entière.
+            this.progressEl.textContent = "🔄 Nouvelle source média…";
             break;
           case "offline":
             this.appendBanner("error", `📡 ${t("banner_offline")}`);
             break;
-          case "error":
-            this.appendBanner("error", `⚠️ ${t("banner_error")}: ${ev.message || ""}`);
+          case "error": {
+            const raw = ev.message || "";
+            if (raw && raw === this.lastFailureText) break;
+            this.lastFailureText = raw;
+            this.appendBanner("error", `⚠️ ${t("banner_error")}: ${raw}`);
+            break;
+          }
             break;
           case "question":
             this.renderQuestion(ev);
             break;
           case "done":
             this.progressEl.textContent = "";
-            if (assistantEl && ev.message) {
+            if (ev.job) {
+              // Tour média/fichier : le "done" rappelle le même job déjà vu via "job" —
+              // mettre à jour la carte existante plutôt que recréer un message séparé.
+              this.appendMediaCard(ev.job);
+            } else if (assistantEl && ev.message) {
               assistantText = textOf(ev.message.content);
               assistantEl.setText(assistantText);
             } else if (ev.message && textOf(ev.message.content)) {
