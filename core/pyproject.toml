@@ -57,6 +57,7 @@ dev = [
   "ruff>=0.6",
   "mypy>=1.11",
   "types-PyYAML",
+  "cairosvg>=2.7",  # docs/brand/build_logo.py : rendu SVG -> PNG
 ]
 
 [project.scripts]
