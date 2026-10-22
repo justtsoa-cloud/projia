@@ -79,6 +79,8 @@ async def generate_image(
         return await _pollinations_image(model, prompt, params)
     if model.provider == "hf_spaces":
         return await _space_image(model, prompt, params)
+    if model.provider == "gemini":
+        return await _gemini_image(model, provider, prompt, params)
     body: dict[str, Any] = {"model": model.model_id, "prompt": prompt, "n": 1}
     if params.get("aspect_ratio"):
         body["aspect_ratio"] = params["aspect_ratio"]
@@ -98,6 +100,42 @@ async def generate_image(
         r = await http.client().get(item["url"], timeout=120.0)
         return MediaOutput(r.content, r.headers.get("content-type", "image/png"))
     raise ProviderError("Aucune image renvoyée", ErrorKind.SERVER)
+
+
+async def _gemini_image(
+    model: ModelInfo, provider: dict[str, Any], prompt: str, params: dict[str, Any]
+) -> MediaOutput:
+    """Nano Banana (Gemini 2.5+ Flash/Pro Image) avec une clé Google AI Studio gratuite.
+
+    Pas de `/images/generations` chez Google : l'image sort du MÊME point d'entrée
+    `chat/completions` que le texte, avec `modalities` — même convention déjà utilisée
+    ci-dessous pour l'audio OpenRouter (`_openrouter_audio`). Retouche (image_edit) :
+    la photo de référence part comme pièce jointe `image_url` du message, pas de champ
+    dédié séparé.
+    """
+    content: Any = prompt
+    if params.get("image"):
+        content = [{"type": "text", "text": prompt},
+                  {"type": "image_url", "image_url": {"url": params["image"]}}]
+    body = {"model": model.model_id, "modalities": ["text", "image"],
+            "messages": [{"role": "user", "content": content}]}
+    resp = await _post(f"{provider['base_url']}/chat/completions", json=body,
+                       headers=_auth(provider))
+    message = ((resp.json().get("choices") or [{}])[0]).get("message") or {}
+    url = None
+    for img in message.get("images") or []:
+        url = (img.get("image_url") or {}).get("url") if isinstance(img, dict) else None
+        if url:
+            break
+    if not url and isinstance(message.get("content"), list):
+        for part in message["content"]:
+            if isinstance(part, dict) and part.get("type") == "image_url":
+                url = (part.get("image_url") or {}).get("url")
+                break
+    if not url or ";base64," not in url:
+        raise ProviderError("Aucune image renvoyée par Gemini", ErrorKind.SERVER)
+    mime, b64 = url.split(";base64,", 1)
+    return MediaOutput(base64.b64decode(b64), mime.removeprefix("data:") or "image/png")
 
 
 IMAGE_MAX_BYTES = 20 * 1024 * 1024
@@ -130,7 +168,7 @@ async def _space_image(model: ModelInfo, prompt: str, params: dict[str, Any]) ->
                            seed, rand, 2.5, space.steps]
     elif "stable-diffusion" in space.space:
         data = [prompt, "", seed, rand, w, h, 0.0, space.steps]
-    elif space.steps > 4:  # FLUX.1-dev : échelle de guidage
+    elif space.steps > 4:  # FLUX.1-dev (et Qwen-Image, même forme supposée) : échelle de guidage
         data = [prompt, seed, rand, w, h, 3.5, space.steps]
     else:
         data = [prompt, seed, rand, w, h, space.steps]

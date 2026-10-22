@@ -80,6 +80,13 @@ _NOT_CHAT = re.compile(
     r"stable-diffusion|sdxl|imagen|image-gen|ocr|bge-|e5-|clip|nomic|safety|reward|"
     r"-vae|playai|orpheus|prompt-guard", re.I)
 
+# Gemini expose la génération/retouche d'image (« Nano Banana ») par le MÊME point
+# d'entrée chat/completions que le texte (voir media/providers.py::_gemini_image) —
+# ce n'est donc jamais exclu par `_NOT_CHAT` ci-dessus, juste marqué en plus comme
+# média. Détection par motif plutôt qu'un identifiant figé : suit Google quel que
+# soit le nom exact de la variante Nano Banana du moment (2.5, 3.1, Pro…).
+_GEMINI_IMAGE_ID = re.compile(r"image", re.I)
+
 
 def _rows(data: Any) -> list[dict[str, Any]]:
     """`{"data": [...]}` (OpenAI), `[...]` (Together, GitHub) ou `{"models": [...]}`."""
@@ -109,12 +116,15 @@ def parse(pid: str, data: Any) -> list[ModelInfo]:
         ctx = r.get("context_length") or r.get("context_window") or (
             (r.get("limits") or {}).get("max_input_tokens") if isinstance(r.get("limits"), dict)
             else 0)
+        is_gemini_image = pid == "gemini" and bool(_GEMINI_IMAGE_ID.search(mid))
         out.append(ModelInfo(
             provider=pid, model_id=mid, name=str(r.get("name") or r.get("display_name") or mid),
             context_length=int(ctx or 0),
-            input_modalities=["text", "image"] if ("image" in mods or "vision" in tags.lower()
+            input_modalities=["text", "image"] if (is_gemini_image or "image" in mods
+                                                   or "vision" in tags.lower()
                                                    or "-vl" in mid.lower()
                                                    or "vision" in mid.lower()) else ["text"],
+            media=["image_gen", "image_edit"] if is_gemini_image else [],
             # Inconnu chez la plupart : supposé, puis vérifié à l'usage (fiabilité).
             supports_tools=True, is_free=True, needs_key=True,
             rate_limit="offre gratuite (débit limité)",

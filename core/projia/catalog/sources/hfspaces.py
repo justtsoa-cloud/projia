@@ -9,6 +9,10 @@ une clé Hugging Face (gratuite) l'augmente.
 Images (vérifié le 2026-10-11, point d'entrée Gradio `infer`) : FLUX.1-schnell et FLUX.1-dev
 (Black Forest Labs) et Stable Diffusion 3.5 Large Turbo (Stability AI). Le quota ZeroGPU est
 commun à tous les Spaces : quand il est épuisé, Pollinations prend le relais.
+
+Qwen/Qwen-Image (ajouté le 2026-10-22) : PAS vérifié en direct (pas d'accès réseau sortant
+disponible à l'ajout) — nom de Space et URL déduits par convention, appel Gradio supposé
+identique à FLUX.1-dev. À confirmer/corriger après un premier essai réel.
 """
 
 from __future__ import annotations
@@ -51,6 +55,13 @@ IMAGE_SPACES: tuple[ImageSpace, ...] = (
                "Stable Diffusion 3.5 Large Turbo", 0.66, 0.7, 4),
     ImageSpace("black-forest-labs/FLUX.1-dev",
                "https://black-forest-labs-flux-1-dev.hf.space", "FLUX.1 dev", 0.8, 0.3, 28),
+    # NON vérifié en direct (pas d'accès réseau sortant disponible au moment de l'ajout,
+    # 2026-10-22) : nom du Space officiel Qwen et URL *.hf.space déduits par la même
+    # convention que les 3 lignes ci-dessus (org/repo → minuscules, « / » et « . » → « - »).
+    # Même branche d'appel Gradio que FLUX.1-dev (steps > 4 → prompt/seed/rand/w/h/guidance/
+    # steps) : à confirmer/corriger après un premier essai réel (voir _space_image).
+    ImageSpace("Qwen/Qwen-Image", "https://qwen-qwen-image.hf.space", "Qwen Image", 0.74,
+               0.5, 20),
 )
 
 
