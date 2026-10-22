@@ -308,6 +308,11 @@ def classify(
         if scores.get(Category.IMAGE_EDIT) or scores.get(Category.IMAGE_GEN):
             scores[Category.IMAGE_EDIT] = scores.get(Category.IMAGE_EDIT, 0) + 4
             scores.pop(Category.IMAGE_GEN, None)
+        elif _previous_media_category(messages) in (Category.IMAGE_GEN, Category.IMAGE_EDIT):
+            # La photo jointe répond à une demande d'édition/génération précédente (« voici
+            # l'image », après qu'on lui a demandé de l'uploader) : on continue l'édition, ce
+            # n'est pas une question sur son contenu.
+            scores[Category.IMAGE_EDIT] = scores.get(Category.IMAGE_EDIT, 0) + 5
         else:
             scores[Category.VISION] = scores.get(Category.VISION, 0) + 5
     if "audio" in parts:
